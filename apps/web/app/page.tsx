@@ -1,7 +1,13 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import type { Incident, RouteOption } from "@saferoute/types";
+import type { Incident, RouteOption, RoutePreference } from "@saferoute/types";
 import { RouteMap as MapView } from "../components/route-map";
+import { PlaceSearch } from "../components/place-search";
+import {
+  analyseOpenRoutes,
+  PlaceNotFoundError,
+  type ResolvedPlace,
+} from "../lib/open-routing";
 
 const API =
   process.env.NEXT_PUBLIC_API_URL ??
@@ -119,6 +125,18 @@ const initialIncidents: Incident[] = [
     status: "active",
   },
 ];
+const defaultOrigin: ResolvedPlace = {
+  displayName:
+    "Cape Town City Centre, City of Cape Town, Western Cape, South Africa",
+  latitude: -33.9249,
+  longitude: 18.4241,
+};
+const defaultDestination: ResolvedPlace = {
+  displayName:
+    "Cape Town International Airport, City of Cape Town, Western Cape, South Africa",
+  latitude: -33.9715,
+  longitude: 18.6021,
+};
 const riskClass = (score: number) =>
   score >= 80 ? "low" : score >= 60 ? "medium" : "high";
 
@@ -219,6 +237,7 @@ export default function App() {
     [routes, setRoutes] = useState(fallbackRoutes),
     [selected, setSelected] = useState("route-balanced"),
     [loading, setLoading] = useState(false),
+    [locating, setLocating] = useState(false),
     [notice, setNotice] = useState("");
   const [trip, setTrip] = useState<{
     active: boolean;
@@ -228,10 +247,19 @@ export default function App() {
     alerts: string[];
   }>({ active: false, paused: false, progress: 0, score: 87, alerts: [] });
   const [incidents, setIncidents] = useState(initialIncidents),
-    [origin, setOrigin] = useState("Cape Town CBD"),
+    [origin, setOrigin] = useState("Cape Town City Centre"),
     [destination, setDestination] = useState("Cape Town International Airport"),
+    [preference, setPreference] = useState<RoutePreference>("balanced"),
+    [resolvedOrigin, setResolvedOrigin] = useState<ResolvedPlace | null>(
+      defaultOrigin,
+    ),
+    [resolvedDestination, setResolvedDestination] =
+      useState<ResolvedPlace | null>(defaultDestination),
     [audit, setAudit] = useState<string[]>([]);
   const route = routes.find((r) => r.id === selected) ?? routes[0];
+  const safestAlternative = routes
+    .filter((candidate) => candidate.id !== selected)
+    .sort((first, second) => second.safetyScore - first.safetyScore)[0];
   useEffect(() => {
     if (!trip.active || trip.paused) return;
     const timer = setInterval(
@@ -240,9 +268,82 @@ export default function App() {
     );
     return () => clearInterval(timer);
   }, [trip.active, trip.paused]);
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setNotice("Current location is not supported by this browser.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const insideDemoArea =
+          coords.latitude >= -34.36 &&
+          coords.latitude <= -33.7 &&
+          coords.longitude >= 18.28 &&
+          coords.longitude <= 19.05;
+        if (!insideDemoArea) {
+          setNotice(
+            "Your location is outside the Cape Town demonstration area. Search for a Cape Town origin instead.",
+          );
+          setLocating(false);
+          return;
+        }
+        const place: ResolvedPlace = {
+          displayName: `Current location (${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)})`,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        };
+        setOrigin("Current location");
+        setResolvedOrigin(place);
+        setNotice("Current location selected as the route origin.");
+        setLocating(false);
+      },
+      () => {
+        setNotice(
+          "Location permission was unavailable. Enter a street, landmark or suburb instead.",
+        );
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  }
   async function findRoutes() {
     setLoading(true);
     setNotice("");
+    try {
+      const result = await analyseOpenRoutes(
+        origin,
+        destination,
+        preference,
+        incidents,
+        resolvedOrigin,
+        resolvedDestination,
+      );
+      setRoutes(result.routes);
+      setSelected(
+        result.routes.find((candidate) => candidate.recommended)?.id ??
+          result.routes[0].id,
+      );
+      setResolvedOrigin(result.origin);
+      setResolvedDestination(result.destination);
+      setNotice(
+        `Three live road alternatives found between ${result.origin.displayName.split(",")[0]} and ${result.destination.displayName.split(",")[0]}.`,
+      );
+    } catch (error) {
+      if (error instanceof PlaceNotFoundError) {
+        setNotice(error.message);
+      } else {
+        await findFallbackRoutes();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function findFallbackRoutes() {
+    setLoading(true);
+    setNotice("");
+    setResolvedOrigin(null);
+    setResolvedDestination(null);
     try {
       const res = await fetch(`${API}/api/v1/routes/analyse`, {
         method: "POST",
@@ -250,7 +351,7 @@ export default function App() {
         body: JSON.stringify({
           origin,
           destination,
-          preference: "balanced",
+          preference,
           departure_time: new Date().toISOString(),
           vehicle_type: "car",
         }),
@@ -300,7 +401,7 @@ export default function App() {
       alerts: [],
     });
     setPage("Live Trips");
-    setAudit((a) => ["Trip started on Balanced Route", ...a]);
+    setAudit((a) => [`Trip started on ${route.name}`, ...a]);
   }
   function inject(type = "Accident") {
     const item: Incident = {
@@ -323,7 +424,7 @@ export default function App() {
       ...t,
       score: Math.max(35, t.score - 19),
       alerts: [
-        `${type} ahead. Safer Route is 4 minutes longer. Reroute recommended.`,
+        `${type} ahead. ${safestAlternative ? `${safestAlternative.name} is the lowest-risk available alternative.` : "Review the available alternatives."} Reroute recommended.`,
         ...t.alerts,
       ],
     }));
@@ -442,13 +543,30 @@ export default function App() {
         <section className="panel controls">
           <label>
             Origin
-            <input value={origin} onChange={(e) => setOrigin(e.target.value)} />
+            <PlaceSearch
+              value={origin}
+              onChange={setOrigin}
+              resolved={resolvedOrigin}
+              onResolved={setResolvedOrigin}
+              placeholder="Street, landmark or suburb"
+            />
+            <button
+              className="location-button"
+              type="button"
+              onClick={useCurrentLocation}
+              disabled={locating}
+            >
+              {locating ? "Locating…" : "Use current location"}
+            </button>
           </label>
           <label>
             Destination
-            <input
+            <PlaceSearch
               value={destination}
-              onChange={(e) => setDestination(e.target.value)}
+              onChange={setDestination}
+              resolved={resolvedDestination}
+              onResolved={setResolvedDestination}
+              placeholder="Street, landmark or suburb"
             />
           </label>
           <div className="row">
@@ -467,10 +585,15 @@ export default function App() {
           </div>
           <label>
             Preference
-            <select>
-              <option>Balanced</option>
-              <option>Safest</option>
-              <option>Fastest</option>
+            <select
+              value={preference}
+              onChange={(event) =>
+                setPreference(event.target.value as RoutePreference)
+              }
+            >
+              <option value="balanced">Balanced</option>
+              <option value="safest">Safest</option>
+              <option value="fastest">Fastest</option>
             </select>
           </label>
           <button
@@ -478,8 +601,30 @@ export default function App() {
             onClick={findRoutes}
             disabled={loading}
           >
-            {loading ? "Analysing risk…" : "Find routes"}
+            {loading ? "Resolving places and road routes…" : "Find routes"}
           </button>
+          <p className="routing-attribution">
+            Search by{" "}
+            <a href="https://photon.komoot.io" target="_blank" rel="noreferrer">
+              Photon
+            </a>
+            {" · "}routing by{" "}
+            <a
+              href="https://routing.openstreetmap.de/about.html"
+              target="_blank"
+              rel="noreferrer"
+            >
+              OSRM/FOSSGIS
+            </a>
+            {" · "}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noreferrer"
+            >
+              © OpenStreetMap contributors
+            </a>
+          </p>
         </section>
         <MapView routes={routes} selected={selected} />
       </div>
@@ -549,7 +694,10 @@ export default function App() {
             {trip.active ? "Trip in progress" : "No active trip"}
           </p>
           <h1>Live Trip</h1>
-          <p>Cape Town CBD → Cape Town International Airport</p>
+          <p>
+            {resolvedOrigin?.displayName.split(",")[0] ?? origin} →{" "}
+            {resolvedDestination?.displayName.split(",")[0] ?? destination}
+          </p>
         </div>
         <div className={`pill ${riskClass(trip.score)}`}>
           {trip.score}/100 safety
@@ -578,9 +726,17 @@ export default function App() {
               {x}
               <button
                 onClick={() => {
-                  setSelected("route-safest");
-                  setTrip((t) => ({ ...t, score: 92, alerts: [] }));
-                  setAudit((a) => ["Safer reroute accepted", ...a]);
+                  if (!safestAlternative) return;
+                  setSelected(safestAlternative.id);
+                  setTrip((t) => ({
+                    ...t,
+                    score: safestAlternative.safetyScore,
+                    alerts: [],
+                  }));
+                  setAudit((a) => [
+                    `Reroute accepted via ${safestAlternative.name}`,
+                    ...a,
+                  ]);
                 }}
               >
                 Accept safer route

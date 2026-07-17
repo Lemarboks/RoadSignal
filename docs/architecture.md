@@ -12,6 +12,7 @@ Azure deployment targets Container Apps for API/web, Azure Database for PostgreS
 - Authentication schemas and storage models exist, but the demonstration endpoints are intentionally open and the full JWT router/RBAC middleware is not yet connected.
 - Azure Maps and live incident provider adapters need deployment credentials and provider-specific implementation.
 - OpenFreeMap is a free public basemap service without an SLA; the application falls back to its offline schematic if tiles are unavailable.
+- Photon, Nominatim, and FOSSGIS OSRM are shared public demonstration services without an SLA or live traffic. Their endpoints are configurable so production can move to self-hosted or contracted providers.
 - Expo background tracking, native maps, notifications, evidence uploads, and actual emergency integrations require native entitlements and security review.
 - Seed volume is represented by the UI/analytics fixtures; a database seed command containing the requested 50 incident rows is still pending.
 - Rate limiting is listed in the dependency set but not wired to routes in this build.

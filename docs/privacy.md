@@ -5,3 +5,5 @@ Location is collected to detect route proximity, update trip progress, warn driv
 Anonymous community reports omit public identity. Public map locations should be spatially blurred where precision is unnecessary. Precise driver coordinates must be restricted to the assigned driver and authorised fleet operators, encrypted in transit/at rest, excluded from ordinary logs, and accessed through audited roles.
 
 Risk scores are incomplete estimates derived from available, possibly delayed or disputed data. They neither predict every hazard nor guarantee safety. The simulated SOS does not contact emergency services.
+
+In the free static demonstration, typed place queries are sent to Photon and, after an explicit route search, unresolved place names may be sent to Nominatim. Selected origin/destination coordinates are sent to the FOSSGIS OSRM service to calculate road geometry. These public services receive normal network metadata and may log requests under their own policies. Do not enter sensitive private addresses in the public demo. A production deployment should proxy or self-host these services under the organisation's privacy controls.

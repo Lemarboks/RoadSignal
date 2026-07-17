@@ -329,6 +329,85 @@ main {
   border-radius: 5px;
   background: white;
 }
+.resolved-place {
+  display: block;
+  margin-top: 6px;
+  color: var(--green);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.place-search {
+  position: relative;
+}
+.place-search-status {
+  position: absolute;
+  top: 15px;
+  right: 10px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.controls .location-button {
+  margin-top: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.controls .location-button:disabled {
+  color: var(--muted);
+  cursor: wait;
+}
+.place-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 3px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  border: 1px solid #cbd3d8;
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 10px 24px #12212b26;
+}
+.place-suggestions button {
+  display: block;
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  border-bottom: 1px solid #edf0f2;
+  background: white;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.place-suggestions button:hover,
+.place-suggestions button:focus-visible {
+  background: #eef6fb;
+  outline: none;
+}
+.place-suggestions button strong,
+.place-suggestions button span {
+  display: block;
+}
+.place-suggestions button span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.routing-attribution {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.routing-attribution a {
+  color: var(--blue);
+}
 .row {
   display: flex;
   gap: 10px;
