@@ -4,7 +4,8 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "turbo dev",
-    "build": "turbo build",
+    "build": "corepack pnpm --filter @saferoute/web build",
+    "build:all": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",

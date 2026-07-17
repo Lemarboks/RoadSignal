@@ -33,6 +33,7 @@ Run mobile separately with `pnpm dev:mobile`. Run the API plus data services wit
 ```bash
 pnpm typecheck
 pnpm build
+pnpm build:all
 pnpm test
 python -m pytest apps/api/tests
 ```
