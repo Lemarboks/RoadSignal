@@ -1,0 +1,1 @@
+{"expo":{"name":"SafeRoute AI","slug":"saferoute-ai","scheme":"saferoute","plugins":["expo-router","expo-location","expo-notifications"],"experiments":{"typedRoutes":true}}}

@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.turbo/
+dist/
+coverage/
+.env
+.env.local
+.expo/
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+uploads/

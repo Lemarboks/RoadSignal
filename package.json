@@ -1,0 +1,15 @@
+{
+  "name": "saferoute-ai",
+  "private": true,
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "dev:web": "pnpm --filter @saferoute/web dev",
+    "dev:mobile": "pnpm --filter @saferoute/mobile start"
+  },
+  "devDependencies": { "turbo": "^2.5.4", "typescript": "^5.8.3" }
+}
