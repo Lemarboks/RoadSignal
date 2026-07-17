@@ -1,1 +1,28 @@
-{"expo":{"name":"SafeRoute AI","slug":"saferoute-ai","scheme":"saferoute","plugins":["expo-router","expo-location","expo-notifications"],"experiments":{"typedRoutes":true}}}
+{
+  "expo": {
+    "name": "SafeRoute AI",
+    "slug": "saferoute-ai",
+    "scheme": "saferoute",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow SafeRoute AI to use your location to plan routes and provide safety alerts during an active trip."
+        }
+      ],
+      "expo-notifications"
+    ],
+    "ios": {
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SafeRoute AI uses your location only for route planning, active-trip progress, and safety alerts."
+      }
+    },
+    "android": {
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

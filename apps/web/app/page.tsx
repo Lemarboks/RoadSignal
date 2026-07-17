@@ -23,6 +23,12 @@ const nav = [
   "Settings",
 ] as const;
 type Page = (typeof nav)[number];
+type LocationPermissionStatus =
+  | "checking"
+  | "prompt"
+  | "granted"
+  | "denied"
+  | "unsupported";
 const fallbackRoutes: RouteOption[] = [
   {
     id: "route-balanced",
@@ -238,6 +244,8 @@ export default function App() {
     [selected, setSelected] = useState("route-balanced"),
     [loading, setLoading] = useState(false),
     [locating, setLocating] = useState(false),
+    [locationPermission, setLocationPermission] =
+      useState<LocationPermissionStatus>("checking"),
     [notice, setNotice] = useState("");
   const [trip, setTrip] = useState<{
     active: boolean;
@@ -268,6 +276,29 @@ export default function App() {
     );
     return () => clearInterval(timer);
   }, [trip.active, trip.paused]);
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationPermission("unsupported");
+      return;
+    }
+    if (!navigator.permissions?.query) {
+      setLocationPermission("prompt");
+      return;
+    }
+    let permission: PermissionStatus | null = null;
+    const updatePermission = () => {
+      if (permission) setLocationPermission(permission.state);
+    };
+    void navigator.permissions
+      .query({ name: "geolocation" })
+      .then((status) => {
+        permission = status;
+        updatePermission();
+        status.addEventListener("change", updatePermission);
+      })
+      .catch(() => setLocationPermission("prompt"));
+    return () => permission?.removeEventListener("change", updatePermission);
+  }, []);
   function useCurrentLocation() {
     if (!navigator.geolocation) {
       setNotice("Current location is not supported by this browser.");
@@ -295,12 +326,18 @@ export default function App() {
         };
         setOrigin("Current location");
         setResolvedOrigin(place);
+        setLocationPermission("granted");
         setNotice("Current location selected as the route origin.");
         setLocating(false);
       },
-      () => {
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPermission("denied");
+        }
         setNotice(
-          "Location permission was unavailable. Enter a street, landmark or suburb instead.",
+          error.code === error.PERMISSION_DENIED
+            ? "Location permission was denied. Enable it in your browser site settings or enter an origin manually."
+            : "Your location could not be read. Enter a street, landmark or suburb instead.",
         );
         setLocating(false);
       },
@@ -541,6 +578,45 @@ export default function App() {
       </section>
       <div className="planner">
         <section className="panel controls">
+          <div
+            className={`location-permission ${locationPermission}`}
+            aria-live="polite"
+          >
+            <div>
+              <strong>
+                {locationPermission === "granted"
+                  ? "Location access enabled"
+                  : locationPermission === "denied"
+                    ? "Location access blocked"
+                    : locationPermission === "unsupported"
+                      ? "Location unavailable"
+                      : "Enable current location"}
+              </strong>
+              <span>
+                {locationPermission === "granted"
+                  ? "Your browser can use your position as the route origin."
+                  : locationPermission === "denied"
+                    ? "Allow location in browser settings, or search manually."
+                    : locationPermission === "unsupported"
+                      ? "This browser does not expose geolocation; manual search still works."
+                      : "Permission is requested only when you press Enable."}
+              </span>
+            </div>
+            {locationPermission !== "granted" &&
+              locationPermission !== "unsupported" && (
+                <button
+                  type="button"
+                  onClick={useCurrentLocation}
+                  disabled={locating || locationPermission === "checking"}
+                >
+                  {locating
+                    ? "Locating…"
+                    : locationPermission === "denied"
+                      ? "Try again"
+                      : "Enable"}
+                </button>
+              )}
+          </div>
           <label>
             Origin
             <PlaceSearch

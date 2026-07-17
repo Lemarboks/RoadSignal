@@ -317,6 +317,54 @@ main {
   font-size: 12px;
   margin-bottom: 13px;
 }
+.location-permission {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 11px 12px;
+  border: 1px solid #c9dbe8;
+  border-radius: 7px;
+  background: #eef6fb;
+}
+.location-permission.granted {
+  border-color: #b8ddc8;
+  background: #edf8f1;
+}
+.location-permission.denied {
+  border-color: #e6b7b7;
+  background: #fff1f0;
+}
+.location-permission strong,
+.location-permission span {
+  display: block;
+}
+.location-permission strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+.location-permission span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.location-permission button {
+  flex: none;
+  padding: 6px 10px;
+  border: 1px solid var(--blue);
+  border-radius: 5px;
+  background: white;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.location-permission button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
 .controls input,
 .controls select,
 .filters input,
