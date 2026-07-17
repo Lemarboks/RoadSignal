@@ -24,7 +24,7 @@ uvicorn app.main:app --app-dir apps/api --reload --port 8000
 pnpm dev:web
 ```
 
-Open <http://localhost:3000>; API documentation is at <http://localhost:8000/docs>. The web UI has deterministic route and incident fallbacks, so its complete interaction can still be demonstrated on free static hosting when the API is unavailable. The static production artifact is written to `dist/` by `pnpm build`.
+Open <http://localhost:3000>; API documentation is at <http://localhost:8000/docs>. The web UI has deterministic route and incident fallbacks, so its complete interaction can still be demonstrated on free static hosting when the API is unavailable. `pnpm build` writes a deployment bundle to `dist/`, with static assets under `dist/client` and a minimal asset worker under `dist/server`.
 
 Run mobile separately with `pnpm dev:mobile`. Run the API plus data services with `docker compose up --build`. For migrations: `cd apps/api && alembic upgrade head`. The current API automatically provides demonstration data; a production repository-backed seed command is a documented follow-up.
 
