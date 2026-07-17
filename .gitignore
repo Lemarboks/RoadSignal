@@ -2,6 +2,7 @@ node_modules/
 .next/
 .turbo/
 dist/
+out/
 coverage/
 .env
 .env.local

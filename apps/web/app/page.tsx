@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Incident, RouteOption } from "@saferoute/types";
 import { RouteMap as MapView } from "../components/route-map";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
 const nav = [
   "Dashboard",
   "Route Planner",

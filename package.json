@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "turbo dev",
-    "build": "corepack pnpm --filter @saferoute/web build",
+    "build": "corepack pnpm --filter @saferoute/web build && node scripts/prepare-hosting.mjs",
     "build:all": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
