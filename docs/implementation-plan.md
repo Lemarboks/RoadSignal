@@ -35,7 +35,8 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Build incident report and incident management flows with confirm/dispute/resolve
 - [x] Build risk map, analytics, and settings screens with meaningful seeded content
 - [x] Add loading, empty, failure, and action feedback states
-- [ ] Enable Azure Maps rendering when a browser key is supplied (the local SVG map remains the credential-free adapter)
+- [x] Add a no-key MapLibre/OpenFreeMap map with visible attribution and an offline SVG fallback
+- [ ] Enable Azure Maps as an optional enterprise adapter when a browser key is supplied
 
 ## 4. Mobile
 
@@ -64,4 +65,3 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Publish the event to the fleet view and audit log
 - [x] Confirm/dispute the incident and update confidence
 - [x] End the trip and review its risk-event history
-

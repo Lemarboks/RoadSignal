@@ -1,6 +1,6 @@
 # SafeRoute AI
 
-SafeRoute AI is a functional demonstration MVP for comparing driving routes by travel time and confidence-weighted risk. It includes a Next.js fleet/driver console, Expo mobile app, FastAPI service, deterministic Cape Town mock providers, PostGIS schema, Redis-ready realtime architecture, and a credential-free simulation flow.
+SafeRoute AI is a functional demonstration MVP for comparing driving routes by travel time and confidence-weighted risk. It includes a Next.js fleet/driver console, Expo mobile app, FastAPI service, deterministic Cape Town mock providers, PostGIS schema, Redis-ready realtime architecture, and a credential-free simulation flow. The web map uses open-source MapLibre GL and no-key OpenFreeMap/OpenStreetMap-based tiles, with an offline schematic fallback.
 
 > All included people, trips, incidents, risk zones, and scores are demonstration data. A score is decision support based on available data; it is not a guarantee of safety.
 
@@ -39,7 +39,7 @@ python -m pytest apps/api/tests
 
 ## Environment
 
-Copy `.env.example`. Required in production: `DATABASE_URL`, `REDIS_URL`, a strong `JWT_SECRET`, `ROUTE_PROVIDER`, and permitted `CORS_ORIGINS`. Browser/mobile URLs are `NEXT_PUBLIC_API_URL` and `EXPO_PUBLIC_API_URL`. Azure keys are optional; leave them empty to use the mock adapters.
+Copy `.env.example`. Required in production: `DATABASE_URL`, `REDIS_URL`, a strong `JWT_SECRET`, `ROUTE_PROVIDER`, and permitted `CORS_ORIGINS`. Browser/mobile URLs are `NEXT_PUBLIC_API_URL` and `EXPO_PUBLIC_API_URL`. The default web map and mock routes require no API key or billing account.
 
 ## Repository
 

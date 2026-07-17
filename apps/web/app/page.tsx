@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import type { Incident, RouteOption } from "@saferoute/types";
+import { RouteMap as MapView } from "../components/route-map";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const nav = [
@@ -119,7 +120,7 @@ const initialIncidents: Incident[] = [
 const riskClass = (score: number) =>
   score >= 80 ? "low" : score >= 60 ? "medium" : "high";
 
-function MapView({
+function SchematicMapView({
   routes,
   selected,
   progress = 0,
