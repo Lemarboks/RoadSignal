@@ -52,3 +52,7 @@ Copy `.env.example`. Required in production: `DATABASE_URL`, `REDIS_URL`, a stro
 - `infrastructure/azure` — Azure deployment guidance/template entry point
 
 See [demo instructions](docs/demo.md) and [known limitations](docs/architecture.md#known-limitations).
+
+## Free GitHub Pages deployment
+
+The repository includes `.github/workflows/pages.yml`. Pushes to `main` build the web workspace with the `/SafeRouteAI` base path and publish `apps/web/out` to GitHub Pages. The public static demonstration uses MapLibre/OpenFreeMap and deterministic client-side data without API keys or a billing account. GitHub Pages does not run the FastAPI, PostgreSQL, Redis, or WebSocket services.
