@@ -55,6 +55,8 @@ See [demo instructions](docs/demo.md) and [known limitations](docs/architecture.
 
 For assignment submission evidence, use the [assessment marking guide](docs/assessment-marking-guide.md) and replace every learner placeholder with personally verified information.
 
+Repository-specific Codex workflows are versioned under `skills/`: release validation, risk-model auditing, assessment evidence collection, and accessibility review. The exhibition cover artwork is in `docs/presentation/saferoute-exhibition-cover.png`.
+
 ## Free GitHub Pages deployment
 
 The repository includes `.github/workflows/pages.yml`. Pushes to `main` build the web workspace with the `/SafeRouteAI` base path and publish `apps/web/out` to GitHub Pages. The public static demonstration uses MapLibre/OpenFreeMap, Photon place suggestions, explicit Nominatim lookup, OSRM road geometry, and deterministic client-side risk scoring without API keys or a billing account. Public providers are conservatively throttled and backed by deterministic offline routes. GitHub Pages does not run the FastAPI, PostgreSQL, Redis, or WebSocket services.

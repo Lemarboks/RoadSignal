@@ -52,6 +52,8 @@ Kind regards,
 4. Engineering evidence: tests, GitHub Actions and Pages deployment.
 5. Limitations, future improvements and lessons learned.
 
+Presentation cover artwork: `docs/presentation/saferoute-exhibition-cover.png`. This is generated supporting artwork, not evidence of application functionality.
+
 ### 3–5 minute monologue draft
 
 > SafeRoute AI was motivated by a simple problem: the fastest route is not always the most appropriate route. Drivers and fleet managers may also want to understand recent incidents, road conditions and the confidence of available reports. I designed SafeRoute AI as decision-support software rather than as a guarantee of safety.
@@ -223,4 +225,3 @@ The initial design expected the web client to communicate with FastAPI, PostgreS
 3. Live Trip after an incident and rerouting alert.
 4. Mobile-width interface.
 5. Successful GitHub Actions validation and Pages deployment.
-

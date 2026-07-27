@@ -1,0 +1,4 @@
+interface:
+  display_name: "SafeRoute Accessibility Review"
+  short_description: "Review maps and workflows for accessibility"
+  default_prompt: "Use $saferoute-accessibility-review to audit the SafeRoute AI interface."

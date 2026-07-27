@@ -1,0 +1,4 @@
+interface:
+  display_name: "SafeRoute Assessment Pack"
+  short_description: "Collect genuine assignment evidence"
+  default_prompt: "Use $saferoute-assessment-pack to prepare verified assessment evidence."
