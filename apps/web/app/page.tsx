@@ -23,6 +23,7 @@ const nav = [
   "Settings",
 ] as const;
 type Page = (typeof nav)[number];
+type DataMode = "demo" | "public" | "api";
 type LocationPermissionStatus =
   | "checking"
   | "prompt"
@@ -246,7 +247,8 @@ export default function App() {
     [locating, setLocating] = useState(false),
     [locationPermission, setLocationPermission] =
       useState<LocationPermissionStatus>("checking"),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [dataMode, setDataMode] = useState<DataMode>("demo");
   const [trip, setTrip] = useState<{
     active: boolean;
     paused: boolean;
@@ -363,6 +365,7 @@ export default function App() {
       );
       setResolvedOrigin(result.origin);
       setResolvedDestination(result.destination);
+      setDataMode("public");
       setNotice(
         `Three live road alternatives found between ${result.origin.displayName.split(",")[0]} and ${result.destination.displayName.split(",")[0]}.`,
       );
@@ -381,6 +384,13 @@ export default function App() {
     setNotice("");
     setResolvedOrigin(null);
     setResolvedDestination(null);
+    if (!API) {
+      useDemoRoutes("Public routing is unavailable — using reliable built-in demonstration routes.");
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8_000);
     try {
       const res = await fetch(`${API}/api/v1/routes/analyse`, {
         method: "POST",
@@ -392,6 +402,7 @@ export default function App() {
           departure_time: new Date().toISOString(),
           vehicle_type: "car",
         }),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
@@ -419,15 +430,22 @@ export default function App() {
           geometry: r.geometry,
         })),
       );
+      setDataMode("api");
       setNotice("Three routes analysed using current demonstration incidents.");
     } catch {
-      setRoutes(fallbackRoutes);
-      setNotice(
-        "API unavailable — showing deterministic offline demonstration data.",
-      );
+      useDemoRoutes("API unavailable — showing reliable built-in demonstration routes.");
     } finally {
+      window.clearTimeout(timeout);
       setLoading(false);
     }
+  }
+  function useDemoRoutes(message = "Built-in demonstration routes are ready to explore.") {
+    setRoutes(fallbackRoutes);
+    setSelected("route-balanced");
+    setResolvedOrigin(defaultOrigin);
+    setResolvedDestination(defaultDestination);
+    setDataMode("demo");
+    setNotice(message);
   }
   function startTrip() {
     setTrip({
@@ -678,6 +696,9 @@ export default function App() {
             disabled={loading}
           >
             {loading ? "Resolving places and road routes…" : "Find routes"}
+          </button>
+          <button className="demo-route-button" type="button" onClick={() => useDemoRoutes()}>
+            Use built-in demo routes
           </button>
           <p className="routing-attribution">
             Search by{" "}
@@ -998,12 +1019,14 @@ export default function App() {
             <small>Route-risk intelligence</small>
           </span>
         </div>
-        <nav>
+        <nav aria-label="Application sections">
           {nav.map((n) => (
             <button
               className={page === n ? "active" : ""}
               onClick={() => setPage(n)}
               key={n}
+              type="button"
+              aria-current={page === n ? "page" : undefined}
             >
               <i>{["▦", "⌁", "●", "△", "◎", "▥", "♙", "⚙"][nav.indexOf(n)]}</i>
               {n}
@@ -1020,9 +1043,21 @@ export default function App() {
         </div>
       </aside>
       <main>
+        <section className="demo-banner" aria-label="Demonstration status">
+          <div>
+            <strong>GitHub Pages demonstration</strong>
+            <span>
+              This showcase uses {dataMode === "public" ? "public map and road services" : dataMode === "api" ? "the configured API" : "built-in simulated data"}. It is decision support, not a guarantee of safety.
+            </span>
+          </div>
+          <span className={`mode-badge ${dataMode}`}>
+            {dataMode === "public" ? "Public data" : dataMode === "api" ? "API connected" : "Demo data"}
+          </span>
+        </section>
         {notice && (
-          <div className="toast" onClick={() => setNotice("")}>
-            {notice} ×
+          <div className="toast" role="status" aria-live="polite">
+            <span>{notice}</span>
+            <button type="button" onClick={() => setNotice("")} aria-label="Dismiss notification">×</button>
           </div>
         )}
         {page === "Dashboard"

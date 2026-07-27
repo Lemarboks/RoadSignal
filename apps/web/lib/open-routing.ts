@@ -16,6 +16,12 @@ const OSRM_URL =
   "https://routing.openstreetmap.de/routed-car/route/v1/driving";
 const CAPE_TOWN_VIEWBOX = "18.28,-33.74,18.98,-34.36";
 const CACHE_PREFIX = "saferoute:place:";
+const PUBLIC_REQUEST_TIMEOUT_MS = 8_000;
+
+function requestSignal(signal?: AbortSignal) {
+  const timeout = AbortSignal.timeout(PUBLIC_REQUEST_TIMEOUT_MS);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
+}
 
 export type ResolvedPlace = Coordinate & {
   displayName: string;
@@ -128,7 +134,9 @@ export async function searchPlaceSuggestions(
     lang: "en",
     limit: "5",
   });
-  const response = await fetch(`${PHOTON_URL}?${parameters}`, { signal });
+  const response = await fetch(`${PHOTON_URL}?${parameters}`, {
+    signal: requestSignal(signal),
+  });
   if (!response.ok) return [];
   const body = (await response.json()) as PhotonResponse;
   return body.features.map((feature) => {
@@ -195,6 +203,7 @@ export async function resolvePlace(query: string): Promise<ResolvedPlace> {
   });
   const response = await fetch(`${NOMINATIM_URL}?${parameters}`, {
     headers: { Accept: "application/json" },
+    signal: requestSignal(),
   });
   if (!response.ok) throw new Error(`Place search failed (${response.status})`);
   const matches = (await response.json()) as NominatimResult[];
@@ -356,7 +365,9 @@ async function requestRoutes(coordinates: Coordinate[]) {
     overview: "full",
     geometries: "geojson",
   });
-  const response = await fetch(`${OSRM_URL}/${coordinateString}?${parameters}`);
+  const response = await fetch(`${OSRM_URL}/${coordinateString}?${parameters}`, {
+    signal: requestSignal(),
+  });
   if (!response.ok) throw new Error(`Road routing failed (${response.status})`);
   const body = (await response.json()) as OsrmResponse;
   if (body.code !== "Ok" || !body.routes?.length) {
