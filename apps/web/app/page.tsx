@@ -512,7 +512,7 @@ export default function App() {
             Real-time route-risk intelligence across demonstration operations.
           </p>
         </div>
-        <button className="primary" onClick={() => setPage("Route Planner")}>
+        <button type="button" className="primary" onClick={() => setPage("Route Planner")}>
           Plan a safe route
         </button>
       </section>
@@ -677,6 +677,7 @@ export default function App() {
             </select>
           </label>
           <button
+            type="button"
             className="primary wide"
             onClick={findRoutes}
             disabled={loading}
@@ -714,9 +715,12 @@ export default function App() {
       <div className="route-grid">
         {routes.map((r) => (
           <button
+            type="button"
             className={`route-card ${selected === r.id ? "selected" : ""}`}
             onClick={() => setSelected(r.id)}
             key={r.id}
+            aria-pressed={selected === r.id}
+            aria-label={`${r.name}: ${r.durationMinutes} minutes, ${r.distanceKm} kilometres, safety estimate ${r.safetyScore} out of 100`}
           >
             {r.recommended && <em>Recommended</em>}
             <h3>{r.name}</h3>
@@ -763,7 +767,7 @@ export default function App() {
           Safety scores are decision-support estimates based on available data.
           They do not measure or guarantee personal safety.
         </p>
-        <button className="primary" onClick={startTrip}>
+        <button type="button" className="primary" onClick={startTrip}>
           Start simulated trip
         </button>
       </section>
@@ -799,7 +803,14 @@ export default function App() {
             value={trip.alerts.length ? "High" : "Low"}
             tone={trip.alerts.length ? "danger" : "good"}
           />
-          <div className="progress">
+          <div
+            className="progress"
+            role="progressbar"
+            aria-label="Simulated trip progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={trip.progress}
+          >
             <i style={{ width: `${trip.progress}%` }} />
           </div>
           {trip.alerts.map((x) => (
@@ -808,6 +819,7 @@ export default function App() {
               <br />
               {x}
               <button
+                type="button"
                 onClick={() => {
                   if (!safestAlternative) return;
                   setSelected(safestAlternative.id);
@@ -828,17 +840,19 @@ export default function App() {
           ))}
           <div className="actions">
             <button
+              type="button"
               onClick={() => setTrip((t) => ({ ...t, paused: !t.paused }))}
             >
               {trip.paused ? "Resume" : "Pause"}
             </button>
-            <button onClick={() => inject("Accident")}>
+            <button type="button" onClick={() => inject("Accident")}>
               Simulate accident
             </button>
-            <button onClick={() => inject("Crime report")}>
+            <button type="button" onClick={() => inject("Crime report")}>
               Simulate crime
             </button>
             <button
+              type="button"
               className="danger-btn"
               onClick={() => {
                 setTrip((t) => ({
@@ -881,22 +895,22 @@ export default function App() {
           <h1>Incidents</h1>
           <p>Review, confirm, dispute, and resolve recent reports.</p>
         </div>
-        <button className="primary" onClick={() => inject("Road closure")}>
+        <button type="button" className="primary" onClick={() => inject("Road closure")}>
           Report incident
         </button>
       </section>
       <div className="filters">
-        <input placeholder="Search incidents" />
-        <select>
+        <input aria-label="Search incidents" placeholder="Search incidents" />
+        <select aria-label="Filter by incident type">
           <option>All types</option>
           <option>Accident</option>
           <option>Crime</option>
         </select>
-        <select>
+        <select aria-label="Filter by confidence">
           <option>All confidence</option>
           <option>High confidence</option>
         </select>
-        <select>
+        <select aria-label="Filter by status">
           <option>Active</option>
           <option>Expired</option>
         </select>
@@ -917,29 +931,29 @@ export default function App() {
           <tbody>
             {incidents.map((i) => (
               <tr key={i.id}>
-                <td>
+                <td data-label="Incident">
                   <strong>{i.incidentType}</strong>
                   <small>{i.description}</small>
                 </td>
-                <td>
+                <td data-label="Severity">
                   <span className={`severity s${i.severity}`}>
                     {i.severity}
                   </span>
                 </td>
-                <td>{new Date(i.occurredAt).toLocaleTimeString()}</td>
-                <td>{i.sourceType}</td>
-                <td>{Math.round(i.confidence * 100)}%</td>
-                <td>
+                <td data-label="Reported">{new Date(i.occurredAt).toLocaleTimeString()}</td>
+                <td data-label="Source">{i.sourceType}</td>
+                <td data-label="Confidence">{Math.round(i.confidence * 100)}%</td>
+                <td data-label="Verification">
                   {i.verificationStatus}
                   <small>
                     {i.confirmations} confirms · {i.disputes} disputes
                   </small>
                 </td>
-                <td>
-                  <button onClick={() => moderate(i.id, "confirmations")}>
+                <td data-label="Actions">
+                  <button type="button" onClick={() => moderate(i.id, "confirmations")}>
                     Confirm
                   </button>
-                  <button onClick={() => moderate(i.id, "disputes")}>
+                  <button type="button" onClick={() => moderate(i.id, "disputes")}>
                     Dispute
                   </button>
                 </td>
@@ -968,7 +982,7 @@ export default function App() {
       <div className="grid two">
         <section className="panel">
           <h2>Safety score by hour</h2>
-          <div className="chart">
+          <div className="chart" role="img" aria-label="Hourly safety estimates range from 69 to 88, ending at 88">
             {[78, 81, 84, 86, 83, 79, 74, 69, 73, 80, 85, 88].map((v, i) => (
               <i key={i} style={{ height: `${v}%` }} title={`${v}`} />
             ))}
@@ -996,8 +1010,10 @@ export default function App() {
     </>
   );
   return (
-    <div className="shell">
-      <aside>
+    <>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+      <div className="shell">
+      <aside aria-label="SafeRoute AI navigation">
         <div className="brand">
           <b>SR</b>
           <span>
@@ -1028,7 +1044,7 @@ export default function App() {
           </div>
         </div>
       </aside>
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section className="demo-banner" aria-label="Demonstration status">
           <div>
             <strong>GitHub Pages demonstration</strong>
@@ -1057,5 +1073,6 @@ export default function App() {
                 : analyticsPage}
       </main>
     </div>
+    </>
   );
 }

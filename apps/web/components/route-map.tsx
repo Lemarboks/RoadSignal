@@ -2,7 +2,7 @@
 
 import type { RouteOption } from "@saferoute/types";
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 const OPEN_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 const ROUTE_SOURCE = "saferoute-routes";
@@ -121,6 +121,7 @@ function SchematicFallback({ routes, selected, progress = 0 }: Props) {
 }
 
 export function RouteMap({ routes, selected, progress = 0 }: Props) {
+  const summaryId = useId();
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
   const driverMarker = useRef<Marker | null>(null);
@@ -222,7 +223,17 @@ export function RouteMap({ routes, selected, progress = 0 }: Props) {
   }, [activeRoute, progress]);
 
   return (
-    <div className="map" aria-label="Interactive Cape Town route-risk map">
+    <div
+      className="map"
+      role="group"
+      aria-label="Cape Town route-risk map"
+      aria-describedby={summaryId}
+    >
+      <p className="sr-only" id={summaryId}>
+        {activeRoute
+          ? `${activeRoute.name} is selected: ${activeRoute.distanceKm} kilometres, ${activeRoute.durationMinutes} minutes, safety estimate ${activeRoute.safetyScore} out of 100.${failed ? " The offline schematic map is displayed." : " The interactive street map is displayed."}`
+          : "No route is selected."}
+      </p>
       <div className="map-label">Cape Town · Free OpenStreetMap-based map</div>
       {failed ? (
         <SchematicFallback

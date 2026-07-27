@@ -53,6 +53,8 @@ Copy `.env.example`. Required in production: `DATABASE_URL`, `REDIS_URL`, a stro
 
 See [demo instructions](docs/demo.md) and [known limitations](docs/architecture.md#known-limitations).
 
+Repository-specific Codex workflows are versioned under `skills/`: release validation, risk-model auditing, and accessibility review.
+
 ## Free GitHub Pages deployment
 
 The repository includes `.github/workflows/pages.yml`. Pushes to `main` build the web workspace with the `/SafeRouteAI` base path and publish `apps/web/out` to GitHub Pages. The public static demonstration uses MapLibre/OpenFreeMap, Photon place suggestions, explicit Nominatim lookup, OSRM road geometry, and deterministic client-side risk scoring without API keys or a billing account. Public providers are conservatively throttled and backed by deterministic offline routes. GitHub Pages does not run the FastAPI, PostgreSQL, Redis, or WebSocket services.
