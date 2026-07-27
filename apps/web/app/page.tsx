@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Incident, RouteOption, RoutePreference } from "@saferoute/types";
 import { RouteMap as MapView } from "../components/route-map";
 import { PlaceSearch } from "../components/place-search";
+import { demoRouteGeometry } from "../lib/demo-route-geometry";
 import {
   analyseOpenRoutes,
   PlaceNotFoundError,
@@ -34,13 +35,13 @@ const fallbackRoutes: RouteOption[] = [
   {
     id: "route-balanced",
     name: "Balanced Route",
-    durationMinutes: 29,
-    distanceKm: 18.7,
+    durationMinutes: 28,
+    distanceKm: 25.5,
     safetyScore: 87,
     confidence: 0.84,
     riskLevel: "low",
     recommended: true,
-    differenceFromFastest: 5,
+    differenceFromFastest: 8,
     factors: ["Traffic", "Road condition"],
     breakdown: {
       crime: 5,
@@ -51,24 +52,19 @@ const fallbackRoutes: RouteOption[] = [
       community: 1,
     },
     explanation:
-      "Five minutes longer, avoiding the recent collision and elevated vehicle-crime corridor.",
-    geometry: [
-      { latitude: -33.925, longitude: 18.424 },
-      { latitude: -33.936, longitude: 18.443 },
-      { latitude: -33.951, longitude: 18.473 },
-      { latitude: -33.981, longitude: 18.531 },
-    ],
+      "Eight minutes longer, following a distinct road corridor around recent demonstration incidents.",
+    geometry: demoRouteGeometry["route-balanced"],
   },
   {
     id: "route-safest",
     name: "Safest Route",
-    durationMinutes: 33,
-    distanceKm: 20.4,
+    durationMinutes: 30,
+    distanceKm: 24.6,
     safetyScore: 92,
     confidence: 0.81,
     riskLevel: "low",
     recommended: false,
-    differenceFromFastest: 9,
+    differenceFromFastest: 10,
     factors: ["Traffic", "Weather"],
     breakdown: {
       crime: 3,
@@ -78,19 +74,14 @@ const fallbackRoutes: RouteOption[] = [
       roadCondition: 1,
       community: 1,
     },
-    explanation: "Lowest known exposure, with nine additional travel minutes.",
-    geometry: [
-      { latitude: -33.925, longitude: 18.424 },
-      { latitude: -33.918, longitude: 18.455 },
-      { latitude: -33.931, longitude: 18.489 },
-      { latitude: -33.981, longitude: 18.531 },
-    ],
+    explanation: "Lowest known demonstration exposure, with ten additional travel minutes.",
+    geometry: demoRouteGeometry["route-safest"],
   },
   {
     id: "route-fastest",
     name: "Fastest Route",
-    durationMinutes: 24,
-    distanceKm: 17.1,
+    durationMinutes: 20,
+    distanceKm: 19.9,
     safetyScore: 63,
     confidence: 0.88,
     riskLevel: "medium",
@@ -107,12 +98,7 @@ const fallbackRoutes: RouteOption[] = [
     },
     explanation:
       "Fastest arrival, but passes recent collision and vehicle-crime reports.",
-    geometry: [
-      { latitude: -33.925, longitude: 18.424 },
-      { latitude: -33.941, longitude: 18.452 },
-      { latitude: -33.963, longitude: 18.478 },
-      { latitude: -33.981, longitude: 18.531 },
-    ],
+    geometry: demoRouteGeometry["route-fastest"],
   },
 ];
 const initialIncidents: Incident[] = [
