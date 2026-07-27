@@ -762,4 +762,27 @@ main { width: 100%; max-width: 1600px; padding: 38px clamp(24px,3.2vw,52px) 56px
 .toast { align-items: center; gap: 12px; max-width: min(520px,calc(100vw - 32px)); }.toast span { min-width: 0; }.toast button { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: rgba(255,255,255,.12); color: white; cursor: pointer; }
 @media (max-width:560px) { .demo-banner { align-items: flex-start; } }
 .toast { display: flex; }
+.skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; padding: 10px 14px; border-radius: 9px; background: #fff; color: var(--ink); font-weight: 800; transform: translateY(-160%); }
+.skip-link:focus { transform: translateY(0); }
+.sr-only { position: absolute!important; width: 1px!important; height: 1px!important; padding: 0!important; margin: -1px!important; overflow: hidden!important; clip: rect(0,0,0,0)!important; white-space: nowrap!important; border: 0!important; }
+main:focus { outline: none; }
+@media (pointer:coarse) { button,a,select,input { min-height: 44px; } nav button,.actions button,td button { min-height: 44px; } }
+@media (max-width:560px) {
+  body { font-size: 16px; }
+  main { padding-right: max(14px,env(safe-area-inset-right)); padding-bottom: max(40px,env(safe-area-inset-bottom)); padding-left: max(14px,env(safe-area-inset-left)); }
+  nav { padding-left: max(12px,env(safe-area-inset-left)); padding-right: max(12px,env(safe-area-inset-right)); }
+  nav button { min-height: 44px; }
+  .controls input,.controls select,.filters input,.filters select { font-size: 16px; }
+  .demo-banner { flex-direction: column; gap: 9px; }
+  .mode-badge { align-self: flex-start; }
+  .table-wrap { padding: 0; overflow: visible; background: transparent; border: 0; box-shadow: none; }
+  table,tbody,tr,td { display: block; width: 100%; min-width: 0; }
+  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  tbody { display: grid; gap: 12px; }
+  tr { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+  td { display: grid; grid-template-columns: minmax(92px,.7fr) minmax(0,1.3fr); gap: 12px; padding: 8px 0; border: 0; overflow-wrap: anywhere; }
+  td::before { content: attr(data-label); color: var(--muted); font-size: 12px; font-weight: 750; }
+  td[data-label="Actions"] { grid-template-columns: 92px 1fr 1fr; }
+}
+@media (forced-colors:active) { .dot,.bar b,.chart i { forced-color-adjust: none; border: 1px solid CanvasText; } .route-card.selected { outline: 3px solid Highlight; } }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } .primary,nav button,.route-card { transition: none; } }
