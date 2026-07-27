@@ -35,6 +35,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Type-check web application
+        run: pnpm --filter @saferoute/web typecheck
+
+      - name: Test web application
+        run: pnpm --filter @saferoute/web test
+
       - name: Build static web application
         run: pnpm --filter @saferoute/web build
 
