@@ -100,7 +100,7 @@ export function PlaceSearch({
           activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined
         }
       />
-      {loading && <span className="place-search-status">Searching…</span>}
+      {loading && <span className="place-search-status">Searching...</span>}
       {open && (
         <div className="place-suggestions" id={listId} role="listbox">
           {suggestions.map((place, index) => (
