@@ -178,3 +178,25 @@ Quality gates are layered: unit tests for deterministic logic, real PostGIS and 
 ### Benefit
 
 Regressions now produce actionable artifacts and fail before merge across logic, storage, events, containers, browser behavior, accessibility, dependency risk, and horizontal authorization. This is materially closer to the evidence expected from a production engineering portfolio than a single happy-path test suite.
+
+## Milestone 8: defensible data-readiness pipeline
+
+Implemented:
+
+- Every dataset has a source, licence, allowed-use list, time/geography coverage, outcome definition, prediction horizon, prediction-time feature contract, and verified SHA-256 digest.
+- Validation fails closed on tampering, missing values, duplicate IDs, invalid ranges, absent outcome classes, time coverage violations, and suspicious leakage terms.
+- Evaluation uses chronological 60/20/20 partitions rather than random-only splitting and reports Brier score, log loss, AUC, calibration error, calibration bins, and geographic/day-night subgroup metrics.
+- Canonical checked-in JSON makes evaluation drift reviewable and reproducible in CI.
+- The synthetic CC0 demonstration dataset is evaluation-only, below the predeclared minimum, and explicitly blocked from producing a model artifact.
+
+### Challenge
+
+A synthetic dataset can make a classifier appear highly accurate while proving nothing about real-world safety. Random splitting can leak future or geographically adjacent conditions, and a missing licence can make an otherwise useful model legally undeployable.
+
+### Decision
+
+Data readiness is a hard gate before model training. The transparent deterministic engine remains the candidate production method until an approved dataset passes provenance, licence, leakage, temporal/geographic evaluation, calibration, bias, and rollback requirements.
+
+### Benefit
+
+The repository now demonstrates mature ML engineering judgement: reproducible evidence, explicit non-eligibility, and fail-closed governance instead of an unjustified model and misleading accuracy claim.
