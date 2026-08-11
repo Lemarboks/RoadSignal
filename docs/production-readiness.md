@@ -156,3 +156,26 @@ Development convenience and production security are separate Compose models. The
 ### Benefit
 
 The same reviewed artifacts can run on a laptop, VPS, bare-metal host, or any container service that supports standard OCI images. Reviewers can inspect and reproduce the security boundaries, while operators have an explicit backup, restore, update, and rollback workflow.
+## Milestone 7: browser, accessibility, and security gates
+
+Implemented:
+
+- Playwright runs the real interface in desktop and mobile Chromium profiles rather than relying only on DOM-free unit tests.
+- Browser tests cover data-provenance labels, keyboard skip navigation, Celsius weather rendering, the simulated trip flow, and horizontal overflow.
+- axe-core blocks WCAG 2 A/AA and WCAG 2.1 A/AA violations in both viewport profiles.
+- Failed browser runs retain traces, screenshots, video, and an HTML report for bounded diagnosis.
+- API object-level authorization now prevents one driver from reading, monitoring, updating, or ending another driver's trip; fleet managers and administrators retain operational access.
+- A two-account regression test covers unauthenticated, wrong-owner, and correct-owner trip access.
+- CI audits production JavaScript and Python dependency graphs and scans source, secrets, dependencies, and infrastructure configuration for high/critical findings with Trivy.
+
+### Challenge
+
+Unit tests can prove adapters and reducers while missing keyboard traps, responsive overflow, inaccessible rendered markup, and authorization mistakes that require two independent identities. A green build is not evidence of a secure or usable browser workflow.
+
+### Decision
+
+Quality gates are layered: unit tests for deterministic logic, real PostGIS and Redis integration jobs, a full production deployment smoke test, two-viewport browser journeys, automated accessibility rules, and independent vulnerability/misconfiguration scanners. Object ownership is enforced in the API, never inferred from hidden frontend controls.
+
+### Benefit
+
+Regressions now produce actionable artifacts and fail before merge across logic, storage, events, containers, browser behavior, accessibility, dependency risk, and horizontal authorization. This is materially closer to the evidence expected from a production engineering portfolio than a single happy-path test suite.

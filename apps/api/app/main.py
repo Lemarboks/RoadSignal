@@ -101,6 +101,14 @@ def get_route(route_id: str):
     if not route: raise HTTPException(404,"Route not found; analyse routes first")
     return route
 
+def authorize_trip(trip: dict, principal) -> None:
+    if not settings.require_auth:
+        return
+    owner = str(trip.get("user_id") or "")
+    if principal and (owner == str(principal.id) or principal.role in {"administrator", "fleet_manager"}):
+        return
+    raise HTTPException(403, "This trip belongs to another account")
+
 @app.post("/api/v1/routes/{route_id}/start")
 def start_route(route_id: str, principal=Depends(require_when_enabled)):
     route = repository.get_route(route_id)
@@ -113,21 +121,28 @@ def start_route(route_id: str, principal=Depends(require_when_enabled)):
 def update_location(trip_id: str, location: TripLocation, principal=Depends(require_when_enabled)):
     trip=repository.get_trip(trip_id)
     if not trip: raise HTTPException(404,"Trip not found")
+    authorize_trip(trip, principal)
     trip["progress"]=min(100,trip["progress"]+5); repository.save_trip(trip); publish("driver.location",{"trip_id":trip_id,"progress":trip["progress"]}); return serialise(trip)
 
 @app.get("/api/v1/trips/{trip_id}")
-def get_trip(trip_id: str):
+def get_trip(trip_id: str, principal=Depends(require_when_enabled)):
     trip=repository.get_trip(trip_id)
     if not trip: raise HTTPException(404,"Trip not found")
+    authorize_trip(trip, principal)
     return serialise(trip)
 
 @app.get("/api/v1/trips/{trip_id}/alerts")
-def trip_alerts(trip_id: str): return {"items":(repository.get_trip(trip_id) or {}).get("alerts",[])}
+def trip_alerts(trip_id: str, principal=Depends(require_when_enabled)):
+    trip=repository.get_trip(trip_id)
+    if not trip: raise HTTPException(404, "Trip not found")
+    authorize_trip(trip, principal)
+    return {"items": trip.get("alerts", [])}
 
 @app.post("/api/v1/trips/{trip_id}/end")
 def end_trip(trip_id: str, principal=Depends(require_when_enabled)):
     trip=repository.get_trip(trip_id)
     if not trip: raise HTTPException(404,"Trip not found")
+    authorize_trip(trip, principal)
     trip["status"]="completed"; repository.save_trip(trip); publish("trip.ended",trip); return serialise(trip)
 
 @app.get("/api/v1/incidents")
