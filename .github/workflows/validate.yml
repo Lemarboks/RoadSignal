@@ -134,8 +134,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @saferoute/web exec playwright install --with-deps chromium
       - name: Start browser-test server
+        working-directory: apps/web
         run: |
-          pnpm --dir apps/web exec next dev --hostname 127.0.0.1 > /tmp/saferoute-web.log 2>&1 &
+          pnpm exec next dev --hostname 127.0.0.1 > /tmp/saferoute-web.log 2>&1 &
           for attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
               exit 0
