@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -8,9 +9,10 @@ from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, Resi
 from .providers.weather import OpenMeteoWeatherProvider
 from .risk.engine import RiskIncident, risk_level, route_score, segment_score
 from .incidents.confidence import ConfidenceEvidence, calculate_confidence
-from .store import EVENTS
+from .events import event_bus
 from .repositories import repository, serialise
 from .database.session import database_ready
+from .auth import decode_access_token
 from .middleware import SecurityHeadersMiddleware
 from .routers import authentication
 from .auth import require_roles_when_enabled, require_when_enabled
@@ -38,7 +40,7 @@ weather_provider = OpenMeteoWeatherProvider(settings.open_meteo_url, settings.pr
 
 def publish(kind: str, payload: dict):
     event = {"id":str(uuid4()),"type":kind,"occurred_at":datetime.now(timezone.utc).isoformat(),"payload":serialise(payload)}
-    EVENTS.append(event); repository.append_audit(kind, payload)
+    event_bus.publish(event); repository.append_audit(kind, payload)
 
 def risk_incidents():
     mapping = {"Robbery":"crime","Hijacking attempt":"crime","Accident":"accident","Flooding":"weather","Pothole":"road_condition","Broken traffic light":"traffic","Road closure":"traffic","Protest":"community"}
@@ -50,8 +52,10 @@ def health(): return {"status":"healthy","service":"saferoute-api"}
 @app.get("/api/v1/ready")
 def ready():
     database = database_ready()
-    ready_now = settings.storage_backend == "memory" or database
-    return {"status": "ready" if ready_now else "degraded", "storage": settings.storage_backend, "database": database}
+    events = event_bus.ready()
+    storage_ready = settings.storage_backend == "memory" or database
+    events_ready = settings.event_backend == "memory" or events
+    return {"status": "ready" if storage_ready and events_ready else "degraded", "storage": settings.storage_backend, "database": database, "events": settings.event_backend, "event_bus": events}
 
 @app.post("/api/v1/routes/analyse")
 async def analyse(request: RouteAnalyseRequest):
@@ -176,10 +180,22 @@ def resolve_emergency(event_id: str, principal=Depends(require_roles_when_enable
 
 @app.websocket("/api/v1/ws/events")
 async def websocket_events(socket: WebSocket):
-    await socket.accept(); cursor=len(EVENTS)
+    await socket.accept()
+    if settings.require_auth:
+        try:
+            message = await asyncio.wait_for(socket.receive_json(), timeout=5)
+            if message.get("type") != "authenticate": raise ValueError("authentication message required")
+            decode_access_token(message.get("access_token", ""))
+        except Exception:
+            await socket.close(code=4401, reason="Authentication required")
+            return
+    cursor = socket.query_params.get("cursor")
     try:
         while True:
-            await socket.receive_text()
-            for event in EVENTS[cursor:]: await socket.send_json(event)
-            cursor=len(EVENTS)
-    except WebSocketDisconnect: pass
+            cursor, events = await event_bus.read_after(cursor)
+            if events:
+                await socket.send_json({"cursor": cursor, "events": events})
+            else:
+                await socket.send_json({"cursor": cursor, "events": [], "type": "heartbeat"})
+    except WebSocketDisconnect:
+        pass
