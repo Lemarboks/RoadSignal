@@ -200,3 +200,25 @@ Data readiness is a hard gate before model training. The transparent determinist
 ### Benefit
 
 The repository now demonstrates mature ML engineering judgement: reproducible evidence, explicit non-eligibility, and fail-closed governance instead of an unjustified model and misleading accuracy claim.
+
+## Milestone 9: product-visible risk evidence
+
+Implemented:
+
+- The canonical evaluation report is packaged with the API and exposed through a public, read-only `/api/v1/risk/evidence` endpoint.
+- The web app fetches live evidence from the same-origin API and uses an equivalent packaged report only for the static portfolio deployment.
+- Settings explains the deterministic method, synthetic dataset, integrity digest, holdout metrics, failed training gate, blockers, and claim limitations in plain language.
+- Browser tests cover the evidence view in desktop and mobile profiles, including WCAG A/AA rules and horizontal overflow.
+- Dataset digests are canonicalized across LF and CRLF line endings so validation remains reproducible on Linux CI and Windows development machines.
+
+### Challenge
+
+Evaluation hidden in a repository is difficult for reviewers and operators to discover, while presenting a synthetic AUC without context would create false confidence. Packaging the report also had to work inside the API container and across platform-specific line endings.
+
+### Decision
+
+Evidence is a first-class product surface, but every metric is coupled to its provenance and limitation. The API serves an immutable packaged report, the static build remains independently demonstrable, and the training gate remains fail-closed.
+
+### Benefit
+
+Reviewers can inspect the project safety reasoning from the running product, operators can verify exactly which evidence informed a release, and the interface demonstrates responsible ML communication without pretending that synthetic performance establishes real-world safety.

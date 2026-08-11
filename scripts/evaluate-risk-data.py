@@ -12,7 +12,7 @@ from app.risk.data_pipeline import canonical_json, evaluate  # noqa: E402
 
 
 DEFAULT_MANIFEST = ROOT / "data" / "risk" / "demo-risk-events-v1.manifest.json"
-DEFAULT_REPORT = ROOT / "data" / "risk" / "demo-risk-evaluation-v1.json"
+DEFAULT_REPORT = ROOT / "apps" / "api" / "app" / "risk" / "artifacts" / "demo-risk-evaluation-v1.json"
 
 
 def main() -> int:

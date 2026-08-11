@@ -8,6 +8,7 @@ from .schemas import IncidentCreate, RouteAnalyseRequest, TripLocation
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
 from .providers.weather import OpenMeteoWeatherProvider
 from .risk.engine import RiskIncident, risk_level, route_score, segment_score
+from .risk.evidence import risk_evidence
 from .incidents.confidence import ConfidenceEvidence, calculate_confidence
 from .events import event_bus
 from .repositories import repository, serialise
@@ -50,6 +51,9 @@ def risk_incidents():
 
 @app.get("/api/v1/health")
 def health(): return {"status":"healthy","service":"saferoute-api"}
+
+@app.get("/api/v1/risk/evidence")
+def get_risk_evidence(): return risk_evidence()
 
 @app.get("/api/v1/ready")
 def ready(response: Response):
