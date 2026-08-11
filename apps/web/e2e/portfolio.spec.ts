@@ -44,6 +44,23 @@ test("shows Celsius weather and supports the demonstration trip flow", async ({ 
   await expect(page.getByRole("heading", { name: "Live Trip" })).toBeVisible();
 });
 
+test("explains the risk evidence and blocked training decision", async ({ page }) => {
+  await page.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByRole("heading", { name: "Risk evidence" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No trained safety model" })).toBeVisible();
+  await expect(page.getByText("Training gate").first()).toBeVisible();
+  await expect(page.getByText("Blocked", { exact: true })).toBeVisible();
+  await expect(page.getByText(/synthetic holdout cannot establish real-world accuracy/i)).toBeVisible();
+
+  const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(accessibility.violations).toEqual([]);
+
+  const dimensions = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+  }));
+  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+});
 test("has no automatically detectable WCAG A or AA violations", async ({ page }) => {
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(results.violations).toEqual([]);
