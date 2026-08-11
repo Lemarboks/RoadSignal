@@ -893,7 +893,7 @@ main:focus { outline: none; }
 }
 .evidence-facts dt,
 .evidence-metrics dt {
-  color: #718079;
+  color: #5d6c65;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
