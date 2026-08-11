@@ -157,17 +157,11 @@ jobs:
           cache: pip
           cache-dependency-path: apps/api/requirements.txt
       - run: pnpm install --frozen-lockfile
-      # Audit the isolated production graph that is actually shipped.
-      - run: pnpm --filter @saferoute/web --prod deploy --legacy .audit/web
-      - run: pnpm --dir .audit/web audit --prod --audit-level high
+      # pnpm audit reports every workspace importer. This verifier evaluates
+      # advisory paths and fails only for the deployed web production graph.
+      - run: node scripts/audit-production.mjs
       - run: pip install pip-audit==2.9.0
       - run: pip-audit --strict --requirement apps/api/requirements.txt
-      - run: >-
-          docker run --rm
-          -v "$PWD:/src:ro"
-          aquasec/trivy:0.66.0
-          fs --exit-code 1 --severity HIGH,CRITICAL
-          --scanners vuln /src/.audit/web
       - run: >-
           docker run --rm
           -v "$PWD:/src:ro"

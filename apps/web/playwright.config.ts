@@ -1,4 +1,6 @@
 
+import path from "node:path";
+
 import { defineConfig, devices } from "@playwright/test";
 
 
@@ -23,7 +25,9 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    cwd: process.cwd(),
+    cwd: process.env.GITHUB_WORKSPACE
+      ? path.join(process.env.GITHUB_WORKSPACE, "apps", "web")
+      : process.cwd(),
     command: "pnpm exec next dev --hostname 127.0.0.1",
     env: { ...process.env, NEXT_PUBLIC_API_URL: "" },
     url: "http://127.0.0.1:3000",
