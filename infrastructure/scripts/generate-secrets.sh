@@ -18,5 +18,6 @@ printf '%s' "$redis_password" > "$secret_dir/redis_password"
 printf 'redis://:%s@redis:6379/0' "$redis_password" > "$secret_dir/redis_url"
 openssl rand -hex 48 | tr -d '\n' > "$secret_dir/jwt_secret"
 openssl rand -hex 32 | tr -d '\n' > "$secret_dir/metrics_token"
+chmod 0444 "$secret_dir"/*
 
 echo "Created six restricted secret files in $secret_dir"
