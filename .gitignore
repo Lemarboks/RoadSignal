@@ -13,3 +13,6 @@ __pycache__/
 *.pyc
 *.tsbuildinfo
 uploads/
+.secrets/
+backups/
+.env.production
