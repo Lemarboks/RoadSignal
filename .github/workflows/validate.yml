@@ -114,5 +114,9 @@ jobs:
           backup=$(find backups/postgres -name 'saferoute-*.dump' | sort | head -n 1)
           CONFIRM_RESTORE=saferoute infrastructure/scripts/restore-postgres.sh "$backup"
       - run: curl --fail --silent --show-error --insecure https://localhost/api/v1/ready
+      - if: failure()
+        run: |
+          docker compose -f compose.production.yml ps --all
+          docker compose -f compose.production.yml logs --no-color --tail=200
       - if: always()
         run: docker compose -f compose.production.yml down --volumes --remove-orphans
