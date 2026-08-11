@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
 
-const result = spawnSync("pnpm", ["audit", "--prod", "--json"], {
+const pnpmExecutable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const result = spawnSync(pnpmExecutable, ["audit", "--prod", "--json"], {
   encoding: "utf8",
-  shell: process.platform === "win32",
+  shell: false,
 });
 
 if (result.error) {
