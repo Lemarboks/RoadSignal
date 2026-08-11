@@ -139,7 +139,7 @@ Implemented:
 - A separate production Compose topology exposes only Caddy on ports 80/443 and isolates PostGIS, Redis, the API, and observability traffic on internal networks.
 - Caddy serves the static Next.js export, proxies API and WebSocket traffic, applies transport headers, and automates TLS without a cloud-specific ingress service.
 - The API image runs as an unprivileged fixed UID with a read-only filesystem, a bounded temporary filesystem, and no Linux capabilities.
-- PostgreSQL, Redis, API, and metrics credentials are generated locally, ignored by Git, mounted as Docker secrets, and loaded without embedding them in images.
+- PostgreSQL, Redis, API, and metrics credentials are generated locally, ignored by Git, mounted individually as read-only Docker secrets, and loaded without embedding them in images.
 - Redis uses append-only persistence and authentication; PostGIS and Redis have health-gated API startup.
 - Prometheus is an optional internal profile, bearer-authenticates to metrics, and binds only to host loopback.
 - Backup and guarded restore scripts create custom-format Postgres archives, validate them, checksum them, enforce retention, and take a safety backup before destructive restore.

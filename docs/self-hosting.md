@@ -38,7 +38,8 @@ Only ports 80 and 443 are public. PostgreSQL, Redis, the API container, and the 
 
    ```sh
    chmod 700 .secrets
-   chmod 600 .secrets/* .env.production
+   chmod 0444 .secrets/*
+   chmod 600 .env.production
    ```
 
 4. Validate and start the stack:
@@ -54,6 +55,8 @@ Only ports 80 and 443 are public. PostgreSQL, Redis, the API container, and the 
    curl --fail https://YOUR_DOMAIN/api/v1/health
    curl --fail https://YOUR_DOMAIN/api/v1/ready
    ```
+
+The secret directory is owner-only; its files are read-only so Compose can mount them into fixed unprivileged service users without changing the host directory boundary.
 
 Caddy obtains and renews certificates automatically. The API runs as UID/GID 10001, uses a read-only root filesystem, drops Linux capabilities, loads credentials from Docker secrets, and runs database migrations before accepting traffic. Caddy is restricted to its bind-service capability and a read-only root filesystem.
 
