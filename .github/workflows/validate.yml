@@ -95,3 +95,24 @@ jobs:
         working-directory: apps/api
       - run: python -m pytest tests/integration/test_redis_events.py -q
         working-directory: apps/api
+
+  deployment-smoke:
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN: localhost
+      PUBLIC_ORIGIN: https://localhost
+      ACME_EMAIL: ci@example.invalid
+    steps:
+      - uses: actions/checkout@v4
+      - run: infrastructure/scripts/generate-secrets.sh
+      - run: docker compose -f compose.production.yml config --quiet
+      - run: docker compose -f compose.production.yml up -d --build --wait
+      - run: curl --fail --silent --show-error --insecure https://localhost/api/v1/health
+      - run: curl --fail --silent --show-error --insecure https://localhost/ | grep -q "SafeRoute"
+      - run: infrastructure/scripts/backup-postgres.sh
+      - run: |
+          backup=$(find backups/postgres -name 'saferoute-*.dump' | sort | head -n 1)
+          CONFIRM_RESTORE=saferoute infrastructure/scripts/restore-postgres.sh "$backup"
+      - run: curl --fail --silent --show-error --insecure https://localhost/api/v1/ready
+      - if: always()
+        run: docker compose -f compose.production.yml down --volumes --remove-orphans
