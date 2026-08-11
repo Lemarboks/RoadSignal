@@ -1,6 +1,6 @@
 # SafeRoute AI
 
-SafeRoute AI is a functional demonstration MVP for comparing driving routes by travel time and confidence-weighted risk. It includes a Next.js fleet/driver console, Expo mobile app, FastAPI service, open-source routing and weather adapters, PostGIS schema, Redis-ready realtime architecture, and a credential-free simulation flow. The web map uses open-source MapLibre GL and no-key OpenFreeMap/OpenStreetMap-based tiles, with an offline schematic fallback.
+SafeRoute AI is a production-oriented route-risk decision-support portfolio system. It includes a Next.js fleet/driver console, FastAPI API, persistent PostGIS repositories, JWT/RBAC sessions, replayable Redis events, open-source routing and weather adapters, a hardened vendor-neutral deployment, and a separate Expo mobile prototype. The web map uses MapLibre GL and no-key OpenFreeMap/OpenStreetMap-based tiles with an offline schematic fallback.
 
 > All included people, trips, incidents, risk zones, and scores are demonstration data. A score is decision support based on available data; it is not a guarantee of safety.
 
@@ -44,14 +44,14 @@ Copy `.env.example`. Required in production: `DATABASE_URL`, `REDIS_URL`, a stro
 
 ## Repository
 
-- `apps/web` — operational web console and simulator
-- `apps/mobile` — Expo driver experience and simulated SOS
-- `apps/api` — FastAPI domains, scoring engines, providers, schema, and tests
-- `packages/types` and `packages/api-client` — shared TypeScript contract
-- `docs` — implementation, architecture, risk, privacy, security, deployment, and demo notes
-- `docker-compose.yml` â€” local open-source PostGIS, Redis, and API services
+- `apps/web` - operational web console and simulator
+- `apps/mobile` - Expo driver prototype and simulated SOS
+- `apps/api` - FastAPI domains, scoring engines, providers, persistence, and tests
+- `packages/types` and `packages/api-client` - shared TypeScript contract
+- `docs` - architecture, operations, risk, privacy, security, deployment, and demo notes
+- `docker-compose.yml` - local open-source PostGIS, Redis, and API services
 
-See [demo instructions](docs/demo.md) and [known limitations](docs/architecture.md#known-limitations).
+See [architecture and trade-offs](docs/architecture.md), [operations runbook](docs/operations-runbook.md), [demo instructions](docs/demo.md), and [known limitations](docs/architecture.md#known-limitations).
 
 For assignment submission evidence, use the [assessment marking guide](docs/assessment-marking-guide.md) and replace every learner placeholder with personally verified information.
 
