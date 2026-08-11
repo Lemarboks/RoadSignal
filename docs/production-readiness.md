@@ -85,3 +85,27 @@ Redis Streams provide bounded persistence and cursor-based replay. Authenticatio
 ### Benefit
 
 Fleet and driver views can receive the same ordered events across horizontally scaled API instances, recover after temporary network loss, and expose their connection health instead of silently becoming stale.
+
+## Milestone 4: secure API-first web sessions
+
+Implemented:
+
+- The browser prefers the configured SafeRoute API for route analysis, falls back to public open routing when the API is unavailable, and labels built-in data as a demonstration fallback.
+- A typed API client owns bearer authorization, one-time refresh rotation and retry, consistent error parsing, and logout revocation.
+- Access and refresh credentials remain only in JavaScript memory. They are never placed in local storage, session storage, URLs, or logs.
+- Login and driver registration expose loading, validation, rate-limit, service-error, and signed-in states with accessible form semantics.
+- Realtime connections restart with the current access token after authentication changes.
+- Starting an API-backed trip requires a session and waits for the protected server endpoint before displaying the live-trip state.
+- Symbol-only navigation and corrupted display characters were replaced with readable ASCII labels; temperatures remain explicitly displayed in degrees Celsius.
+
+### Challenge
+
+A static portfolio build must remain useful when no API is configured, but silently treating local simulation or a third-party route response as backend state would misrepresent the system. Persisting tokens in browser storage would improve reload convenience while creating a durable credential target for injected scripts.
+
+### Decision
+
+Data provenance is a first-class UI state: API, public open data, and built-in demonstration are separate modes. The secure default keeps tokens in memory and accepts the usability trade-off that a page reload requires signing in again. Protected actions never fall through to a local success state when an API session is expected.
+
+### Benefit
+
+Reviewers can see a real end-to-end authorization boundary and graceful degradation without confusing simulated behavior for production behavior. The browser has a small, testable security boundary that can later migrate refresh rotation to an HttpOnly same-site cookie when the web and API share a production origin.

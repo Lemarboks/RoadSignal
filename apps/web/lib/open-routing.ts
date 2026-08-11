@@ -111,7 +111,7 @@ const RISK_ZONES: RiskZone[] = [
 export class PlaceNotFoundError extends Error {
   constructor(query: string) {
     super(
-      `No Cape Town location matched “${query}”. Add a suburb or street name and try again.`,
+      `No Cape Town location matched "${query}". Add a suburb or street name and try again.`,
     );
     this.name = "PlaceNotFoundError";
   }
