@@ -786,3 +786,13 @@ main:focus { outline: none; }
 }
 @media (forced-colors:active) { .dot,.bar b,.chart i { forced-color-adjust: none; border: 1px solid CanvasText; } .route-card.selected { outline: 3px solid Highlight; } }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } .primary,nav button,.route-card { transition: none; } }
+
+.weather-strip { display:grid; grid-template-columns:minmax(190px,.65fr) minmax(0,2fr); gap:18px 28px; align-items:center; margin:20px 0; padding:18px 20px; border:1px solid #bfd9d2; border-radius:14px; background:#f1f9f6; }
+.weather-heading { display:flex; align-items:center; gap:12px; min-width:0; }.weather-heading h2 { margin:0; font-size:17px; }.weather-heading p,.weather-source { margin:3px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+.weather-symbol { display:grid; flex:none; place-items:center; width:42px; height:42px; border-radius:12px; background:#d8eee7; color:#0b6255; font-size:22px; }
+.weather-readings { display:grid; grid-template-columns:repeat(6,minmax(72px,1fr)); gap:0; margin:0; }.weather-readings div { min-width:0; padding:2px 12px; border-inline-start:1px solid #cfe2dc; }.weather-readings dt { overflow:hidden; color:var(--muted); font-size:10px; text-overflow:ellipsis; white-space:nowrap; }.weather-readings dd { margin:4px 0 0; color:var(--ink); font-size:14px; font-weight:800; overflow-wrap:anywhere; }
+.weather-risk.low { color:var(--green); }.weather-risk.moderate { color:#98610a; }.weather-risk.high { color:var(--red); }.weather-source { grid-column:2; }.weather-source a { color:var(--blue); }
+.weather-message { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0; color:var(--muted); font-size:13px; }.weather-message button { flex:none; min-height:38px; padding:7px 12px; border:1px solid var(--blue); border-radius:9px; background:white; color:var(--blue); font-weight:750; cursor:pointer; }.weather-strip.loading { min-height:80px; }.weather-strip.unavailable { border-color:#d7dfe1; background:#f7f9f9; }
+@media (max-width:820px) { .weather-strip { grid-template-columns:1fr; }.weather-source { grid-column:1; }.weather-readings { grid-template-columns:repeat(3,1fr); row-gap:14px; } }
+@media (max-width:560px) { .weather-strip { padding:16px; }.weather-readings { grid-template-columns:1fr 1fr; }.weather-readings div { padding:2px 10px; }.weather-message { align-items:flex-start; flex-direction:column; }.weather-message button { width:100%; } }
+@media (forced-colors:active) { .weather-risk { forced-color-adjust:auto; } }

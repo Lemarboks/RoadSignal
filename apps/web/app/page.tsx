@@ -9,6 +9,11 @@ import {
   PlaceNotFoundError,
   type ResolvedPlace,
 } from "../lib/open-routing";
+import {
+  applyWeatherRisk,
+  fetchRouteWeather,
+  type RouteWeather,
+} from "../lib/open-weather";
 
 const API =
   process.env.NEXT_PUBLIC_API_URL ??
@@ -25,6 +30,7 @@ const nav = [
 ] as const;
 type Page = (typeof nav)[number];
 type DataMode = "demo" | "public" | "api";
+type WeatherStatus = "loading" | "ready" | "unavailable";
 type LocationPermissionStatus =
   | "checking"
   | "prompt"
@@ -234,7 +240,9 @@ export default function App() {
     [locationPermission, setLocationPermission] =
       useState<LocationPermissionStatus>("checking"),
     [notice, setNotice] = useState(""),
-    [dataMode, setDataMode] = useState<DataMode>("demo");
+    [dataMode, setDataMode] = useState<DataMode>("demo"),
+    [weather, setWeather] = useState<RouteWeather | null>(null),
+    [weatherStatus, setWeatherStatus] = useState<WeatherStatus>("loading");
   const [trip, setTrip] = useState<{
     active: boolean;
     paused: boolean;
@@ -287,6 +295,36 @@ export default function App() {
       .catch(() => setLocationPermission("prompt"));
     return () => permission?.removeEventListener("change", updatePermission);
   }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetchRouteWeather(defaultOrigin, defaultDestination, controller.signal)
+      .then((conditions) => {
+        setWeather(conditions);
+        setWeatherStatus("ready");
+        setRoutes((current) => applyWeatherRisk(current, conditions, "balanced"));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setWeatherStatus("unavailable");
+      });
+    return () => controller.abort();
+  }, []);
+  async function enrichRoutesWithWeather(
+    routeOptions: RouteOption[],
+    originPlace: ResolvedPlace,
+    destinationPlace: ResolvedPlace,
+  ) {
+    setWeatherStatus("loading");
+    try {
+      const conditions = await fetchRouteWeather(originPlace, destinationPlace);
+      setWeather(conditions);
+      setWeatherStatus("ready");
+      return applyWeatherRisk(routeOptions, conditions, preference);
+    } catch {
+      setWeather(null);
+      setWeatherStatus("unavailable");
+      return routeOptions;
+    }
+  }
   function useCurrentLocation() {
     if (!navigator.geolocation) {
       setNotice("Current location is not supported by this browser.");
@@ -344,10 +382,15 @@ export default function App() {
         resolvedOrigin,
         resolvedDestination,
       );
-      setRoutes(result.routes);
+      const weatherAdjustedRoutes = await enrichRoutesWithWeather(
+        result.routes,
+        result.origin,
+        result.destination,
+      );
+      setRoutes(weatherAdjustedRoutes);
       setSelected(
-        result.routes.find((candidate) => candidate.recommended)?.id ??
-          result.routes[0].id,
+        weatherAdjustedRoutes.find((candidate) => candidate.recommended)?.id ??
+          weatherAdjustedRoutes[0].id,
       );
       setResolvedOrigin(result.origin);
       setResolvedDestination(result.destination);
@@ -432,6 +475,11 @@ export default function App() {
     setResolvedDestination(defaultDestination);
     setDataMode("demo");
     setNotice(message);
+    void enrichRoutesWithWeather(
+      fallbackRoutes,
+      defaultOrigin,
+      defaultDestination,
+    ).then(setRoutes);
   }
   function startTrip() {
     setTrip({
@@ -712,6 +760,32 @@ export default function App() {
         </section>
         <MapView routes={routes} selected={selected} />
       </div>
+      <section className={`weather-strip ${weatherStatus}`} aria-live="polite" aria-busy={weatherStatus === "loading"}>
+        <div className="weather-heading">
+          <span className="weather-symbol" aria-hidden="true">{weather?.condition === "Clear" ? "Ã¢Ëœâ‚¬" : weather?.condition.includes("Rain") ? "Ã¢Ëœâ€š" : "Ã¢ËœÂ"}</span>
+          <div><h2>Route weather</h2><p>Current conditions near the route corridor</p></div>
+        </div>
+        {weatherStatus === "loading" ? (
+          <p className="weather-message">Checking current conditionsÃ¢â‚¬Â¦</p>
+        ) : weatherStatus === "unavailable" || !weather ? (
+          <div className="weather-message">
+            <span>Weather is temporarily unavailable. Route planning still works without it.</span>
+            <button type="button" onClick={() => void enrichRoutesWithWeather(routes, resolvedOrigin ?? defaultOrigin, resolvedDestination ?? defaultDestination).then(setRoutes)}>Retry weather</button>
+          </div>
+        ) : (
+          <>
+            <dl className="weather-readings">
+              <div><dt>Conditions</dt><dd>{weather.condition}</dd></div>
+              <div><dt>Temperature</dt><dd>{Math.round(weather.temperatureC)}Ã‚Â°C</dd></div>
+              <div><dt>Feels like</dt><dd>{Math.round(weather.apparentTemperatureC)}Ã‚Â°C</dd></div>
+              <div><dt>Wind</dt><dd>{Math.round(weather.windSpeedKmh)} km/h</dd></div>
+              <div><dt>Visibility</dt><dd>{weather.visibilityKm} km</dd></div>
+              <div><dt>Weather risk</dt><dd className={`weather-risk ${weather.riskLabel.toLowerCase()}`}>{weather.riskLabel}</dd></div>
+            </dl>
+            <p className="weather-source">Live data by <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>. No API key, cookies, or precise device location is sent.</p>
+          </>
+        )}
+      </section>
       <div className="route-grid">
         {routes.map((r) => (
           <button
