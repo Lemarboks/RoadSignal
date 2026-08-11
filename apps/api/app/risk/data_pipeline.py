@@ -94,7 +94,8 @@ def validate_dataset(
     manifest: DatasetManifest, manifest_path: Path, records: list[dict[str, Any]]
 ) -> dict[str, Any]:
     data_path = (manifest_path.parent / manifest.file).resolve()
-    actual_hash = hashlib.sha256(data_path.read_bytes()).hexdigest()
+    canonical_bytes = data_path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
+    actual_hash = hashlib.sha256(canonical_bytes).hexdigest()
     errors: list[str] = []
 
     if actual_hash != manifest.sha256:
