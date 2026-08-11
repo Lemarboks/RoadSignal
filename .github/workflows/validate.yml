@@ -35,6 +35,7 @@ jobs:
           cache-dependency-path: apps/api/requirements.txt
       - run: pip install -r apps/api/requirements.txt
       - run: python -m pytest apps/api/tests
+      - run: python scripts/evaluate-risk-data.py --check
   postgis-integration:
     runs-on: ubuntu-latest
     services:

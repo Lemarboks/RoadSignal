@@ -1,0 +1,149 @@
+{
+  "baseline": {
+    "calibration": {
+      "bins": [
+        {
+          "lower": 0.0,
+          "mean_prediction": 0.16425,
+          "observed_rate": 0.0,
+          "rows": 2,
+          "upper": 0.2
+        },
+        {
+          "lower": 0.2,
+          "mean_prediction": 0.28625,
+          "observed_rate": 0.5,
+          "rows": 2,
+          "upper": 0.4
+        },
+        {
+          "lower": 0.4,
+          "mean_prediction": 0.496625,
+          "observed_rate": 1.0,
+          "rows": 4,
+          "upper": 0.6
+        }
+      ],
+      "expected_calibration_error": 0.346187
+    },
+    "name": "transparent_weighted_risk_v1",
+    "subgroups": {
+      "area:Athlone": {
+        "auc": null,
+        "brier": 0.218314,
+        "log_loss": 0.62963,
+        "positive_rate": 1.0,
+        "rows": 2
+      },
+      "area:CBD": {
+        "auc": 1.0,
+        "brier": 0.223141,
+        "log_loss": 0.62021,
+        "positive_rate": 0.5,
+        "rows": 2
+      },
+      "area:Pinelands": {
+        "auc": null,
+        "brier": 0.027116,
+        "log_loss": 0.179525,
+        "positive_rate": 0.0,
+        "rows": 2
+      },
+      "area:Woodstock": {
+        "auc": null,
+        "brier": 0.291407,
+        "log_loss": 0.776166,
+        "positive_rate": 1.0,
+        "rows": 2
+      },
+      "period:day": {
+        "auc": 1.0,
+        "brier": 0.125128,
+        "log_loss": 0.399867,
+        "positive_rate": 0.25,
+        "rows": 4
+      },
+      "period:night": {
+        "auc": null,
+        "brier": 0.25486,
+        "log_loss": 0.702898,
+        "positive_rate": 1.0,
+        "rows": 4
+      }
+    },
+    "test_metrics": {
+      "auc": 1.0,
+      "brier": 0.189994,
+      "log_loss": 0.551383,
+      "positive_rate": 0.625,
+      "rows": 8
+    }
+  },
+  "dataset": {
+    "geography": [
+      "Cape Town synthetic zones"
+    ],
+    "id": "saferoute-demo-risk-events",
+    "license": "CC0-1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "observation_end": "2026-02-28T23:59:59Z",
+    "observation_start": "2026-01-01T00:00:00Z",
+    "outcome_definition": "Synthetic indicator that a route segment had a simulated hazard within 24 hours",
+    "prediction_horizon_hours": 24,
+    "source": "SafeRoute AI maintainers; manually authored synthetic scenarios",
+    "synthetic": true,
+    "version": "1.0.0"
+  },
+  "quality": {
+    "area_counts": {
+      "Athlone": 10,
+      "CBD": 10,
+      "Pinelands": 10,
+      "Woodstock": 10
+    },
+    "class_counts": {
+      "0": 18,
+      "1": 22
+    },
+    "coordinate_bounds": {
+      "max_latitude": -33.922,
+      "max_longitude": 18.51,
+      "min_latitude": -33.963,
+      "min_longitude": 18.42
+    },
+    "leakage_name_check_passed": true,
+    "license_present": true,
+    "missing_required_values": 0,
+    "rows": 40,
+    "sha256_verified": true,
+    "unique_ids": 40
+  },
+  "schema_version": 1,
+  "split": {
+    "calibration": {
+      "end": "2026-02-01T01:00:00Z",
+      "rows": 8,
+      "start": "2026-01-25T17:00:00Z"
+    },
+    "test": {
+      "end": "2026-02-09T00:00:00Z",
+      "rows": 8,
+      "start": "2026-02-02T07:00:00Z"
+    },
+    "train": {
+      "end": "2026-01-24T22:00:00Z",
+      "rows": 24,
+      "start": "2026-01-01T06:00:00Z"
+    }
+  },
+  "training_gate": {
+    "artifact_emitted": false,
+    "blockers": [
+      "dataset is synthetic demonstration data",
+      "license manifest does not permit training",
+      "fewer than 1000 validated rows"
+    ],
+    "eligible": false,
+    "minimum_rows": 1000
+  }
+}
