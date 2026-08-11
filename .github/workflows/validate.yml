@@ -157,9 +157,9 @@ jobs:
           cache: pip
           cache-dependency-path: apps/api/requirements.txt
       - run: pnpm install --frozen-lockfile
-      # Only the web and API are production deployment targets. The Expo
-      # prototype has its own dependency-modernisation gate and risk record.
-      - run: pnpm --filter @saferoute/web audit --prod --audit-level high
+      # Audit the isolated production graph that is actually shipped.
+      - run: pnpm --filter @saferoute/web --prod deploy .audit/web
+      - run: pnpm --dir .audit/web audit --prod --audit-level high
       - run: pip install pip-audit==2.9.0
       - run: pip-audit --strict --requirement apps/api/requirements.txt
       - run: >-
@@ -167,4 +167,10 @@ jobs:
           -v "$PWD:/src:ro"
           aquasec/trivy:0.66.0
           fs --exit-code 1 --severity HIGH,CRITICAL
-          --scanners vuln,secret,misconfig /src
+          --scanners vuln /src/.audit/web
+      - run: >-
+          docker run --rm
+          -v "$PWD:/src:ro"
+          aquasec/trivy:0.66.0
+          fs --exit-code 1 --severity HIGH,CRITICAL
+          --scanners secret,misconfig /src
