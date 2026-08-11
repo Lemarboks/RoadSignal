@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+.secrets
+backups
+node_modules
+**/node_modules
+**/.next
+**/out
+**/.turbo
+**/__pycache__
+**/.pytest_cache
+coverage

@@ -1,7 +1,12 @@
 FROM python:3.13-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-RUN chmod +x scripts/start-api.sh
+RUN pip install --no-cache-dir -r requirements.txt \
+    && groupadd --gid 10001 saferoute \
+    && useradd --uid 10001 --gid saferoute --no-create-home --shell /usr/sbin/nologin saferoute
+COPY --chown=saferoute:saferoute . .
+RUN chmod 0555 scripts/start-api.sh
+USER 10001:10001
+EXPOSE 8000
 CMD ["./scripts/start-api.sh"]

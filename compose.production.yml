@@ -1,0 +1,163 @@
+name: saferoute-production
+
+x-service-security: &service-security
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  web:
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN to the public HTTPS origin}
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN to the production hostname}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL for certificate expiry notices}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    networks: [edge, backend]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    <<: *service-security
+    build:
+      context: apps/api
+    environment:
+      ENVIRONMENT: production
+      STORAGE_BACKEND: postgres
+      EVENT_BACKEND: redis
+      REQUIRE_AUTH: "true"
+      ROUTE_PROVIDER: open
+      CORS_ORIGINS: ${PUBLIC_ORIGIN}
+      TRUSTED_PROXY_IPS: "*"
+      DATABASE_URL_FILE: /run/secrets/database_url
+      REDIS_URL_FILE: /run/secrets/redis_url
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      METRICS_BEARER_TOKEN_FILE: /run/secrets/metrics_token
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    secrets:
+      - database_url
+      - redis_url
+      - jwt_secret
+      - metrics_token
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    networks: [backend, observability]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+
+  db:
+    <<: *service-security
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: saferoute
+      POSTGRES_USER: saferoute
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: --data-checksums
+    secrets: [postgres_password]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    shm_size: 256mb
+    cap_drop: [NET_RAW]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saferoute -d saferoute"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    <<: *service-security
+    build:
+      context: infrastructure/redis
+    secrets: [redis_password]
+    volumes:
+      - redis_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m,mode=1777
+    cap_drop: [NET_RAW]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$(cat /run/secrets/redis_password) redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  prometheus:
+    <<: *service-security
+    image: prom/prometheus:v3.5.0
+    profiles: [observability]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    secrets: [metrics_token]
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    networks: [observability]
+    depends_on:
+      api:
+        condition: service_healthy
+
+secrets:
+  postgres_password:
+    file: ${SECRETS_DIR:-.secrets}/postgres_password
+  database_url:
+    file: ${SECRETS_DIR:-.secrets}/database_url
+  redis_password:
+    file: ${SECRETS_DIR:-.secrets}/redis_password
+  redis_url:
+    file: ${SECRETS_DIR:-.secrets}/redis_url
+  jwt_secret:
+    file: ${SECRETS_DIR:-.secrets}/jwt_secret
+  metrics_token:
+    file: ${SECRETS_DIR:-.secrets}/metrics_token
+
+networks:
+  edge: {}
+  backend:
+    internal: true
+  observability:
+    internal: true
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  postgres_data: {}
+  redis_data: {}
+  prometheus_data: {}
