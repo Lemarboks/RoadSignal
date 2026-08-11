@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .schemas import IncidentCreate, RouteAnalyseRequest, TripLocation
@@ -9,9 +9,20 @@ from .providers.weather import OpenMeteoWeatherProvider
 from .risk.engine import RiskIncident, risk_level, route_score, segment_score
 from .incidents.confidence import ConfidenceEvidence, calculate_confidence
 from .store import INCIDENTS, ROUTES, TRIPS, AUDIT_LOG, EVENTS
+from .database.session import database_ready
+from .middleware import SecurityHeadersMiddleware
+from .routers import authentication
+from .auth import require_roles_when_enabled, require_when_enabled
+from .rate_limit import limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 app = FastAPI(title="SafeRoute AI API", version="0.1.0", description="Route-risk decision support. Scores are estimates, not guarantees of safety.")
-app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins.split(","), allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "X-Request-ID"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.include_router(authentication.router)
 fallback_provider = MockCapeTownRouteProvider()
 provider = ResilientRouteProvider(
     OpenRouteProvider(
@@ -39,7 +50,13 @@ def risk_incidents():
     return [RiskIncident(mapping.get(i["incident_type"],"community"),i["severity"],i["confidence"],i["occurred_at"],i["location"]["latitude"],i["location"]["longitude"]) for i in INCIDENTS if i["status"] == "active"]
 
 @app.get("/api/v1/health")
-def health(): return {"status":"healthy","service":"saferoute-api","provider":settings.route_provider,"open_source_stack":["Nominatim","OSRM","Open-Meteo","PostGIS","Redis"]}
+def health(): return {"status":"healthy","service":"saferoute-api"}
+
+@app.get("/api/v1/ready")
+def ready():
+    database = database_ready()
+    ready_now = settings.storage_backend == "memory" or database
+    return {"status": "ready" if ready_now else "degraded", "storage": settings.storage_backend, "database": database}
 
 @app.post("/api/v1/routes/analyse")
 async def analyse(request: RouteAnalyseRequest):
@@ -80,13 +97,13 @@ def get_route(route_id: str):
     return ROUTES[route_id]
 
 @app.post("/api/v1/routes/{route_id}/start")
-def start_route(route_id: str):
+def start_route(route_id: str, principal=Depends(require_when_enabled)):
     if route_id not in ROUTES: raise HTTPException(404,"Route not found; analyse routes first")
     trip={"id":str(uuid4()),"route_id":route_id,"status":"active","progress":0,"safety_score":ROUTES[route_id]["safety_score"],"alerts":[],"started_at":datetime.now(timezone.utc)}
     TRIPS[trip["id"]]=trip; publish("trip.started",trip); return serialise(trip)
 
 @app.post("/api/v1/trips/{trip_id}/location")
-def update_location(trip_id: str, location: TripLocation):
+def update_location(trip_id: str, location: TripLocation, principal=Depends(require_when_enabled)):
     trip=TRIPS.get(trip_id)
     if not trip: raise HTTPException(404,"Trip not found")
     trip["progress"]=min(100,trip["progress"]+5); publish("driver.location",{"trip_id":trip_id,"progress":trip["progress"]}); return serialise(trip)
@@ -100,7 +117,7 @@ def get_trip(trip_id: str):
 def trip_alerts(trip_id: str): return {"items":TRIPS.get(trip_id,{}).get("alerts",[])}
 
 @app.post("/api/v1/trips/{trip_id}/end")
-def end_trip(trip_id: str):
+def end_trip(trip_id: str, principal=Depends(require_when_enabled)):
     if trip_id not in TRIPS: raise HTTPException(404,"Trip not found")
     TRIPS[trip_id]["status"]="completed"; publish("trip.ended",TRIPS[trip_id]); return serialise(TRIPS[trip_id])
 
@@ -111,7 +128,7 @@ def incidents(): return {"items":serialise(INCIDENTS),"total":len(INCIDENTS)}
 def nearby(latitude: float, longitude: float, radius_km: float=10): return incidents()
 
 @app.post("/api/v1/incidents")
-def create_incident(body: IncidentCreate):
+def create_incident(body: IncidentCreate, principal=Depends(require_when_enabled)):
     confidence, flags=calculate_confidence(ConfidenceEvidence(gps_distance_km=0 if not body.reporter_location else .2))
     incident={"id":str(uuid4()),"incident_type":body.incident_type,"severity":body.severity,"source_type":"anonymous" if body.anonymous else "community","verification_status":"unverified","confidence":confidence,"description":body.description,"occurred_at":body.occurred_at,"expires_at":body.occurred_at+timedelta(hours=6),"location":body.location.model_dump(),"confirmations":0,"disputes":0,"status":"active","abuse_flags":flags}
     INCIDENTS.insert(0,incident); publish("incident.created",incident)
@@ -130,31 +147,31 @@ def moderate(incident_id: str, action: str):
     publish(f"incident.{action}",incident); return serialise(incident)
 
 @app.post("/api/v1/incidents/{incident_id}/confirm")
-def confirm(incident_id: str): return moderate(incident_id,"confirm")
+def confirm(incident_id: str, principal=Depends(require_when_enabled)): return moderate(incident_id,"confirm")
 @app.post("/api/v1/incidents/{incident_id}/dispute")
-def dispute(incident_id: str): return moderate(incident_id,"dispute")
+def dispute(incident_id: str, principal=Depends(require_when_enabled)): return moderate(incident_id,"dispute")
 @app.post("/api/v1/incidents/{incident_id}/resolve")
-def resolve(incident_id: str): return moderate(incident_id,"resolve")
+def resolve(incident_id: str, principal=Depends(require_roles_when_enabled("administrator","incident_moderator"))): return moderate(incident_id,"resolve")
 
 @app.get("/api/v1/fleets/demo-fleet/drivers")
-def drivers(): return {"items":[{"id":f"driver-{i}","name":name,"status":"en_route" if i<3 else "available","safety_score":88-i*2} for i,name in enumerate(["Ayanda Ndlovu","Liam Jacobs","Thandi Mokoena","Ethan Williams","Naledi Dlamini","Luke Daniels","Zanele Khumalo","Mia Smith","Sibusiso Nkosi","Noah Adams"])]}
+def drivers(principal=Depends(require_roles_when_enabled("administrator","fleet_manager"))): return {"items":[{"id":f"driver-{i}","name":name,"status":"en_route" if i<3 else "available","safety_score":88-i*2} for i,name in enumerate(["Ayanda Ndlovu","Liam Jacobs","Thandi Mokoena","Ethan Williams","Naledi Dlamini","Luke Daniels","Zanele Khumalo","Mia Smith","Sibusiso Nkosi","Noah Adams"])]}
 @app.get("/api/v1/fleets/demo-fleet/trips")
-def fleet_trips(): return {"items":serialise(list(TRIPS.values())),"completed_today":20}
+def fleet_trips(principal=Depends(require_roles_when_enabled("administrator","fleet_manager"))): return {"items":serialise(list(TRIPS.values())),"completed_today":20}
 @app.get("/api/v1/fleets/demo-fleet/incidents")
-def fleet_incidents(): return incidents()
+def fleet_incidents(principal=Depends(require_roles_when_enabled("administrator","fleet_manager","incident_moderator"))): return incidents()
 @app.get("/api/v1/fleets/demo-fleet/analytics")
-def analytics(): return {"active_drivers":3,"high_risk_drivers":sum(1 for t in TRIPS.values() if t["safety_score"]<60),"average_safety_score":84.2,"active_incidents":sum(1 for i in INCIDENTS if i["status"]=="active"),"trips_completed_today":20,"alerts":EVENTS[-10:],"risk_by_area":[{"area":"Cape Town CBD","score":82},{"area":"Woodstock","score":71},{"area":"Pinelands","score":88},{"area":"Athlone","score":64}],"hourly_scores":[78,81,84,86,83,79,74,69]}
+def analytics(principal=Depends(require_roles_when_enabled("administrator","fleet_manager"))): return {"active_drivers":3,"high_risk_drivers":sum(1 for t in TRIPS.values() if t["safety_score"]<60),"average_safety_score":84.2,"active_incidents":sum(1 for i in INCIDENTS if i["status"]=="active"),"trips_completed_today":20,"alerts":EVENTS[-10:],"risk_by_area":[{"area":"Cape Town CBD","score":82},{"area":"Woodstock","score":71},{"area":"Pinelands","score":88},{"area":"Athlone","score":64}],"hourly_scores":[78,81,84,86,83,79,74,69]}
 
 @app.get("/api/v1/audit-logs")
-def audit_logs(): return {"items":AUDIT_LOG[-100:]}
+def audit_logs(principal=Depends(require_roles_when_enabled("administrator","incident_moderator"))): return {"items":AUDIT_LOG[-100:]}
 
 @app.post("/api/v1/emergencies")
-def emergency(payload: dict):
+def emergency(payload: dict, principal=Depends(require_when_enabled)):
     event={"id":str(uuid4()),"status":"active","created_at":datetime.now(timezone.utc),"location":payload.get("location")}; publish("emergency.created",event); return serialise(event)
 @app.post("/api/v1/emergencies/{event_id}/cancel")
-def cancel_emergency(event_id: str): publish("emergency.cancelled",{"id":event_id}); return {"id":event_id,"status":"cancelled"}
+def cancel_emergency(event_id: str, principal=Depends(require_when_enabled)): publish("emergency.cancelled",{"id":event_id}); return {"id":event_id,"status":"cancelled"}
 @app.post("/api/v1/emergencies/{event_id}/resolve")
-def resolve_emergency(event_id: str): publish("emergency.resolved",{"id":event_id}); return {"id":event_id,"status":"resolved"}
+def resolve_emergency(event_id: str, principal=Depends(require_roles_when_enabled("administrator","fleet_manager"))): publish("emergency.resolved",{"id":event_id}); return {"id":event_id,"status":"resolved"}
 
 @app.websocket("/api/v1/ws/events")
 async def websocket_events(socket: WebSocket):
