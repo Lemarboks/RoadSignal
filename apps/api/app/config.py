@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     provider_user_agent: str = "SafeRouteAI/1.0 (self-hostable routing client)"
     cors_origins: str = "http://localhost:3000,http://localhost:8081"
     environment: Literal["development", "test", "production"] = "development"
+    service_name: str = "saferoute-api"
+    log_level: Literal["debug", "info", "warning", "error"] = "info"
+    otel_exporter_otlp_endpoint: str = ""
+    metrics_bearer_token: str = ""
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
@@ -40,6 +44,8 @@ class Settings(BaseSettings):
                 raise ValueError("Production requires REQUIRE_AUTH=true")
             if len(self.jwt_secret) < 32 or self.jwt_secret.startswith("development-"):
                 raise ValueError("Production requires a random JWT_SECRET of at least 32 characters")
+            if len(self.metrics_bearer_token) < 32:
+                raise ValueError("Production requires a random METRICS_BEARER_TOKEN of at least 32 characters")
             if any(origin == "*" for origin in self.allowed_origins):
                 raise ValueError("Wildcard CORS is forbidden in production")
         return self

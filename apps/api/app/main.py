@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
-from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .schemas import IncidentCreate, RouteAnalyseRequest, TripLocation
@@ -14,6 +14,7 @@ from .repositories import repository, serialise
 from .database.session import database_ready
 from .auth import decode_access_token
 from .middleware import SecurityHeadersMiddleware
+from .observability import configure_observability
 from .routers import authentication
 from .auth import require_roles_when_enabled, require_when_enabled
 from .rate_limit import limiter
@@ -22,6 +23,7 @@ from slowapi.errors import RateLimitExceeded
 
 app = FastAPI(title="SafeRoute AI API", version="0.1.0", description="Route-risk decision support. Scores are estimates, not guarantees of safety.")
 app.add_middleware(SecurityHeadersMiddleware)
+configure_observability(app)
 app.add_middleware(CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "X-Request-ID"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -50,12 +52,15 @@ def risk_incidents():
 def health(): return {"status":"healthy","service":"saferoute-api"}
 
 @app.get("/api/v1/ready")
-def ready():
+def ready(response: Response):
     database = database_ready()
     events = event_bus.ready()
     storage_ready = settings.storage_backend == "memory" or database
     events_ready = settings.event_backend == "memory" or events
-    return {"status": "ready" if storage_ready and events_ready else "degraded", "storage": settings.storage_backend, "database": database, "events": settings.event_backend, "event_bus": events}
+    is_ready = storage_ready and events_ready
+    if not is_ready:
+        response.status_code = 503
+    return {"status": "ready" if is_ready else "degraded", "storage": settings.storage_backend, "database": database, "events": settings.event_backend, "event_bus": events}
 
 @app.post("/api/v1/routes/analyse")
 async def analyse(request: RouteAnalyseRequest):

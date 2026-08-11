@@ -22,6 +22,7 @@ def test_production_accepts_hardened_configuration():
         require_auth=True,
         jwt_secret="a-secure-random-secret-with-more-than-32-characters",
         cors_origins="https://fleet.example.com",
+        metrics_bearer_token="a-random-prometheus-scrape-token-over-32-chars",
     )
     assert configured.allowed_origins == ["https://fleet.example.com"]
 
