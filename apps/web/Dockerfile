@@ -12,5 +12,6 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN pnpm --filter @saferoute/web build
 
 FROM caddy:2.10.2-alpine
+USER caddy
 COPY infrastructure/caddy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /workspace/apps/web/out /srv
