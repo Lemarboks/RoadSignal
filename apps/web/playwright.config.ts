@@ -1,9 +1,6 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { defineConfig, devices } from "@playwright/test";
 
-const webRoot = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   testDir: "./e2e",
@@ -26,7 +23,7 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    cwd: webRoot,
+    cwd: process.cwd(),
     command: "pnpm exec next dev --hostname 127.0.0.1",
     env: { ...process.env, NEXT_PUBLIC_API_URL: "" },
     url: "http://127.0.0.1:3000",
