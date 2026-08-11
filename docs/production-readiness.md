@@ -39,3 +39,26 @@ The API now demonstrates a complete session lifecycle and enforceable least-priv
 ## User-owned decisions
 
 No user action is required for local implementation. A production deployment will require a hosting target, DNS/domain choice, a secret-management mechanism, and explicit approval of any ongoing cost. A trained risk model will require approved datasets with licences that permit this use.
+## Milestone 2: persistent PostGIS runtime repositories
+
+Implemented:
+
+- A repository contract covers routes, trips, incidents, moderation state, and audit records.
+- Production selects PostgreSQL/PostGIS; tests and explicit demo mode use an isolated memory implementation.
+- Incident locations are stored as SRID 4326 geography points and read with spatial database functions.
+- Route geometry is stored as an SRID 4326 geography line and reconstructed as GeoJSON-compatible coordinates.
+- Trip state links to persisted routes and retains progress, alerts, safety score, actor, and start time across restarts.
+- Alembic now has a complete runtime configuration, idempotent upgrades, and automatic container startup migrations.
+- CI provisions a real PostGIS service, runs all migrations, and proves incident, route, trip, and audit round trips.
+
+### Challenge
+
+The original API mutated module-level dictionaries. Merely adding SQLAlchemy model files did not make the runtime persistent, and JSON-only storage would have discarded the principal technical advantage of PostGIS.
+
+### Decision
+
+All core runtime operations now pass through one repository boundary. The Postgres implementation uses spatial columns and database spatial functions; the memory implementation exists only for deterministic tests and deliberately configured demos. Production validation prevents selecting the memory implementation.
+
+### Benefit
+
+The same API flow now survives process restarts, supports indexed geographic analysis, and can be tested against the actual database engine in CI. Future risk queries can move into PostGIS without changing endpoint contracts.
