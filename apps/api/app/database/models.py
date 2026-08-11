@@ -54,7 +54,12 @@ class Vehicle(Timestamped, Base):
 class Trip(Timestamped, Base):
     __tablename__ = "trips"
     user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    route_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("routes.id", ondelete="SET NULL"), index=True)
     status: Mapped[str] = mapped_column(String(30), index=True)
+    progress: Mapped[int] = mapped_column(SmallInteger, default=0)
+    safety_score: Mapped[float] = mapped_column(Numeric(5, 2))
+    alerts: Mapped[list] = mapped_column(JSONB, default=list)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 class TripLocation(Timestamped, Base):
@@ -66,8 +71,19 @@ class TripLocation(Timestamped, Base):
 
 class Route(Timestamped, Base):
     __tablename__ = "routes"
-    trip_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("trips.id", ondelete="SET NULL"), index=True)
+    external_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    duration_minutes: Mapped[int] = mapped_column(SmallInteger)
+    distance_km: Mapped[float] = mapped_column(Numeric(8, 2))
     safety_score: Mapped[float] = mapped_column(Numeric(5, 2))
+    confidence: Mapped[float] = mapped_column(Numeric(4, 3))
+    risk_level: Mapped[str] = mapped_column(String(20))
+    recommended: Mapped[bool] = mapped_column(Boolean, default=False)
+    difference_from_fastest: Mapped[int] = mapped_column(SmallInteger, default=0)
+    breakdown: Mapped[dict] = mapped_column(JSONB)
+    factors: Mapped[list] = mapped_column(JSONB)
+    explanation: Mapped[str] = mapped_column(Text)
+    segment_scores: Mapped[list] = mapped_column(JSONB)
     geometry: Mapped[str] = mapped_column(Geography("LINESTRING", srid=4326))
 
 
@@ -90,6 +106,10 @@ class Incident(Timestamped, Base):
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     location: Mapped[str] = mapped_column(Geography("POINT", srid=4326))
+    confirmations: Mapped[int] = mapped_column(SmallInteger, default=0)
+    disputes: Mapped[int] = mapped_column(SmallInteger, default=0)
+    status: Mapped[str] = mapped_column(String(20), default="active", index=True)
+    abuse_flags: Mapped[list] = mapped_column(JSONB, default=list)
 
 
 class IncidentConfirmation(Timestamped, Base):
