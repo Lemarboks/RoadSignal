@@ -4,14 +4,25 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .schemas import IncidentCreate, RouteAnalyseRequest, TripLocation
-from .providers.routes import MockCapeTownRouteProvider
+from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
+from .providers.weather import OpenMeteoWeatherProvider
 from .risk.engine import RiskIncident, risk_level, route_score, segment_score
 from .incidents.confidence import ConfidenceEvidence, calculate_confidence
 from .store import INCIDENTS, ROUTES, TRIPS, AUDIT_LOG, EVENTS
 
 app = FastAPI(title="SafeRoute AI API", version="0.1.0", description="Route-risk decision support. Scores are estimates, not guarantees of safety.")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins.split(","), allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-provider = MockCapeTownRouteProvider()
+fallback_provider = MockCapeTownRouteProvider()
+provider = ResilientRouteProvider(
+    OpenRouteProvider(
+        settings.nominatim_url,
+        settings.osrm_url,
+        settings.provider_timeout_seconds,
+        settings.provider_user_agent,
+    ),
+    fallback_provider,
+) if settings.route_provider == "open" else fallback_provider
+weather_provider = OpenMeteoWeatherProvider(settings.open_meteo_url, settings.provider_timeout_seconds)
 
 def serialise(value):
     if isinstance(value, datetime): return value.isoformat()
@@ -28,35 +39,40 @@ def risk_incidents():
     return [RiskIncident(mapping.get(i["incident_type"],"community"),i["severity"],i["confidence"],i["occurred_at"],i["location"]["latitude"],i["location"]["longitude"]) for i in INCIDENTS if i["status"] == "active"]
 
 @app.get("/api/v1/health")
-def health(): return {"status":"healthy","service":"saferoute-api","provider":settings.route_provider}
+def health(): return {"status":"healthy","service":"saferoute-api","provider":settings.route_provider,"open_source_stack":["Nominatim","OSRM","Open-Meteo","PostGIS","Redis"]}
 
 @app.post("/api/v1/routes/analyse")
 async def analyse(request: RouteAnalyseRequest):
     options, all_incidents = await provider.alternatives(request.origin, request.destination), risk_incidents()
     baseline_by_id = {"route-balanced":{"crime":10,"accident":7,"traffic":11,"weather":2,"road_condition":4,"community":3},"route-safest":{"crime":5,"accident":4,"traffic":7,"weather":2,"road_condition":3,"community":2},"route-fastest":{"crime":18,"accident":12,"traffic":16,"weather":3,"road_condition":6,"community":5}}
     fastest = min(x["duration_minutes"] for x in options)
+    default_baseline = {"crime": 8, "accident": 6, "traffic": 8, "weather": 2, "road_condition": 4, "community": 3}
     for option in options:
         scores, totals, confidences = [], {}, []
         for lat, lon in option["geometry"]:
-            score, penalties, confidence = segment_score((lat,lon), all_incidents, baseline_by_id[option["id"]])
+            score, penalties, confidence = segment_score((lat,lon), all_incidents, baseline_by_id.get(option["id"], default_baseline))
             scores.append(score); confidences.append(confidence)
             for key,value in penalties.items(): totals[key] = totals.get(key,0)+value/len(option["geometry"])
+        midpoint = option["geometry"][len(option["geometry"]) // 2]
+        weather_penalty, weather_factors = await weather_provider.penalty(midpoint[0], midpoint[1])
+        totals["weather"] = totals.get("weather", 0) + weather_penalty
+        scores = [max(0, score - weather_penalty) for score in scores]
         confidence = round(sum(confidences)/len(confidences),2)
         safety = route_score(scores,confidence)
-        option.update({"safety_score":safety,"confidence":confidence,"risk_level":risk_level(safety),"difference_from_fastest":option["duration_minutes"]-fastest,"breakdown":{k:round(v,1) for k,v in totals.items()},"factors":[k.replace("_"," ").title() for k,v in sorted(totals.items(),key=lambda x:x[1],reverse=True)[:3]],"segment_scores":scores})
+        option.update({"safety_score":safety,"confidence":confidence,"risk_level":risk_level(safety),"difference_from_fastest":option["duration_minutes"]-fastest,"breakdown":{k:round(v,1) for k,v in totals.items()},"factors":(weather_factors + [k.replace("_"," ").title() for k,v in sorted(totals.items(),key=lambda x:x[1],reverse=True)])[:3],"segment_scores":scores})
     weights={"safest":(.9,.1),"balanced":(.75,.25),"fastest":(.35,.65)}[request.preference]
     for option in options:
         efficiency=100*fastest/option["duration_minutes"]
         option["utility"]=round(weights[0]*option["safety_score"]+weights[1]*efficiency,2)
     recommended=max(options,key=lambda x:x["utility"])
     # The demo's balanced route is deliberately the best compromise for the default scenario.
-    if request.preference == "balanced": recommended=next(x for x in options if x["id"]=="route-balanced")
+    if request.preference == "balanced" and any(x["id"] == "route-balanced" for x in options): recommended=next(x for x in options if x["id"]=="route-balanced")
     for option in options:
         option["recommended"]=option is recommended
         option["explanation"]=(f"This route is {option['difference_from_fastest']} minutes slower than the fastest option and " f"balances {', '.join(option['factors'][:2]).lower()} exposure using recent, confidence-weighted reports.")
         option["geometry"]=[{"latitude":lat,"longitude":lon} for lat,lon in option["geometry"]]
         ROUTES[option["id"]]=option
-    return {"routes":options,"disclaimer":"Safety scores are decision-support estimates based on available data and do not guarantee safety."}
+    return {"routes":options,"provider":getattr(provider,"last_source","fallback"),"disclaimer":"Safety scores are decision-support estimates based on available data and do not guarantee safety."}
 
 @app.get("/api/v1/routes/{route_id}")
 def get_route(route_id: str):

@@ -126,7 +126,7 @@ SafeRoute AI is a route-risk decision-support prototype. It compares driving alt
 | GitHub Actions and GitHub Pages | Automated validation and public static deployment. |
 | Docker Compose | Repeatable local PostgreSQL and Redis services. |
 
-Public services were selected for a credential-free demonstration. They have no production SLA, so the final design adds request timeouts and deterministic fallback routes. Azure Maps remains a documented future adapter requiring deployment credentials.
+Public services were selected for a credential-free demonstration. They have no production SLA, so the final design adds request timeouts and deterministic fallback routes. Production deployments should point the same adapters at self-hosted instances.
 
 ### Implementation plan
 
