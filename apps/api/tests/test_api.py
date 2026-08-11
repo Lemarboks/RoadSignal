@@ -1,5 +1,13 @@
 from fastapi.testclient import TestClient
 from app.main import app
+import app.main as main
+
+class ClearWeather:
+    async def penalty(self, latitude: float, longitude: float):
+        return 0.0, []
+
+main.provider = main.fallback_provider
+main.weather_provider = ClearWeather()
 client=TestClient(app)
 def test_critical_flow():
     response=client.post("/api/v1/routes/analyse",json={"origin":"Cape Town CBD","destination":"Airport","preference":"balanced","departure_time":"2026-07-17T12:00:00Z","vehicle_type":"car"})
