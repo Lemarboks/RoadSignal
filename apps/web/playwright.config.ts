@@ -24,7 +24,7 @@ export default defineConfig({
     { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
-  webServer: {
+  webServer: process.env.PLAYWRIGHT_EXTERNAL_SERVER ? undefined : {
     cwd: process.env.GITHUB_WORKSPACE
       ? path.join(process.env.GITHUB_WORKSPACE, "apps", "web")
       : process.cwd(),
