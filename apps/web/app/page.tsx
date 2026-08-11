@@ -762,11 +762,11 @@ export default function App() {
       </div>
       <section className={`weather-strip ${weatherStatus}`} aria-live="polite" aria-busy={weatherStatus === "loading"}>
         <div className="weather-heading">
-          <span className="weather-symbol" aria-hidden="true">{weather?.condition === "Clear" ? "Ã¢Ëœâ‚¬" : weather?.condition.includes("Rain") ? "Ã¢Ëœâ€š" : "Ã¢ËœÂ"}</span>
+          <span className="weather-symbol" aria-hidden="true">WX</span>
           <div><h2>Route weather</h2><p>Current conditions near the route corridor</p></div>
         </div>
         {weatherStatus === "loading" ? (
-          <p className="weather-message">Checking current conditionsÃ¢â‚¬Â¦</p>
+          <p className="weather-message">Checking current conditions...</p>
         ) : weatherStatus === "unavailable" || !weather ? (
           <div className="weather-message">
             <span>Weather is temporarily unavailable. Route planning still works without it.</span>
@@ -776,8 +776,8 @@ export default function App() {
           <>
             <dl className="weather-readings">
               <div><dt>Conditions</dt><dd>{weather.condition}</dd></div>
-              <div><dt>Temperature</dt><dd>{Math.round(weather.temperatureC)}Ã‚Â°C</dd></div>
-              <div><dt>Feels like</dt><dd>{Math.round(weather.apparentTemperatureC)}Ã‚Â°C</dd></div>
+              <div><dt>Temperature</dt><dd>{Math.round(weather.temperatureC)}&deg;C</dd></div>
+              <div><dt>Feels like</dt><dd>{Math.round(weather.apparentTemperatureC)}&deg;C</dd></div>
               <div><dt>Wind</dt><dd>{Math.round(weather.windSpeedKmh)} km/h</dd></div>
               <div><dt>Visibility</dt><dd>{weather.visibilityKm} km</dd></div>
               <div><dt>Weather risk</dt><dd className={`weather-risk ${weather.riskLabel.toLowerCase()}`}>{weather.riskLabel}</dd></div>
