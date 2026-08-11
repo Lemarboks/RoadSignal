@@ -136,7 +136,7 @@ jobs:
       - name: Start browser-test server
         working-directory: apps/web
         run: |
-          pnpm exec next dev --hostname 127.0.0.1 > /tmp/saferoute-web.log 2>&1 &
+          node node_modules/next/dist/bin/next dev --hostname 127.0.0.1 > /tmp/saferoute-web.log 2>&1 &
           for attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
               exit 0
