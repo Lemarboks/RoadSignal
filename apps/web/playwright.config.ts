@@ -21,7 +21,7 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: "npm run dev -- --hostname 127.0.0.1",
+    command: "pnpm exec next dev --hostname 127.0.0.1",
     env: { ...process.env, NEXT_PUBLIC_API_URL: "" },
     url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
