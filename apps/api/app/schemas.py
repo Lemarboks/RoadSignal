@@ -32,9 +32,27 @@ class TripLocation(BaseModel):
     recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str = Field(min_length=8)
+    email: str = Field(min_length=5, max_length=255)
+    password: str = Field(min_length=12, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def normalise_email(cls, value: str) -> str:
+        normalized = value.casefold().strip()
+        if normalized.count("@") != 1 or "." not in normalized.rsplit("@", 1)[1]:
+            raise ValueError("Enter a valid email address")
+        return normalized
 
 class RegisterRequest(LoginRequest):
     name: str = Field(min_length=2, max_length=100)
-    role: Literal["driver", "fleet_manager", "administrator", "incident_moderator"] = "driver"
+    role: Literal["driver"] = "driver"
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if value.casefold() in {"password1234", "passwordpassword", "123456789012"}:
+            raise ValueError("Choose a less common password")
+        return value
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=40, max_length=256)
