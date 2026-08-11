@@ -14,6 +14,7 @@ import {
   fetchRouteWeather,
   type RouteWeather,
 } from "../lib/open-weather";
+import { connectRealtimeEvents } from "../lib/realtime-events";
 
 const API =
   process.env.NEXT_PUBLIC_API_URL ??
@@ -31,6 +32,7 @@ const nav = [
 type Page = (typeof nav)[number];
 type DataMode = "demo" | "public" | "api";
 type WeatherStatus = "loading" | "ready" | "unavailable";
+type RealtimeStatus = "offline" | "connecting" | "connected" | "disconnected" | "unauthorized";
 type LocationPermissionStatus =
   | "checking"
   | "prompt"
@@ -242,7 +244,8 @@ export default function App() {
     [notice, setNotice] = useState(""),
     [dataMode, setDataMode] = useState<DataMode>("demo"),
     [weather, setWeather] = useState<RouteWeather | null>(null),
-    [weatherStatus, setWeatherStatus] = useState<WeatherStatus>("loading");
+    [weatherStatus, setWeatherStatus] = useState<WeatherStatus>("loading"),
+    [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(API ? "connecting" : "offline");
   const [trip, setTrip] = useState<{
     active: boolean;
     paused: boolean;
@@ -264,6 +267,22 @@ export default function App() {
   const safestAlternative = routes
     .filter((candidate) => candidate.id !== selected)
     .sort((first, second) => second.safetyScore - first.safetyScore)[0];
+  useEffect(() => {
+    if (!API) return;
+    return connectRealtimeEvents({
+      apiUrl: API,
+      onStatus: setRealtimeStatus,
+      onEvents: (events) => {
+        setAudit((current) => [
+          ...events.map((event) => `${event.type.replaceAll(".", " ")}: live API event received`),
+          ...current,
+        ].slice(0, 100));
+        if (events.some((event) => event.type === "route.risk_changed")) {
+          setNotice("Live route risk changed. Review the active trip and available alternatives.");
+        }
+      },
+    });
+  }, []);
   useEffect(() => {
     if (!trip.active || trip.paused) return;
     const timer = setInterval(
@@ -1126,9 +1145,12 @@ export default function App() {
               This showcase uses {dataMode === "public" ? "public map and road services" : dataMode === "api" ? "the configured API" : "built-in simulated data"}. It is decision support, not a guarantee of safety.
             </span>
           </div>
-          <span className={`mode-badge ${dataMode}`}>
-            {dataMode === "public" ? "Public data" : dataMode === "api" ? "API connected" : "Demo data"}
-          </span>
+          <div className="connection-badges" aria-live="polite">
+            <span className={`mode-badge ${dataMode}`}>
+              {dataMode === "public" ? "Public data" : dataMode === "api" ? "API connected" : "Demo data"}
+            </span>
+            {API && <span className={`realtime-badge ${realtimeStatus}`}>Realtime: {realtimeStatus}</span>}
+          </div>
         </section>
         {notice && (
           <div className="toast" role="status" aria-live="polite">

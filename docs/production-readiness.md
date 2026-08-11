@@ -62,3 +62,26 @@ All core runtime operations now pass through one repository boundary. The Postgr
 ### Benefit
 
 The same API flow now survives process restarts, supports indexed geographic analysis, and can be tested against the actual database engine in CI. Future risk queries can move into PostGIS without changing endpoint contracts.
+## Milestone 3: replayable realtime events
+
+Implemented:
+
+- Production events use a capped Redis Stream rather than a process-local list or fire-and-forget pub/sub.
+- Each connection carries a stream cursor, allowing reconnecting clients to recover events they missed.
+- Production WebSockets require an access token in the first message, avoiding credentials in URLs and proxy logs.
+- The web client uses bounded exponential reconnection, preserves the last cursor, rejects malformed envelopes, and stops retrying after an authorization failure.
+- Operational connection state is visible and announced accessibly when an API is configured.
+- Readiness reports Redis independently from database health.
+- Dedicated CI provisions Redis and verifies ordered publication and replay behavior against the real server.
+
+### Challenge
+
+Plain Redis pub/sub loses messages whenever a browser disconnects, while tokens in WebSocket query strings leak into access logs and browser history. A single-process event list also cannot support multiple API replicas.
+
+### Decision
+
+Redis Streams provide bounded persistence and cursor-based replay. Authentication is the first WebSocket frame, and clients reconnect from the last acknowledged cursor with a capped backoff.
+
+### Benefit
+
+Fleet and driver views can receive the same ordered events across horizontally scaled API instances, recover after temporary network loss, and expose their connection health instead of silently becoming stale.
