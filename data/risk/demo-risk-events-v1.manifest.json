@@ -1,0 +1,24 @@
+{
+  "dataset_id": "saferoute-demo-risk-events",
+  "version": "1.0.0",
+  "file": "demo-risk-events-v1.csv",
+  "sha256": "33589d9530a8c84c01d5ff6442a95d829ca6f7d6477ec5b4562979c6be3b9ac7",
+  "source": "SafeRoute AI maintainers; manually authored synthetic scenarios",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "allowed_use": ["testing", "evaluation", "demonstration"],
+  "synthetic": true,
+  "geography": ["Cape Town synthetic zones"],
+  "observation_start": "2026-01-01T00:00:00Z",
+  "observation_end": "2026-02-28T23:59:59Z",
+  "outcome_definition": "Synthetic indicator that a route segment had a simulated hazard within 24 hours",
+  "prediction_horizon_hours": 24,
+  "features_available_at_prediction": [
+    "crime",
+    "accident",
+    "traffic",
+    "weather",
+    "road_condition",
+    "community"
+  ]
+}
