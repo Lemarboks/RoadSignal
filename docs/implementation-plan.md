@@ -15,7 +15,7 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 
 - [x] Organise FastAPI by route, incident, trip, fleet, emergency, and realtime domains
 - [x] Add deterministic Cape Town demonstration dataset
-- [x] Add mock route-provider abstraction returning three alternatives
+- [x] Add Nominatim/OSRM route-provider abstraction with deterministic fallback
 - [x] Implement deterministic segment and route risk scoring
 - [x] Implement incident-confidence calculation and abuse flags
 - [x] Implement route analysis, incident moderation, trip lifecycle, fleet analytics, emergency, and health endpoints
@@ -36,7 +36,7 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Build risk map, analytics, and settings screens with meaningful seeded content
 - [x] Add loading, empty, failure, and action feedback states
 - [x] Add a no-key MapLibre/OpenFreeMap map with visible attribution and an offline SVG fallback
-- [ ] Enable Azure Maps as an optional enterprise adapter when a browser key is supplied
+- [x] Integrate configurable MapLibre, OpenFreeMap, Photon, Nominatim, OSRM, and Open-Meteo services without API keys
 
 ## 4. Mobile
 
@@ -53,7 +53,7 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Add request validation, CORS, rate limiting, audit events, password hashing, and expiring JWTs
 - [x] Add architecture, API, risk, schema, threat-model, privacy, deployment, and demo documentation
 - [x] Run locally available lint/type/test checks and record limitations
-- [ ] Perform a real Azure staging deployment and load/security test
+- [ ] Perform a staging deployment and load/security test against self-hosted provider instances
 
 ## Acceptance flow
 
