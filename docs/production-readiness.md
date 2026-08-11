@@ -109,3 +109,26 @@ Data provenance is a first-class UI state: API, public open data, and built-in d
 ### Benefit
 
 Reviewers can see a real end-to-end authorization boundary and graceful degradation without confusing simulated behavior for production behavior. The browser has a small, testable security boundary that can later migrate refresh rotation to an HttpOnly same-site cookie when the web and API share a production origin.
+## Milestone 5: privacy-aware observability
+
+Implemented:
+
+- Prometheus counters and latency histograms use bounded method, route-template, and status labels to avoid high-cardinality series; production scraping requires a separate random bearer token.
+- JSON request logs include request ID, trace ID, service, environment, route template, status, and duration.
+- Logs deliberately exclude request bodies, authorization credentials, query strings, IP addresses, precise coordinates, and exception messages.
+- Incoming request IDs are accepted only from a bounded safe character set; malformed or oversized values are replaced before logging or reflection.
+- Optional OpenTelemetry FastAPI tracing exports over vendor-neutral OTLP/HTTP when an endpoint is configured.
+- Liveness remains process-only, while readiness returns HTTP 503 when a required database or event bus is unavailable.
+- Prometheus and OpenTelemetry behavior is covered by API tests, including route-cardinality and privacy assertions.
+
+### Challenge
+
+Route-risk requests can contain precise locations and authentication credentials. Generic HTTP logging and unbounded path labels can leak personal data while also making Prometheus unusable through cardinality growth.
+
+### Decision
+
+Observability is allow-list based. Only operational metadata is emitted, dynamic URLs are reduced to framework route templates, and OTLP export is disabled unless explicitly configured. Readiness is a traffic-management signal rather than a decorative JSON field.
+
+### Benefit
+
+Operators can correlate failures, measure latency and error rates, build SLOs, and drain unhealthy replicas without coupling the application to a proprietary monitoring vendor or collecting sensitive journey data.
