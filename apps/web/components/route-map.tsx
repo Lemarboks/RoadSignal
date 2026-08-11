@@ -234,7 +234,7 @@ export function RouteMap({ routes, selected, progress = 0 }: Props) {
           ? `${activeRoute.name} is selected: ${activeRoute.distanceKm} kilometres, ${activeRoute.durationMinutes} minutes, safety estimate ${activeRoute.safetyScore} out of 100.${failed ? " The offline schematic map is displayed." : " The interactive street map is displayed."}`
           : "No route is selected."}
       </p>
-      <div className="map-label">Cape Town · Free OpenStreetMap-based map</div>
+      <div className="map-label">Cape Town - Free OpenStreetMap-based map</div>
       {failed ? (
         <SchematicFallback
           routes={routes}

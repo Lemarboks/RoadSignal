@@ -15,10 +15,13 @@ import {
   type RouteWeather,
 } from "../lib/open-weather";
 import { connectRealtimeEvents } from "../lib/realtime-events";
+import { AuthPanel } from "../components/auth-panel";
+import { SafeRouteApiClient, type SessionSnapshot } from "../lib/api-client";
 
 const API =
   process.env.NEXT_PUBLIC_API_URL ??
   (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+const navMarkers = ["DB", "RP", "LT", "IN", "RM", "AN", "FL", "ST"] as const;
 const nav = [
   "Dashboard",
   "Route Planner",
@@ -31,6 +34,21 @@ const nav = [
 ] as const;
 type Page = (typeof nav)[number];
 type DataMode = "demo" | "public" | "api";
+type ApiRoute = {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  distance_km: number;
+  safety_score: number;
+  confidence: number;
+  risk_level: RouteOption["riskLevel"];
+  recommended: boolean;
+  difference_from_fastest: number;
+  factors: string[];
+  breakdown: { crime: number; accident: number; traffic: number; weather: number; road_condition: number; community: number };
+  explanation: string;
+  geometry: RouteOption["geometry"];
+};
 type WeatherStatus = "loading" | "ready" | "unavailable";
 type RealtimeStatus = "offline" | "connecting" | "connected" | "disconnected" | "unauthorized";
 type LocationPermissionStatus =
@@ -164,7 +182,7 @@ function SchematicMapView({
       .join(" ");
   return (
     <div className="map" aria-label="Interactive route risk map">
-      <div className="map-label">Cape Town · Demonstration map</div>
+      <div className="map-label">Cape Town - Demonstration map</div>
       <svg viewBox="0 0 520 300" role="img">
         <path d="M0 65 Q95 92 135 42 T280 70 T520 38V300H0Z" fill="#dceaf3" />
         <g stroke="#c7ced4" strokeWidth="6" fill="none">
@@ -246,7 +264,10 @@ export default function App() {
     [weather, setWeather] = useState<RouteWeather | null>(null),
     [weatherStatus, setWeatherStatus] = useState<WeatherStatus>("loading"),
     [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(API ? "connecting" : "offline");
+  const apiClient = useMemo(() => new SafeRouteApiClient(API), []);
+  const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [trip, setTrip] = useState<{
+    id?: string;
     active: boolean;
     paused: boolean;
     progress: number;
@@ -271,6 +292,7 @@ export default function App() {
     if (!API) return;
     return connectRealtimeEvents({
       apiUrl: API,
+      accessToken: session?.accessToken,
       onStatus: setRealtimeStatus,
       onEvents: (events) => {
         setAudit((current) => [
@@ -282,7 +304,7 @@ export default function App() {
         }
       },
     });
-  }, []);
+  }, [session?.accessToken]);
   useEffect(() => {
     if (!trip.active || trip.paused) return;
     const timer = setInterval(
@@ -392,6 +414,20 @@ export default function App() {
   async function findRoutes() {
     setLoading(true);
     setNotice("");
+    if (API) {
+      try {
+        await findApiRoutes();
+        return;
+      } catch {
+        setNotice("The SafeRoute API is unavailable. Trying public routing services instead.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    await findPublicRoutes();
+  }
+  async function findPublicRoutes() {
+    setLoading(true);
     try {
       const result = await analyseOpenRoutes(
         origin,
@@ -415,34 +451,23 @@ export default function App() {
       setResolvedDestination(result.destination);
       setDataMode("public");
       setNotice(
-        `Three live road alternatives found between ${result.origin.displayName.split(",")[0]} and ${result.destination.displayName.split(",")[0]}.`,
+        `Three public road alternatives found between ${result.origin.displayName.split(",")[0]} and ${result.destination.displayName.split(",")[0]}.`,
       );
     } catch (error) {
-      if (error instanceof PlaceNotFoundError) {
-        setNotice(error.message);
-      } else {
-        await findFallbackRoutes();
-      }
+      if (error instanceof PlaceNotFoundError) setNotice(error.message);
+      else useDemoRoutes("Live routing is unavailable. Built-in demonstration routes are shown instead.");
     } finally {
       setLoading(false);
     }
   }
-  async function findFallbackRoutes() {
-    setLoading(true);
-    setNotice("");
+  async function findApiRoutes() {
     setResolvedOrigin(null);
     setResolvedDestination(null);
-    if (!API) {
-      useDemoRoutes("Public routing is unavailable — using reliable built-in demonstration routes.");
-      setLoading(false);
-      return;
-    }
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 8_000);
     try {
-      const res = await fetch(`${API}/api/v1/routes/analyse`, {
+      const data = await apiClient.request<{ routes: ApiRoute[] }>("/api/v1/routes/analyse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           origin,
           destination,
@@ -452,39 +477,35 @@ export default function App() {
         }),
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setRoutes(
-        data.routes.map((r: any) => ({
-          id: r.id,
-          name: r.name,
-          durationMinutes: r.duration_minutes,
-          distanceKm: r.distance_km,
-          safetyScore: r.safety_score,
-          confidence: r.confidence,
-          riskLevel: r.risk_level,
-          recommended: r.recommended,
-          differenceFromFastest: r.difference_from_fastest,
-          factors: r.factors,
-          breakdown: {
-            crime: r.breakdown.crime,
-            accident: r.breakdown.accident,
-            traffic: r.breakdown.traffic,
-            weather: r.breakdown.weather,
-            roadCondition: r.breakdown.road_condition,
-            community: r.breakdown.community,
-          },
-          explanation: r.explanation,
-          geometry: r.geometry,
-        })),
-      );
+      if (!data.routes.length) throw new Error("The API returned no route alternatives.");
+      const apiRoutes = data.routes.map((r) => ({
+        id: r.id,
+        name: r.name,
+        durationMinutes: r.duration_minutes,
+        distanceKm: r.distance_km,
+        safetyScore: r.safety_score,
+        confidence: r.confidence,
+        riskLevel: r.risk_level,
+        recommended: r.recommended,
+        differenceFromFastest: r.difference_from_fastest,
+        factors: r.factors,
+        breakdown: {
+          crime: r.breakdown.crime,
+          accident: r.breakdown.accident,
+          traffic: r.breakdown.traffic,
+          weather: r.breakdown.weather,
+          roadCondition: r.breakdown.road_condition,
+          community: r.breakdown.community,
+        },
+        explanation: r.explanation,
+        geometry: r.geometry,
+      }));
+      setRoutes(apiRoutes);
+      setSelected(apiRoutes.find((candidate) => candidate.recommended)?.id ?? apiRoutes[0].id);
       setDataMode("api");
-      setNotice("Three routes analysed using current demonstration incidents.");
-    } catch {
-      useDemoRoutes("API unavailable — showing reliable built-in demonstration routes.");
+      setNotice("Routes analysed by the configured SafeRoute API.");
     } finally {
       window.clearTimeout(timeout);
-      setLoading(false);
     }
   }
   function useDemoRoutes(message = "Built-in demonstration routes are ready to explore.") {
@@ -500,14 +521,29 @@ export default function App() {
       defaultDestination,
     ).then(setRoutes);
   }
-  function startTrip() {
-    setTrip({
-      active: true,
-      paused: false,
-      progress: 2,
-      score: route.safetyScore,
-      alerts: [],
-    });
+  async function startTrip() {
+    if (API && dataMode === "api") {
+      if (!session) {
+        setNotice("Sign in before starting a protected live trip.");
+        return;
+      }
+      setLoading(true);
+      try {
+        const liveTrip = await apiClient.request<{ id: string; progress: number; safety_score: number }>(
+          `/api/v1/routes/${encodeURIComponent(route.id)}/start`,
+          { method: "POST" },
+        );
+        setTrip({ id: liveTrip.id, active: true, paused: false, progress: liveTrip.progress, score: liveTrip.safety_score, alerts: [] });
+        setNotice("Protected live trip started. Realtime risk updates are connected.");
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "The live trip could not be started.");
+        return;
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setTrip({ active: true, paused: false, progress: 2, score: route.safetyScore, alerts: [] });
+    }
     setPage("Live Trips");
     setAudit((a) => [`Trip started on ${route.name}`, ...a]);
   }
@@ -573,7 +609,7 @@ export default function App() {
     <>
       <section className="heading">
         <div>
-          <p className="eyebrow">Friday, 17 July · Cape Town</p>
+          <p className="eyebrow">Friday, 17 July - Cape Town</p>
           <h1>Fleet operations overview</h1>
           <p>
             Real-time route-risk intelligence across demonstration operations.
@@ -611,7 +647,7 @@ export default function App() {
           {trip.alerts.length ? (
             trip.alerts.map((x) => (
               <div className="alert danger-bg" key={x}>
-                ⚠ {x}
+                Warning: {x}
               </div>
             ))
           ) : (
@@ -681,7 +717,7 @@ export default function App() {
                   disabled={locating || locationPermission === "checking"}
                 >
                   {locating
-                    ? "Locating…"
+                    ? "Locating..."
                     : locationPermission === "denied"
                       ? "Try again"
                       : "Enable"}
@@ -703,7 +739,7 @@ export default function App() {
               onClick={useCurrentLocation}
               disabled={locating}
             >
-              {locating ? "Locating…" : "Use current location"}
+              {locating ? "Locating..." : "Use current location"}
             </button>
           </label>
           <label>
@@ -749,7 +785,7 @@ export default function App() {
             onClick={findRoutes}
             disabled={loading}
           >
-            {loading ? "Resolving places and road routes…" : "Find routes"}
+            {loading ? "Resolving places and road routes..." : "Find routes"}
           </button>
           <button className="demo-route-button" type="button" onClick={() => useDemoRoutes()}>
             Use built-in demo routes
@@ -759,7 +795,7 @@ export default function App() {
             <a href="https://photon.komoot.io" target="_blank" rel="noreferrer">
               Photon
             </a>
-            {" · "}routing by{" "}
+            {" - "}routing by{" "}
             <a
               href="https://routing.openstreetmap.de/about.html"
               target="_blank"
@@ -767,13 +803,13 @@ export default function App() {
             >
               OSRM/FOSSGIS
             </a>
-            {" · "}
+            {" - "}
             <a
               href="https://www.openstreetmap.org/copyright"
               target="_blank"
               rel="noreferrer"
             >
-              © OpenStreetMap contributors
+               OpenStreetMap contributors
             </a>
           </p>
         </section>
@@ -875,7 +911,7 @@ export default function App() {
           </p>
           <h1>Live Trip</h1>
           <p>
-            {resolvedOrigin?.displayName.split(",")[0] ?? origin} →{" "}
+            {resolvedOrigin?.displayName.split(",")[0] ?? origin} to{" "}
             {resolvedDestination?.displayName.split(",")[0] ?? destination}
           </p>
         </div>
@@ -961,7 +997,7 @@ export default function App() {
             </button>
           </div>
           <p className="dev">
-            Development simulator · events are demonstration data
+            Development simulator - events are demonstration data
           </p>
         </section>
       </div>
@@ -1039,7 +1075,7 @@ export default function App() {
                 <td data-label="Verification">
                   {i.verificationStatus}
                   <small>
-                    {i.confirmations} confirms · {i.disputes} disputes
+                    {i.confirmations} confirms - {i.disputes} disputes
                   </small>
                 </td>
                 <td data-label="Actions">
@@ -1061,7 +1097,7 @@ export default function App() {
     <>
       <section className="heading">
         <div>
-          <p className="eyebrow">Last 30 days · Demonstration data</p>
+          <p className="eyebrow">Last 30 days - Demonstration data</p>
           <h1>{page}</h1>
           <p>Operational safety performance and confidence-weighted trends.</p>
         </div>
@@ -1123,19 +1159,12 @@ export default function App() {
               type="button"
               aria-current={page === n ? "page" : undefined}
             >
-              <i>{["▦", "⌁", "●", "△", "◎", "▥", "♙", "⚙"][nav.indexOf(n)]}</i>
+              <i aria-hidden="true">{navMarkers[nav.indexOf(n)]}</i>
               {n}
               {n === "Incidents" && <em>{incidents.length}</em>}
             </button>
           ))}
         </nav>
-        <div className="user">
-          <span>AM</span>
-          <div>
-            <strong>Alex Morgan</strong>
-            <small>Fleet manager</small>
-          </div>
-        </div>
       </aside>
       <main id="main-content" tabIndex={-1}>
         <section className="demo-banner" aria-label="Demonstration status">
@@ -1152,10 +1181,11 @@ export default function App() {
             {API && <span className={`realtime-badge ${realtimeStatus}`}>Realtime: {realtimeStatus}</span>}
           </div>
         </section>
+        {API && <AuthPanel client={apiClient} session={session} onSession={setSession} />}
         {notice && (
           <div className="toast" role="status" aria-live="polite">
             <span>{notice}</span>
-            <button type="button" onClick={() => setNotice("")} aria-label="Dismiss notification">×</button>
+            <button type="button" onClick={() => setNotice("")} aria-label="Dismiss notification">Close</button>
           </div>
         )}
         {page === "Dashboard"
