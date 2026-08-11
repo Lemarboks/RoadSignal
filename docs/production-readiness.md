@@ -28,13 +28,12 @@ Access tokens are short lived and independently verifiable. Refresh tokens are r
 
 The API now demonstrates a complete session lifecycle and enforceable least-privilege boundary rather than security documentation without runtime evidence.
 
-## Remaining milestones
+## Current next milestones
 
-1. Replace global state with PostGIS repositories and migration-tested spatial queries.
-2. Replace the process-local journal with Redis Streams/pub-sub and authenticated WebSockets.
-3. Route the deployed web application through the API with secure session handling and an explicit offline mode.
-4. Add OpenTelemetry, Prometheus metrics, structured privacy-filtered logs, backup/restore automation, load tests, and container security checks.
-5. Establish licensed data provenance and then decide whether available evidence supports a trained model or requires retaining the transparent deterministic baseline.
+1. Keep the architecture, threat model, operating objectives, and trade-offs aligned with the implemented runtime.
+2. Add a reproducible data-readiness and model-evaluation pipeline. Retain the deterministic baseline unless licensed evidence supports training.
+3. Integrate versioned risk artifacts only after leakage, calibration, geographic bias, and rollback gates pass.
+4. Deploy the validated production topology after the owner selects hosting, DNS, backup storage, and recurring-cost limits.
 
 ## User-owned decisions
 
