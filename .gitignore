@@ -16,3 +16,6 @@ uploads/
 .secrets/
 backups/
 .env.production
+playwright-report/
+test-results/
+debug.log

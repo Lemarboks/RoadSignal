@@ -43,6 +43,8 @@ jobs:
 
       - name: Build static web application
         run: pnpm --filter @saferoute/web build
+        env:
+          SAFEROUTE_GITHUB_PAGES: "true"
 
       - name: Disable Jekyll processing
         run: touch apps/web/out/.nojekyll

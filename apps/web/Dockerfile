@@ -12,5 +12,9 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN pnpm --filter @saferoute/web build
 
 FROM caddy:2.10.2-alpine
+RUN addgroup -S -g 10001 saferoute \
+    && adduser -S -D -H -u 10001 -G saferoute saferoute \
+    && chown -R saferoute:saferoute /data /config
 COPY infrastructure/caddy/Caddyfile /etc/caddy/Caddyfile
-COPY --from=build /workspace/apps/web/out /srv
+COPY --chown=saferoute:saferoute --from=build /workspace/apps/web/out /srv
+USER 10001:10001
