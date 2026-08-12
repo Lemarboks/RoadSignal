@@ -1,13 +1,13 @@
 # Architecture
 
-SafeRoute AI is a vendor-neutral route-risk decision-support system. The production path is a browser client served by Caddy, a versioned FastAPI boundary, PostgreSQL/PostGIS as the system of record, and Redis Streams as the replayable event channel. The static GitHub Pages release is a separate portfolio mode: it uses public open providers and clearly labelled deterministic fallbacks, but does not claim that the protected backend is running.
+SafeRoute AI is a vendor-neutral route-risk decision-support system. The production path is a browser client served by Caddy, a versioned FastAPI boundary, MySQL 8 spatial as the system of record, and Redis Streams as the replayable event channel. The static GitHub Pages release is a separate portfolio mode: it uses public open providers and clearly labelled deterministic fallbacks, but does not claim that the protected backend is running.
 
 ```mermaid
 flowchart LR
   Browser[Next.js browser client] -->|HTTPS / WSS| Caddy
   Caddy -->|static files| Browser
   Caddy -->|/api and WebSocket| API[FastAPI]
-  API -->|transactions and spatial queries| PostGIS[(PostgreSQL + PostGIS)]
+  API -->|transactions and spatial queries| MySQL[(MySQL 8 spatial)]
   API -->|ordered events and replay cursors| Redis[(Redis Streams)]
   API -->|configurable adapters| Providers[OSRM / Nominatim / Open-Meteo]
   Prometheus -->|token-authenticated scrape| API
@@ -18,9 +18,9 @@ flowchart LR
 
 - `apps/web` owns presentation, in-memory session state, provenance labels, API fallback decisions, and WebSocket reconnection. It never treats a simulated action as a successful protected API mutation.
 - `apps/api` owns validation, authentication, RBAC, object ownership, route analysis, incident moderation, trip state, audit records, and event publication.
-- `PostgresRepository` owns persistent route, trip, incident, and audit data. PostGIS geography columns use SRID 4326 and GiST indexes.
+- `MySQLRepository` owns persistent route, trip, incident, and audit data. MySQL `GEOMETRY` columns use SRID 4326 and SPATIAL indexes.
 - Redis Streams are a bounded delivery and replay mechanism, not the system of record. Consumers reconnect with the last stream cursor.
-- Provider adapters isolate public routing and weather services. Their failure can activate a labelled deterministic fallback in demonstration mode; production startup still requires PostGIS, Redis, authentication, strong secrets, and an explicit CORS origin.
+- Provider adapters isolate public routing and weather services. Their failure can activate a labelled deterministic fallback in demonstration mode; production startup still requires MySQL spatial, Redis, authentication, strong secrets, and an explicit CORS origin.
 
 ## Identity and tenant boundary
 
@@ -34,7 +34,7 @@ Routes come from configurable OSRM/Nominatim adapters. Each sampled segment rece
 
 | Failure | Production behavior | Portfolio/static behavior |
 |---|---|---|
-| PostGIS unavailable | Readiness returns 503; traffic should be drained | Not applicable |
+| MySQL spatial unavailable | Readiness returns 503; traffic should be drained | Not applicable |
 | Redis unavailable | Readiness returns 503; realtime delivery is unavailable | Simulation remains local |
 | Public route/weather provider unavailable | API uses its configured deterministic fallback and reports provenance | Browser uses labelled public or built-in fallback data |
 | WebSocket interruption | Bounded reconnect with cursor replay | Connection status is visible |
@@ -54,4 +54,4 @@ Routes come from configurable OSRM/Nominatim adapters. Each sampled segment rece
 - No trained risk model is shipped until a licensed, representative dataset and defensible evaluation protocol exist.
 - Public provider routes do not include guaranteed live traffic or emergency-service intelligence.
 - Expo background tracking, native notifications, evidence uploads, and real emergency dispatch require separate consent, platform entitlements, retention controls, and security review.
-- A public production deployment still requires owner-selected hosting, DNS, off-host encrypted backups, and incident-response ownership.
+- The requested local deployment is validated on Windows through Docker Desktop. A future public deployment would still require hosting, DNS, off-host encrypted backups, and incident-response ownership.

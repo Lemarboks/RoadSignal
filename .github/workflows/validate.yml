@@ -36,25 +36,26 @@ jobs:
       - run: pip install -r apps/api/requirements.txt
       - run: python -m pytest apps/api/tests
       - run: python scripts/evaluate-risk-data.py --check
-  postgis-integration:
+  mysql-integration:
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgis/postgis:16-3.4
+      mysql:
+        image: mysql:8.4
         env:
-          POSTGRES_DB: saferoute
-          POSTGRES_USER: saferoute
-          POSTGRES_PASSWORD: saferoute
+          MYSQL_DATABASE: saferoute
+          MYSQL_USER: saferoute
+          MYSQL_PASSWORD: saferoute
+          MYSQL_ROOT_PASSWORD: local-root-only
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
-          --health-cmd "pg_isready -U saferoute"
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u saferoute -psaferoute --silent"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
     env:
-      STORAGE_BACKEND: postgres
-      DATABASE_URL: postgresql+psycopg://saferoute:saferoute@localhost:5432/saferoute
+      STORAGE_BACKEND: mysql
+      DATABASE_URL: mysql+pymysql://saferoute:saferoute@localhost:3306/saferoute?charset=utf8mb4
       ENVIRONMENT: test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -110,10 +111,10 @@ jobs:
       - run: docker compose -f compose.production.yml up -d --build --wait
       - run: curl --fail --silent --show-error --insecure https://localhost/api/v1/health
       - run: curl --fail --silent --show-error --insecure https://localhost/ | grep -q "SafeRoute"
-      - run: infrastructure/scripts/backup-postgres.sh
+      - run: infrastructure/scripts/backup-mysql.sh
       - run: |
-          backup=$(find backups/postgres -name 'saferoute-*.dump' | sort | head -n 1)
-          CONFIRM_RESTORE=saferoute infrastructure/scripts/restore-postgres.sh "$backup"
+          backup=$(find backups/mysql -name 'saferoute-*.sql' | sort | head -n 1)
+          CONFIRM_RESTORE=saferoute infrastructure/scripts/restore-mysql.sh "$backup"
       - run: curl --fail --silent --show-error --insecure https://localhost/api/v1/ready
       - if: failure()
         run: |

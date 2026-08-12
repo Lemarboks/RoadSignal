@@ -47,7 +47,7 @@ Kind regards,
 ### Suggested visual sequence
 
 1. Problem and motivation: road users often compare time, but not confidence-weighted route risk.
-2. Architecture diagram: Next.js/Expo → FastAPI → routing/risk providers → PostGIS/Redis production design.
+2. Architecture diagram: Next.js/Expo → FastAPI → routing/risk providers → MySQL spatial/Redis production design.
 3. Live demonstration: Dashboard → Route Planner → compare alternatives → start simulated trip → inject an incident → observe rerouting.
 4. Engineering evidence: tests, GitHub Actions and Pages deployment.
 5. Limitations, future improvements and lessons learned.
@@ -62,7 +62,7 @@ Presentation cover artwork: `docs/presentation/saferoute-exhibition-cover.png`. 
 >
 > In this demonstration I can plan a route in Cape Town, compare balanced, safest and fastest options, and inspect the factors behind each estimate. I can start a simulated trip and introduce an incident to show how the score and rerouting recommendation change. The public GitHub Pages release remains usable if external services fail because it includes deterministic demo routes and clearly labels the active data source.
 >
-> The project could be improved by connecting validated live data providers, implementing production authentication and role-based access, storing data through PostGIS repositories, using Redis for realtime events, adding secure emergency integrations and validating the risk model with domain experts. Native background location and notification features would also require consent, privacy and security review.
+> The project could be improved by connecting validated live data providers, implementing production authentication and role-based access, storing data through MySQL spatial repositories, using Redis for realtime events, adding secure emergency integrations and validating the risk model with domain experts. Native background location and notification features would also require consent, privacy and security review.
 >
 > Building the project taught me how to organise a multi-application repository, share TypeScript contracts, design and test APIs, work with geospatial routing, handle unreliable networks, create graceful offline fallbacks and deploy a static production build with GitHub Actions. **[Add one specific challenge and what you personally learned from resolving it.]**
 
@@ -85,7 +85,7 @@ SafeRoute AI is a route-risk decision-support prototype. It compares driving alt
 - Analytics and audit-style activity evidence.
 - Responsive layouts for desktop and mobile browsers.
 - Static GitHub Pages mode with public routing and deterministic offline fallbacks.
-- FastAPI endpoints, PostGIS production models and Redis-ready event contracts.
+- FastAPI endpoints, MySQL spatial production models and Redis-ready event contracts.
 
 #### User flow
 
@@ -117,14 +117,14 @@ SafeRoute AI is a route-risk decision-support prototype. It compares driving alt
 | [FastAPI](https://fastapi.tiangolo.com/) | Typed Python API with automatic OpenAPI documentation. |
 | [Pydantic](https://docs.pydantic.dev/) | Request validation and API schemas. |
 | [SQLAlchemy](https://www.sqlalchemy.org/) and Alembic | Production data models and migrations. |
-| [PostgreSQL/PostGIS](https://postgis.net/) | Spatial storage and indexes for routes, trips and incidents. |
+| [MySQL 8 spatial](https://mysql.net/) | Spatial storage and indexes for routes, trips and incidents. |
 | [Redis](https://redis.io/) | Intended production event and realtime architecture. |
 | [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/) | Open-source interactive vector maps. |
 | [OpenStreetMap](https://www.openstreetmap.org/copyright), Photon and OSRM | Credential-free demonstration search, map and road routing data. |
 | [Vitest](https://vitest.dev/) and Pytest | Automated web logic and API/engine unit tests. |
 | [pnpm](https://pnpm.io/) and Turborepo | Reproducible monorepo dependency and task management. |
 | GitHub Actions and GitHub Pages | Automated validation and public static deployment. |
-| Docker Compose | Repeatable local PostgreSQL and Redis services. |
+| Docker Compose | Repeatable local MySQL and Redis services. |
 
 Public services were selected for a credential-free demonstration. They have no production SLA, so the final design adds request timeouts and deterministic fallback routes. Production deployments should point the same adapters at self-hosted instances.
 
@@ -135,7 +135,7 @@ Public services were selected for a credential-free demonstration. They have no 
 | Requirements and responsible-risk scope | 4 hours | Markdown, diagrams | Avoiding misleading safety claims |
 | Shared contracts and monorepo | 5 hours | TypeScript, pnpm, Turbo | Keeping applications consistent |
 | Risk and incident engines | 10 hours | Python, Pytest | Explainability and deterministic scoring |
-| API and production schema | 12 hours | FastAPI, SQLAlchemy, PostGIS | Spatial models and validation |
+| API and production schema | 12 hours | FastAPI, SQLAlchemy, MySQL spatial | Spatial models and validation |
 | Web dashboard and route planner | 18 hours | Next.js, MapLibre | Responsive maps and interaction states |
 | Mobile prototype | 8 hours | Expo, React Native | Permissions and small-screen workflow |
 | Public routing and offline fallback | 10 hours | Photon, Nominatim, OSRM | Rate limits and network failure |
@@ -216,7 +216,7 @@ Suggested conclusion after testing: **[State whether all critical flows passed, 
 
 ### Changes from the original design
 
-The initial design expected the web client to communicate with FastAPI, PostgreSQL, Redis and live providers. GitHub Pages only hosts static files, so the release design was adapted to preserve the demonstration without pretending those backend services are running. The final static version adds deterministic routes, public provider fallbacks, an offline schematic, request timeouts, explicit data-source badges, a manual demo-route action, repository-aware asset paths and automated pre-deployment checks. The full API and production database architecture remain in the source for local or cloud deployment.
+The initial design expected the web client to communicate with FastAPI, MySQL, Redis and live providers. GitHub Pages only hosts static files, so the release design was adapted to preserve the demonstration without pretending those backend services are running. The final static version adds deterministic routes, public provider fallbacks, an offline schematic, request timeouts, explicit data-source badges, a manual demo-route action, repository-aware asset paths and automated pre-deployment checks. The full API and production database architecture remain in the source for local or cloud deployment.
 
 ### Final screenshots to include
 

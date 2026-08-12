@@ -9,13 +9,13 @@ flowchart LR
   Browser -->|HTTPS and WSS| Caddy
   Caddy -->|private HTTP| API[FastAPI API]
   Caddy --> Static[exported Next.js web]
-  API --> PostGIS[(PostgreSQL + PostGIS)]
+  API --> MySQL[(MySQL 8 spatial)]
   API --> Redis[(Redis Streams)]
   Prometheus -->|bearer-authenticated scrape| API
   API -. optional OTLP/HTTP .-> Collector[OpenTelemetry collector]
 ```
 
-Only ports 80 and 443 are public. PostgreSQL, Redis, the API container, and the observability network have no host-published ports. Prometheus is optional and binds only to `127.0.0.1` for access through an SSH tunnel.
+Only ports 80 and 443 are public. MySQL, Redis, the API container, and the observability network have no host-published ports. Prometheus is optional and binds only to `127.0.0.1` for access through an SSH tunnel.
 
 ## Host prerequisites
 
@@ -73,19 +73,19 @@ Prometheus reads its bearer credential from a Docker secret. `/metrics` is inten
 
 ## Backups and restore drills
 
-Create and verify a restricted PostgreSQL custom-format backup:
+Create and verify a transaction-consistent MySQL SQL backup:
 
 ```sh
-infrastructure/scripts/backup-postgres.sh
+infrastructure/scripts/backup-mysql.sh
 ```
 
-Schedule it with systemd or cron and copy completed `.dump` and `.sha256` files to encrypted off-host storage. A backup is not proven until a restore drill succeeds. Restore requires an explicit confirmation value, verifies the checksum and archive, and takes a fresh safety backup first:
+Schedule it with systemd or cron and copy completed `.sql` and `.sha256` files to encrypted off-host storage. A backup is not proven until a restore drill succeeds. Restore requires an explicit confirmation value, verifies the checksum and dump markers, and takes a fresh safety backup first:
 
 ```sh
-CONFIRM_RESTORE=saferoute infrastructure/scripts/restore-postgres.sh backups/postgres/saferoute-TIMESTAMP.dump
+CONFIRM_RESTORE=saferoute infrastructure/scripts/restore-mysql.sh backups/mysql/saferoute-TIMESTAMP.sql
 ```
 
-Restore only during a maintenance window after stopping API writes. Redis contains a replay buffer rather than the system of record; PostGIS is the authoritative backup target.
+Restore only during a maintenance window after stopping API writes. Redis contains a replay buffer rather than the system of record; MySQL spatial is the authoritative backup target.
 
 ## Updates and rollback
 

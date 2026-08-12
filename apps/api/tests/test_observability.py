@@ -43,7 +43,7 @@ def test_json_logs_include_operational_fields_without_sensitive_values():
 def test_degraded_readiness_returns_service_unavailable(monkeypatch):
     import app.main as main
 
-    monkeypatch.setattr(main.settings, "storage_backend", "postgres")
+    monkeypatch.setattr(main.settings, "storage_backend", "mysql")
     monkeypatch.setattr(main, "database_ready", lambda: False)
     response = client.get("/api/v1/ready")
     assert response.status_code == 503

@@ -47,7 +47,15 @@ def publish(kind: str, payload: dict):
 
 def risk_incidents():
     mapping = {"Robbery":"crime","Hijacking attempt":"crime","Accident":"accident","Flooding":"weather","Pothole":"road_condition","Broken traffic light":"traffic","Road closure":"traffic","Protest":"community"}
-    return [RiskIncident(mapping.get(i["incident_type"],"community"),i["severity"],i["confidence"],i["occurred_at"],i["location"]["latitude"],i["location"]["longitude"]) for i in repository.list_incidents() if i["status"] == "active"]
+    incidents = []
+    for item in repository.list_incidents():
+        if item["status"] != "active":
+            continue
+        occurred_at = item["occurred_at"]
+        if isinstance(occurred_at, str):
+            occurred_at = datetime.fromisoformat(occurred_at.replace("Z", "+00:00"))
+        incidents.append(RiskIncident(mapping.get(item["incident_type"], "community"), item["severity"], item["confidence"], occurred_at, item["location"]["latitude"], item["location"]["longitude"]))
+    return incidents
 
 @app.get("/api/v1/health")
 def health(): return {"status":"healthy","service":"saferoute-api"}

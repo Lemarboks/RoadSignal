@@ -39,7 +39,7 @@ services:
       context: apps/api
     environment:
       ENVIRONMENT: production
-      STORAGE_BACKEND: postgres
+      STORAGE_BACKEND: mysql
       EVENT_BACKEND: redis
       REQUIRE_AUTH: "true"
       ROUTE_PROVIDER: open
@@ -74,20 +74,21 @@ services:
 
   db:
     <<: *service-security
-    image: postgis/postgis:16-3.4
+    image: mysql:8.4
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
     environment:
-      POSTGRES_DB: saferoute
-      POSTGRES_USER: saferoute
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-      POSTGRES_INITDB_ARGS: --data-checksums
-    secrets: [postgres_password]
+      MYSQL_DATABASE: saferoute
+      MYSQL_USER: saferoute
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets: [mysql_password, mysql_root_password]
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     shm_size: 256mb
     cap_drop: [NET_RAW]
     networks: [backend]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U saferoute -d saferoute"]
+      test: ["CMD-SHELL", "MYSQL_PWD=$(cat /run/secrets/mysql_password) mysqladmin ping -h 127.0.0.1 -u saferoute --silent"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -135,8 +136,10 @@ services:
         condition: service_healthy
 
 secrets:
-  postgres_password:
-    file: ${SECRETS_DIR:-.secrets}/postgres_password
+  mysql_password:
+    file: ${SECRETS_DIR:-.secrets}/mysql_password
+  mysql_root_password:
+    file: ${SECRETS_DIR:-.secrets}/mysql_root_password
   database_url:
     file: ${SECRETS_DIR:-.secrets}/database_url
   redis_password:
@@ -158,6 +161,6 @@ networks:
 volumes:
   caddy_data: {}
   caddy_config: {}
-  postgres_data: {}
+  mysql_data: {}
   redis_data: {}
   prometheus_data: {}

@@ -12,7 +12,7 @@ Implemented:
 - Public registration restricted to the driver role; elevated roles must be provisioned administratively.
 - Role checks on incident resolution, fleet operations, analytics, emergency resolution, and audit logs.
 - Authentication throttling backed by Redis in production and an isolated memory limiter in tests.
-- Strict production validation for PostgreSQL, Redis, authentication, CORS, and JWT secret strength.
+- Strict production validation for MySQL, Redis, authentication, CORS, and JWT secret strength.
 - Security headers, request correlation IDs, and no-store responses for authentication routes.
 - Liveness and dependency-aware readiness endpoints.
 
@@ -38,29 +38,29 @@ The API now demonstrates a complete session lifecycle and enforceable least-priv
 ## User-owned decisions
 
 No user action is required for local implementation. A production deployment will require a hosting target, DNS/domain choice, a secret-management mechanism, and explicit approval of any ongoing cost. A trained risk model will require approved datasets with licences that permit this use.
-## Milestone 2: persistent PostGIS runtime repositories
+## Milestone 2: persistent MySQL spatial runtime repositories
 
 Implemented:
 
 - A repository contract covers routes, trips, incidents, moderation state, and audit records.
-- Production selects PostgreSQL/PostGIS; tests and explicit demo mode use an isolated memory implementation.
-- Incident locations are stored as SRID 4326 geography points and read with spatial database functions.
-- Route geometry is stored as an SRID 4326 geography line and reconstructed as GeoJSON-compatible coordinates.
+- Production selects MySQL 8 spatial; tests and explicit demo mode use an isolated memory implementation.
+- Incident locations are stored as SRID 4326 `POINT` values and read with spatial database functions.
+- Route geometry is stored as an SRID 4326 `LINESTRING` and reconstructed as GeoJSON-compatible coordinates.
 - Trip state links to persisted routes and retains progress, alerts, safety score, actor, and start time across restarts.
 - Alembic now has a complete runtime configuration, idempotent upgrades, and automatic container startup migrations.
-- CI provisions a real PostGIS service, runs all migrations, and proves incident, route, trip, and audit round trips.
+- CI provisions a real MySQL spatial service, runs all migrations, and proves incident, route, trip, and audit round trips.
 
 ### Challenge
 
-The original API mutated module-level dictionaries. Merely adding SQLAlchemy model files did not make the runtime persistent, and JSON-only storage would have discarded the principal technical advantage of PostGIS.
+The original API mutated module-level dictionaries. Merely adding SQLAlchemy model files did not make the runtime persistent, and JSON-only storage would have discarded the principal technical advantage of MySQL spatial.
 
 ### Decision
 
-All core runtime operations now pass through one repository boundary. The Postgres implementation uses spatial columns and database spatial functions; the memory implementation exists only for deterministic tests and deliberately configured demos. Production validation prevents selecting the memory implementation.
+All core runtime operations now pass through one repository boundary. The MySQL implementation uses spatial columns and database spatial functions; the memory implementation exists only for deterministic tests and deliberately configured demos. Production validation prevents selecting the memory implementation.
 
 ### Benefit
 
-The same API flow now survives process restarts, supports indexed geographic analysis, and can be tested against the actual database engine in CI. Future risk queries can move into PostGIS without changing endpoint contracts.
+The same API flow now survives process restarts, supports indexed geographic analysis, and can be tested against the actual database engine in CI. Future risk queries can move into MySQL spatial without changing endpoint contracts.
 ## Milestone 3: replayable realtime events
 
 Implemented:
@@ -135,13 +135,13 @@ Operators can correlate failures, measure latency and error rates, build SLOs, a
 
 Implemented:
 
-- A separate production Compose topology exposes only Caddy on ports 80/443 and isolates PostGIS, Redis, the API, and observability traffic on internal networks.
+- A separate production Compose topology exposes only Caddy on ports 80/443 and isolates MySQL spatial, Redis, the API, and observability traffic on internal networks.
 - Caddy serves the static Next.js export, proxies API and WebSocket traffic, applies transport headers, and automates TLS without a cloud-specific ingress service.
 - The API image runs as an unprivileged fixed UID with a read-only filesystem, a bounded temporary filesystem, and no Linux capabilities.
-- PostgreSQL, Redis, API, and metrics credentials are generated locally, ignored by Git, mounted individually as read-only Docker secrets, and loaded without embedding them in images.
-- Redis uses append-only persistence and authentication; PostGIS and Redis have health-gated API startup.
+- MySQL, Redis, API, and metrics credentials are generated locally, ignored by Git, mounted individually as read-only Docker secrets, and loaded without embedding them in images.
+- Redis uses append-only persistence and authentication; MySQL spatial and Redis have health-gated API startup.
 - Prometheus is an optional internal profile, bearer-authenticates to metrics, and binds only to host loopback.
-- Backup and guarded restore scripts create custom-format Postgres archives, validate them, checksum them, enforce retention, and take a safety backup before destructive restore.
+- Backup and guarded restore scripts create transaction-consistent MySQL SQL dumps, validate them, checksum them, enforce retention, and take a safety backup before destructive restore.
 - CI validates the Compose model, builds every custom image, starts the production topology, waits for health, and probes the web and API over TLS.
 
 ### Challenge
@@ -150,7 +150,7 @@ The development Compose file published every datastore port and used known passw
 
 ### Decision
 
-Development convenience and production security are separate Compose models. The production model uses Caddy, Docker secrets, internal networks, immutable application filesystems, least privilege, and health-gated startup. PostGIS is the system of record; Redis is a persistent replay buffer but is not treated as the authoritative backup target.
+Development convenience and production security are separate Compose models. The production model uses Caddy, Docker secrets, internal networks, immutable application filesystems, least privilege, and health-gated startup. MySQL spatial is the system of record; Redis is a persistent replay buffer but is not treated as the authoritative backup target.
 
 ### Benefit
 
@@ -173,7 +173,7 @@ Unit tests can prove adapters and reducers while missing keyboard traps, respons
 
 ### Decision
 
-Quality gates are layered: unit tests for deterministic logic, real PostGIS and Redis integration jobs, a full production deployment smoke test, two-viewport browser journeys, automated accessibility rules, and independent vulnerability/misconfiguration scanners. Object ownership is enforced in the API, never inferred from hidden frontend controls.
+Quality gates are layered: unit tests for deterministic logic, real MySQL spatial and Redis integration jobs, a full production deployment smoke test, two-viewport browser journeys, automated accessibility rules, and independent vulnerability/misconfiguration scanners. Object ownership is enforced in the API, never inferred from hidden frontend controls.
 
 ### Benefit
 

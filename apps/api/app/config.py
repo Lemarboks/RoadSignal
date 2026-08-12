@@ -5,8 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg://saferoute:saferoute@localhost:5432/saferoute"
-    storage_backend: Literal["memory", "postgres"] = "memory"
+    database_url: str = "mysql+pymysql://saferoute:saferoute@localhost:3306/saferoute?charset=utf8mb4"
+    storage_backend: Literal["memory", "mysql"] = "memory"
     redis_url: str = "redis://localhost:6379/0"
     event_backend: Literal["memory", "redis"] = "memory"
     jwt_secret: str = "development-only-secret-change-before-deploy"
@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_security(self):
         if self.environment == "production":
-            if self.storage_backend != "postgres":
-                raise ValueError("Production requires STORAGE_BACKEND=postgres")
+            if self.storage_backend != "mysql":
+                raise ValueError("Production requires STORAGE_BACKEND=mysql")
             if self.event_backend != "redis":
                 raise ValueError("Production requires EVENT_BACKEND=redis")
             if not self.require_auth:

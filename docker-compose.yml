@@ -1,10 +1,20 @@
 services:
   db:
-    image: postgis/postgis:16-3.4
-    environment: { POSTGRES_DB: saferoute, POSTGRES_USER: saferoute, POSTGRES_PASSWORD: saferoute }
-    ports: ["5432:5432"]
-    volumes: ["postgres_data:/var/lib/postgresql/data"]
-    healthcheck: { test: ["CMD-SHELL", "pg_isready -U saferoute"], interval: 5s, timeout: 3s, retries: 10 }
+    image: mysql:8.4
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    environment:
+      MYSQL_DATABASE: saferoute
+      MYSQL_USER: saferoute
+      MYSQL_PASSWORD: saferoute
+      MYSQL_ROOT_PASSWORD: local-root-only
+    ports: ["3306:3306"]
+    volumes: ["mysql_data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u saferoute -psaferoute --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
   redis:
     image: redis:7.4-alpine
     ports: ["6379:6379"]
@@ -12,9 +22,14 @@ services:
   api:
     build: { context: ./apps/api }
     env_file: .env
+    environment:
+      STORAGE_BACKEND: mysql
+      DATABASE_URL: mysql+pymysql://saferoute:saferoute@db:3306/saferoute?charset=utf8mb4
+      EVENT_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
     ports: ["8000:8000"]
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"], interval: 10s, timeout: 5s, retries: 10 }
-volumes: { postgres_data: {} }
+volumes: { mysql_data: {} }
