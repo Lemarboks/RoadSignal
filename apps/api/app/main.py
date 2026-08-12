@@ -1,13 +1,13 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
-from fastapi import Depends, FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .schemas import IncidentCreate, RouteAnalyseRequest, TripLocation
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
 from .providers.weather import OpenMeteoWeatherProvider
-from .risk.engine import RiskIncident, risk_level, route_score, segment_score
+from .risk.engine import RiskIncident, haversine_km, risk_level, route_score, segment_score
 from .risk.evidence import risk_evidence
 from .incidents.confidence import ConfidenceEvidence, calculate_confidence
 from .events import event_bus
@@ -134,7 +134,8 @@ def update_location(trip_id: str, location: TripLocation, principal=Depends(requ
     trip=repository.get_trip(trip_id)
     if not trip: raise HTTPException(404,"Trip not found")
     authorize_trip(trip, principal)
-    trip["progress"]=min(100,trip["progress"]+5); repository.save_trip(trip); publish("driver.location",{"trip_id":trip_id,"progress":trip["progress"]}); return serialise(trip)
+    repository.save_trip_location(trip_id, location.location.model_dump(), location.recorded_at)
+    trip["progress"]=min(100,trip["progress"]+5); repository.save_trip(trip); publish("driver.location",{"trip_id":trip_id,"progress":trip["progress"],"latitude":location.location.latitude,"longitude":location.location.longitude}); return serialise(trip)
 
 @app.get("/api/v1/trips/{trip_id}")
 def get_trip(trip_id: str, principal=Depends(require_when_enabled)):
@@ -142,6 +143,13 @@ def get_trip(trip_id: str, principal=Depends(require_when_enabled)):
     if not trip: raise HTTPException(404,"Trip not found")
     authorize_trip(trip, principal)
     return serialise(trip)
+
+@app.get("/api/v1/trips/{trip_id}/locations")
+def trip_locations(trip_id: str, principal=Depends(require_when_enabled)):
+    trip=repository.get_trip(trip_id)
+    if not trip: raise HTTPException(404,"Trip not found")
+    authorize_trip(trip, principal)
+    return {"items": serialise(repository.list_trip_locations(trip_id))}
 
 @app.get("/api/v1/trips/{trip_id}/alerts")
 def trip_alerts(trip_id: str, principal=Depends(require_when_enabled)):
@@ -162,7 +170,9 @@ def incidents():
     items=repository.list_incidents(); return {"items":serialise(items),"total":len(items)}
 
 @app.get("/api/v1/incidents/nearby")
-def nearby(latitude: float, longitude: float, radius_km: float=10): return incidents()
+def nearby(latitude: float = Query(ge=-90, le=90), longitude: float = Query(ge=-180, le=180), radius_km: float = Query(default=10, gt=0, le=500)):
+    items = [item for item in repository.list_incidents() if haversine_km((latitude, longitude), (item["location"]["latitude"], item["location"]["longitude"])) <= radius_km]
+    return {"items": serialise(items), "total": len(items)}
 
 @app.post("/api/v1/incidents")
 def create_incident(body: IncidentCreate, principal=Depends(require_when_enabled)):
@@ -196,8 +206,27 @@ def drivers(principal=Depends(require_roles_when_enabled("administrator","fleet_
 def fleet_trips(principal=Depends(require_roles_when_enabled("administrator","fleet_manager"))): return {"items":serialise(repository.list_trips()),"completed_today":20}
 @app.get("/api/v1/fleets/demo-fleet/incidents")
 def fleet_incidents(principal=Depends(require_roles_when_enabled("administrator","fleet_manager","incident_moderator"))): return incidents()
+def _as_datetime(value):
+    return datetime.fromisoformat(value.replace("Z", "+00:00")) if isinstance(value, str) else value
+
 @app.get("/api/v1/fleets/demo-fleet/analytics")
-def analytics(principal=Depends(require_roles_when_enabled("administrator","fleet_manager"))): return {"active_drivers":3,"high_risk_drivers":sum(1 for t in repository.list_trips() if t["safety_score"]<60),"average_safety_score":84.2,"active_incidents":sum(1 for i in repository.list_incidents() if i["status"]=="active"),"trips_completed_today":20,"alerts":repository.list_audit(10),"risk_by_area":[{"area":"Cape Town CBD","score":82},{"area":"Woodstock","score":71},{"area":"Pinelands","score":88},{"area":"Athlone","score":64}],"hourly_scores":[78,81,84,86,83,79,74,69]}
+def analytics(principal=Depends(require_roles_when_enabled("administrator","fleet_manager"))):
+    trips = repository.list_trips()
+    active_trips = [t for t in trips if t["status"] == "active"]
+    active_driver_ids = {t["user_id"] for t in active_trips if t.get("user_id")}
+    today = datetime.now(timezone.utc).date()
+    trips_completed_today = sum(1 for t in trips if t["status"] == "completed" and _as_datetime(t["started_at"]).date() == today)
+    average_safety_score = round(sum(t["safety_score"] for t in trips) / len(trips), 1) if trips else 0
+    return {
+        "active_drivers": len(active_driver_ids) or len(active_trips),
+        "high_risk_drivers": sum(1 for t in trips if t["safety_score"]<60),
+        "average_safety_score": average_safety_score,
+        "active_incidents": sum(1 for i in repository.list_incidents() if i["status"]=="active"),
+        "trips_completed_today": trips_completed_today,
+        "alerts": repository.list_audit(10),
+        "risk_by_area": [{"area":"Cape Town CBD","score":82},{"area":"Woodstock","score":71},{"area":"Pinelands","score":88},{"area":"Athlone","score":64}],
+        "hourly_scores": [78,81,84,86,83,79,74,69],
+    }
 
 @app.get("/api/v1/audit-logs")
 def audit_logs(principal=Depends(require_roles_when_enabled("administrator","incident_moderator"))): return {"items":repository.list_audit(100)}

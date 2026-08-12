@@ -50,6 +50,20 @@ type ApiRoute = {
   explanation: string;
   geometry: RouteOption["geometry"];
 };
+type FleetAnalytics = {
+  active_drivers: number;
+  high_risk_drivers: number;
+  average_safety_score: number;
+  active_incidents: number;
+  trips_completed_today: number;
+};
+const demoFleetAnalytics: FleetAnalytics = {
+  active_drivers: 3,
+  high_risk_drivers: 1,
+  average_safety_score: 84.2,
+  active_incidents: 2,
+  trips_completed_today: 20,
+};
 type WeatherStatus = "loading" | "ready" | "unavailable";
 type RealtimeStatus = "offline" | "connecting" | "connected" | "disconnected" | "unauthorized";
 type LocationPermissionStatus =
@@ -269,6 +283,8 @@ export default function App() {
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [riskEvidence, setRiskEvidence] = useState<RiskEvidence>(packagedRiskEvidence);
   const [riskEvidenceSource, setRiskEvidenceSource] = useState<"packaged" | "api">("packaged");
+  const [fleetAnalytics, setFleetAnalytics] = useState<FleetAnalytics>(demoFleetAnalytics);
+  const [fleetAnalyticsSource, setFleetAnalyticsSource] = useState<"demo" | "api">("demo");
   const [trip, setTrip] = useState<{
     id?: string;
     active: boolean;
@@ -323,6 +339,21 @@ export default function App() {
       });
     return () => { active = false; };
   }, [apiClient]);
+  useEffect(() => {
+    if (!API || page !== "Analytics") return;
+    let active = true;
+    void apiClient.request<FleetAnalytics>("/api/v1/fleets/demo-fleet/analytics")
+      .then((analytics) => {
+        if (active) {
+          setFleetAnalytics(analytics);
+          setFleetAnalyticsSource("api");
+        }
+      })
+      .catch(() => {
+        if (active) setFleetAnalyticsSource("demo");
+      });
+    return () => { active = false; };
+  }, [apiClient, page]);
   useEffect(() => {
     if (!trip.active || trip.paused) return;
     const timer = setInterval(
@@ -1119,12 +1150,18 @@ export default function App() {
           <h1>{page}</h1>
           <p>Operational safety performance and confidence-weighted trends.</p>
         </div>
+        <span className={`evidence-source ${fleetAnalyticsSource}`}>
+          {fleetAnalyticsSource === "api" ? "Live from API" : "Demo data"}
+        </span>
       </section>
       <div className="metrics">
-        <Metric label="Average safety" value="84.2" />
+        <Metric label="Average safety" value={fleetAnalytics.average_safety_score.toFixed(1)} />
+        <Metric label="Active drivers" value={fleetAnalytics.active_drivers} />
+        <Metric label="Active incidents" value={fleetAnalytics.active_incidents} />
+        <Metric label="Trips completed today" value={fleetAnalytics.trips_completed_today} />
+        <Metric label="High-risk drivers" value={fleetAnalytics.high_risk_drivers} />
         <Metric label="Reroutes triggered" value="38" />
         <Metric label="Recommendations accepted" value="74%" />
-        <Metric label="Alert response" value="2m 18s" />
       </div>
       <div className="grid two">
         <section className="panel">
