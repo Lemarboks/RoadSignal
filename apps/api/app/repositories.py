@@ -8,9 +8,9 @@ from geoalchemy2 import Geometry, WKTElement
 from sqlalchemy import func, select
 
 from .config import settings
-from .database.models import AuditLog, Incident, Route, Trip
+from .database.models import AuditLog, Incident, Route, Trip, TripLocation as TripLocationModel
 from .database.session import session_factory
-from .store import AUDIT_LOG, INCIDENTS, ROUTES, TRIPS
+from .store import AUDIT_LOG, INCIDENTS, ROUTES, TRIP_LOCATIONS, TRIPS
 
 
 def serialise(value):
@@ -46,6 +46,10 @@ class Repository(ABC):
     def save_trip(self, trip: dict) -> dict: ...
     @abstractmethod
     def list_trips(self) -> list[dict]: ...
+    @abstractmethod
+    def save_trip_location(self, trip_id: str, location: dict, recorded_at: datetime) -> dict: ...
+    @abstractmethod
+    def list_trip_locations(self, trip_id: str, limit: int = 200) -> list[dict]: ...
     @abstractmethod
     def append_audit(self, kind: str, payload: dict, actor_id: UUID | None = None) -> dict: ...
     @abstractmethod
@@ -92,6 +96,14 @@ class MemoryRepository(Repository):
 
     def list_trips(self):
         return list(TRIPS.values())
+
+    def save_trip_location(self, trip_id, location, recorded_at):
+        entry = {"trip_id": trip_id, "latitude": location["latitude"], "longitude": location["longitude"], "recorded_at": recorded_at}
+        TRIP_LOCATIONS.setdefault(trip_id, []).append(entry)
+        return entry
+
+    def list_trip_locations(self, trip_id, limit=200):
+        return TRIP_LOCATIONS.get(trip_id, [])[-limit:]
 
     def append_audit(self, kind, payload, actor_id=None):
         event = {"id": str(uuid4()), "type": kind, "occurred_at": datetime.now().astimezone().isoformat(), "payload": serialise(payload), "actor_id": str(actor_id) if actor_id else None}
@@ -210,6 +222,26 @@ class MySQLRepository(Repository):
         with session_factory()() as db:
             rows = db.execute(select(Trip, Route.external_id).outerjoin(Route, Trip.route_id == Route.id).order_by(Trip.started_at.desc()))
             return [self._trip_dict(*row) for row in rows]
+
+    def save_trip_location(self, trip_id, location, recorded_at):
+        with session_factory()() as db:
+            point = WKTElement(f"POINT({location['longitude']} {location['latitude']})", srid=4326)
+            model = TripLocationModel(trip_id=UUID(trip_id), location=point, recorded_at=recorded_at)
+            db.add(model); db.commit()
+        return {"trip_id": trip_id, "latitude": location["latitude"], "longitude": location["longitude"], "recorded_at": recorded_at}
+
+    def list_trip_locations(self, trip_id, limit=200):
+        try:
+            identifier = UUID(trip_id)
+        except ValueError:
+            return []
+        with session_factory()() as db:
+            statement = select(
+                TripLocationModel.recorded_at,
+                func.ST_Y(TripLocationModel.location).label("latitude"),
+                func.ST_X(TripLocationModel.location).label("longitude"),
+            ).where(TripLocationModel.trip_id == identifier).order_by(TripLocationModel.recorded_at.asc()).limit(min(limit, 1000))
+            return [serialise({"trip_id": trip_id, "latitude": latitude, "longitude": longitude, "recorded_at": recorded_at}) for recorded_at, latitude, longitude in db.execute(statement)]
 
     def append_audit(self, kind, payload, actor_id=None):
         with session_factory()() as db:

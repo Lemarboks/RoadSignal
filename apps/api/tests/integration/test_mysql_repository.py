@@ -39,6 +39,11 @@ def test_mysql_repository_round_trip():
     trip["progress"] = 25
     repository.save_trip(trip)
     assert repository.get_trip(trip["id"])["progress"] == 25
+    repository.save_trip_location(trip["id"], {"latitude": -33.9249, "longitude": 18.4241}, datetime.now(timezone.utc))
+    repository.save_trip_location(trip["id"], {"latitude": -33.94, "longitude": 18.45}, datetime.now(timezone.utc))
+    breadcrumbs = repository.list_trip_locations(trip["id"])
+    assert len(breadcrumbs) == 2
+    assert breadcrumbs[0]["latitude"] == -33.9249
     event = repository.append_audit("integration.verified", {"route_id": route["id"]})
     assert any(item["id"] == event["id"] for item in repository.list_audit())
 
