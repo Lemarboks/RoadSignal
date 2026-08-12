@@ -5,7 +5,7 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from geoalchemy2 import Geometry, WKTElement
-from sqlalchemy import cast, func, select
+from sqlalchemy import func, select
 
 from .config import settings
 from .database.models import AuditLog, Incident, Route, Trip
@@ -102,7 +102,7 @@ class MemoryRepository(Repository):
         return AUDIT_LOG[-limit:]
 
 
-class PostgresRepository(Repository):
+class MySQLRepository(Repository):
     @staticmethod
     def _incident_dict(model: Incident, latitude: float, longitude: float) -> dict:
         return serialise({
@@ -119,8 +119,8 @@ class PostgresRepository(Repository):
         with session_factory()() as db:
             statement = select(
                 Incident,
-                func.ST_Y(cast(Incident.location, Geometry)).label("latitude"),
-                func.ST_X(cast(Incident.location, Geometry)).label("longitude"),
+                func.ST_Y(Incident.location).label("latitude"),
+                func.ST_X(Incident.location).label("longitude"),
             ).order_by(Incident.occurred_at.desc())
             return [self._incident_dict(model, latitude, longitude) for model, latitude, longitude in db.execute(statement)]
 
@@ -132,8 +132,8 @@ class PostgresRepository(Repository):
         with session_factory()() as db:
             row = db.execute(select(
                 Incident,
-                func.ST_Y(cast(Incident.location, Geometry)),
-                func.ST_X(cast(Incident.location, Geometry)),
+                func.ST_Y(Incident.location),
+                func.ST_X(Incident.location),
             ).where(Incident.id == identifier)).first()
             return self._incident_dict(*row) if row else None
 
@@ -176,7 +176,7 @@ class PostgresRepository(Repository):
 
     def get_route(self, route_id):
         with session_factory()() as db:
-            row = db.execute(select(Route, func.ST_AsGeoJSON(cast(Route.geometry, Geometry))).where(Route.external_id == route_id)).first()
+            row = db.execute(select(Route, func.ST_AsGeoJSON(func.ST_SwapXY(Route.geometry))).where(Route.external_id == route_id)).first()
             return self._route_dict(*row) if row else None
 
     def create_trip(self, route, user_id=None):
@@ -223,4 +223,4 @@ class PostgresRepository(Repository):
             return [serialise({"id": row.id, "type": row.action, "occurred_at": row.created_at, "payload": row.details, "actor_id": row.actor_id}) for row in reversed(rows)]
 
 
-repository: Repository = PostgresRepository() if settings.storage_backend == "postgres" else MemoryRepository()
+repository: Repository = MySQLRepository() if settings.storage_backend == "mysql" else MemoryRepository()

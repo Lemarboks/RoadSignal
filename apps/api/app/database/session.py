@@ -31,7 +31,7 @@ def database_session() -> Generator[Session, None, None]:
 
 
 def database_ready() -> bool:
-    if settings.storage_backend != "postgres":
+    if settings.storage_backend != "mysql":
         return False
     try:
         with engine().connect() as connection:
