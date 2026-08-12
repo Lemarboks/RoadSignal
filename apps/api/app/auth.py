@@ -66,13 +66,13 @@ def _principal(user: User | MemoryUser) -> Principal:
 
 def find_user_by_email(email: str, db: Session | None) -> User | MemoryUser | None:
     normalized = email.casefold().strip()
-    if settings.storage_backend == "postgres" and db:
+    if settings.storage_backend == "mysql" and db:
         return db.scalar(select(User).where(User.email == normalized))
     return next((user for user in MEMORY_USERS.values() if user.email == normalized), None)
 
 
 def find_user_by_id(user_id: UUID, db: Session | None) -> User | MemoryUser | None:
-    if settings.storage_backend == "postgres" and db:
+    if settings.storage_backend == "mysql" and db:
         return db.get(User, user_id)
     return MEMORY_USERS.get(user_id)
 
@@ -82,7 +82,7 @@ def register_user(email: str, name: str, password: str, role: Role, db: Session 
     if find_user_by_email(normalized, db):
         raise HTTPException(409, "An account with this email already exists")
     encoded = password_hash.hash(password)
-    if settings.storage_backend == "postgres" and db:
+    if settings.storage_backend == "mysql" and db:
         user = User(email=normalized, name=name.strip(), password_hash=encoded, role=role)
         db.add(user)
         db.commit()
@@ -124,7 +124,7 @@ def create_refresh_token(user: User | MemoryUser, db: Session | None) -> str:
     token = secrets.token_urlsafe(48)
     digest = _token_hash(token)
     expires = _now() + timedelta(days=settings.refresh_expiry_days)
-    if settings.storage_backend == "postgres" and db:
+    if settings.storage_backend == "mysql" and db:
         db.add(RefreshSession(user_id=user.id, token_hash=digest, expires_at=expires))
         db.commit()
     else:
@@ -135,7 +135,7 @@ def create_refresh_token(user: User | MemoryUser, db: Session | None) -> str:
 def rotate_refresh_token(token: str, db: Session | None):
     digest = _token_hash(token)
     now = _now()
-    if settings.storage_backend == "postgres" and db:
+    if settings.storage_backend == "mysql" and db:
         session = db.scalar(select(RefreshSession).where(RefreshSession.token_hash == digest))
     else:
         session = MEMORY_REFRESH_SESSIONS.get(digest)
@@ -145,7 +145,7 @@ def rotate_refresh_token(token: str, db: Session | None):
     user = find_user_by_id(session.user_id, db)
     if not user or not user.is_active:
         raise HTTPException(401, "Account is unavailable")
-    if settings.storage_backend == "postgres" and db:
+    if settings.storage_backend == "mysql" and db:
         db.commit()
     access_token, expires_in = create_access_token(user)
     return access_token, create_refresh_token(user, db), expires_in
@@ -153,13 +153,13 @@ def rotate_refresh_token(token: str, db: Session | None):
 
 def revoke_refresh_token(token: str, db: Session | None) -> None:
     digest = _token_hash(token)
-    if settings.storage_backend == "postgres" and db:
+    if settings.storage_backend == "mysql" and db:
         session = db.scalar(select(RefreshSession).where(RefreshSession.token_hash == digest))
     else:
         session = MEMORY_REFRESH_SESSIONS.get(digest)
     if session and not session.revoked_at:
         session.revoked_at = _now()
-        if settings.storage_backend == "postgres" and db:
+        if settings.storage_backend == "mysql" and db:
             db.commit()
 
 

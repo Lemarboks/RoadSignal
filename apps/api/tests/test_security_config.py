@@ -17,7 +17,7 @@ def test_production_rejects_demo_security_configuration():
 def test_production_accepts_hardened_configuration():
     configured = Settings(
         environment="production",
-        storage_backend="postgres",
+        storage_backend="mysql",
         event_backend="redis",
         require_auth=True,
         jwt_secret="a-secure-random-secret-with-more-than-32-characters",
