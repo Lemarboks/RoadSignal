@@ -9,5 +9,6 @@ INCIDENTS = [
 ]
 ROUTES: dict[str, dict] = {}
 TRIPS: dict[str, dict] = {}
+TRIP_LOCATIONS: dict[str, list[dict]] = {}
 AUDIT_LOG: list[dict] = []
 EVENTS: list[dict] = []
