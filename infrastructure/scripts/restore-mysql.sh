@@ -2,7 +2,7 @@
 set -eu
 
 if [ "$#" -ne 1 ]; then
-  echo "Usage: CONFIRM_RESTORE=saferoute $0 <backup.dump>" >&2
+  echo "Usage: CONFIRM_RESTORE=saferoute $0 <backup.sql>" >&2
   exit 2
 fi
 if [ "${CONFIRM_RESTORE:-}" != "saferoute" ]; then
@@ -18,9 +18,10 @@ if [ ! -f "$backup" ] || [ ! -f "$backup.sha256" ]; then
 fi
 
 sha256sum -c "$backup.sha256"
-docker compose -f "$compose_file" exec -T db pg_restore --list < "$backup" >/dev/null
-safety_dir=${BACKUP_DIR:-backups/postgres}
+grep -q '^-- MySQL dump' "$backup"
+grep -q '^CREATE TABLE' "$backup"
+safety_dir=${BACKUP_DIR:-backups/mysql}
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-BACKUP_DIR="$safety_dir" "$script_dir/backup-postgres.sh"
-docker compose -f "$compose_file" exec -T db pg_restore -U saferoute -d saferoute --clean --if-exists --no-owner --no-acl < "$backup"
+BACKUP_DIR="$safety_dir" "$script_dir/backup-mysql.sh"
+docker compose -f "$compose_file" exec -T db sh -c 'MYSQL_PWD=$(cat /run/secrets/mysql_password) exec mysql -u saferoute saferoute' < "$backup"
 echo "Restore completed from $backup"

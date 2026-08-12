@@ -7,9 +7,9 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Create pnpm/Turborepo monorepo layout
 - [x] Add shared TypeScript types and API client
 - [x] Add environment template and validation guidance
-- [x] Add Docker Compose for PostGIS, Redis, and FastAPI
+- [x] Add Docker Compose for MySQL spatial, Redis, and FastAPI
 - [x] Add health checks and development commands
-- [ ] Add CI workflow once a Git remote is available
+- [x] Add seven-gate CI workflow
 
 ## 2. Backend and data
 
@@ -20,10 +20,10 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Implement incident-confidence calculation and abuse flags
 - [x] Implement route analysis, incident moderation, trip lifecycle, fleet analytics, emergency, and health endpoints
 - [x] Add in-process event bus and WebSocket event stream for the local MVP
-- [x] Add SQLAlchemy/PostGIS production models and initial Alembic migration
+- [x] Add SQLAlchemy/MySQL spatial production models and initial Alembic migration
 - [x] Add JWT/password service and role checks
-- [ ] Replace the local in-memory repository with PostgreSQL repositories in all runtime paths
-- [ ] Replace the single-process event bus with Redis pub/sub for horizontally scaled deployments
+- [x] Use MySQL repositories for every persistent runtime path
+- [x] Use Redis Streams for replayable multi-process events
 
 ## 3. Web product
 

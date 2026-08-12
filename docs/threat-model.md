@@ -2,7 +2,7 @@
 
 ## Scope and assets
 
-The protected production scope is Caddy, the browser session, FastAPI, PostGIS, Redis, Docker secrets, backups, and outbound provider adapters. High-value assets are account credentials, refresh sessions, precise trip locations, tenant membership, incident moderation state, audit history, and route-risk explanations. The static GitHub Pages demonstration contains no real identities or production secrets.
+The protected production scope is Caddy, the browser session, FastAPI, MySQL spatial, Redis, Docker secrets, backups, and outbound provider adapters. High-value assets are account credentials, refresh sessions, precise trip locations, tenant membership, incident moderation state, audit history, and route-risk explanations. The static GitHub Pages demonstration contains no real identities or production secrets.
 
 ## Trust boundaries and threats
 
@@ -15,13 +15,13 @@ The protected production scope is Caddy, the browser session, FastAPI, PostGIS, 
 | Precise location | Stalking, secondary use, telemetry leakage | No bodies, query strings, IPs, coordinates, or exception text in operational logs; role and object checks; encrypted transport | Database operators can access records; define retention/deletion schedules and audited privileged access |
 | Provider adapters | SSRF, availability failure, data leakage | Fixed configurable base URLs, request timeouts, provenance labels, deterministic fallback, no user-controlled destination hosts | Public providers receive network metadata and selected coordinates; proxy or self-host for real deployments |
 | Containers/secrets | Secret committed to Git, root escape, lateral movement | Docker secrets, ignored secret directory, non-root images, read-only application filesystems, dropped capabilities, private networks, CI secret/misconfiguration scans | Host compromise defeats container isolation; patch and harden the host |
-| Backups | Data loss, malicious restore, backup disclosure | Checksummed custom archives, validation, retention, off-host guidance, explicit restore confirmation, safety backup | Encryption and access policy depend on the owner-selected backup target |
+| Backups | Data loss, malicious restore, backup disclosure | Checksummed transaction-consistent SQL dumps, validation, retention, off-host guidance, explicit restore confirmation, safety backup | Encryption and access policy depend on the owner-selected backup target |
 | Risk score | User over-trusts an incomplete estimate | Explainable factors, confidence, provider provenance, prominent disclaimer, worst-segment weighting | No score can guarantee safety; real-world deployment needs domain review and outcome monitoring |
 | Availability | Request floods or dependency outage | Authentication throttles, route limits, readiness 503, health-gated startup, replay bounds, provider timeouts | Load limits require target-specific capacity tests and autoscaling policy |
 
 ## Security verification
 
-Every pull request runs API and web tests, real PostGIS and Redis integration tests, a production Compose/TLS smoke test, desktop/mobile Playwright journeys, axe accessibility rules, production JavaScript reachability auditing, Python dependency auditing, and Trivy secret/misconfiguration scanning. Backup restoration is exercised by the deployment workflow. Logs and metrics are tested for bounded labels and location/credential exclusion.
+Every pull request runs API and web tests, real MySQL spatial and Redis integration tests, a production Compose/TLS smoke test, desktop/mobile Playwright journeys, axe accessibility rules, production JavaScript reachability auditing, Python dependency auditing, and Trivy secret/misconfiguration scanning. Backup restoration is exercised by the deployment workflow. Logs and metrics are tested for bounded labels and location/credential exclusion.
 
 ## Required before handling real journey data
 

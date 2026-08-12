@@ -4,14 +4,14 @@ from uuid import uuid4
 import pytest
 
 from app.config import settings
-from app.repositories import PostgresRepository
+from app.repositories import MySQLRepository
 
-pytestmark = pytest.mark.skipif(settings.storage_backend != "postgres", reason="requires PostGIS")
+pytestmark = pytest.mark.skipif(settings.storage_backend != "mysql", reason="requires MySQL 8 spatial")
 
 
-def test_postgis_repository_round_trip():
-    assert settings.storage_backend == "postgres"
-    repository = PostgresRepository()
+def test_mysql_repository_round_trip():
+    assert settings.storage_backend == "mysql"
+    repository = MySQLRepository()
     suffix = uuid4().hex[:8]
     incident = {
         "id": str(uuid4()), "incident_type": "Road closure", "severity": 3,
@@ -41,3 +41,16 @@ def test_postgis_repository_round_trip():
     assert repository.get_trip(trip["id"])["progress"] == 25
     event = repository.append_audit("integration.verified", {"route_id": route["id"]})
     assert any(item["id"] == event["id"] for item in repository.list_audit())
+
+
+def test_mysql_auth_session_round_trip():
+    from app.auth import authenticate_user, create_refresh_token, register_user, rotate_refresh_token
+    from app.database.session import session_factory
+
+    with session_factory()() as db:
+        email = f"mysql-{uuid4().hex}@example.com"
+        user = register_user(email, "MySQL Integration", "Correct-Horse-MySQL-2026", "driver", db)
+        assert authenticate_user(email, "Correct-Horse-MySQL-2026", db).id == user.id
+        refresh = create_refresh_token(user, db)
+        access, replacement, expires_in = rotate_refresh_token(refresh, db)
+        assert access and replacement and expires_in > 0
