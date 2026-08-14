@@ -74,6 +74,8 @@ export default function Home() {
           durationMinutes: String(best.duration_minutes),
           safetyScore: String(Math.round(best.safety_score)),
           live: data.provider === "open" ? "1" : "0",
+          origin,
+          destination,
         },
       });
     } catch {

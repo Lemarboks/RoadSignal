@@ -34,7 +34,11 @@ export default function Trip() {
     durationMinutes?: string;
     safetyScore?: string;
     live?: string;
+    origin?: string;
+    destination?: string;
   }>();
+  const origin = params.origin ?? "Cape Town City Centre";
+  const destination = params.destination ?? "Cape Town International Airport";
   const [name, setName] = useState(params.name ?? "Airport route");
   const [duration, setDuration] = useState(
     params.durationMinutes ? Number(params.durationMinutes) : 26,
@@ -44,18 +48,20 @@ export default function Trip() {
   );
   const [progress, setProgress] = useState(12);
   const [rerouting, setRerouting] = useState(false);
+  const [rerouteNotice, setRerouteNotice] = useState("");
   const isLive = params.live === "1";
 
   async function requestSaferReroute() {
     setRerouting(true);
+    setRerouteNotice("");
     try {
       const data = await apiClient.request<{ routes: ApiRoute[] }>(
         "/api/v1/routes/analyse",
         {
           method: "POST",
           body: JSON.stringify({
-            origin: "Cape Town City Centre",
-            destination: "Cape Town International Airport",
+            origin,
+            destination,
             preference: "safest",
             departure_time: new Date().toISOString(),
             vehicle_type: "car",
@@ -67,9 +73,12 @@ export default function Trip() {
         setName(safest.name);
         setDuration(safest.duration_minutes);
         setScore(Math.round(safest.safety_score));
+        setRerouteNotice("Switched to the safest available route.");
+      } else {
+        setRerouteNotice("No safer alternative route is available right now.");
       }
     } catch {
-      // The trip continues on the current route if a reroute can't be fetched.
+      setRerouteNotice("Could not reach the routing service. Continuing on the current route.");
     } finally {
       setRerouting(false);
     }
@@ -94,6 +103,7 @@ export default function Trip() {
       <Pressable style={s.outline} onPress={() => void requestSaferReroute()} disabled={rerouting}>
         {rerouting ? <ActivityIndicator /> : <Text style={s.outlineText}>Request safer reroute</Text>}
       </Pressable>
+      {rerouteNotice ? <Text style={s.rerouteNotice}>{rerouteNotice}</Text> : null}
       <Link href="/sos" style={s.sosLink} asChild>
         <Pressable style={s.sos}>
           <Text style={s.white}>SOS</Text>
@@ -192,6 +202,7 @@ const s = StyleSheet.create({
     borderRadius: 10,
   },
   outlineText: { color: "#1769aa", fontWeight: "700" },
+  rerouteNotice: { marginTop: 8, fontSize: 12, color: "#4a5c56", textAlign: "center" },
   sosLink: { marginTop: 10 },
   sos: { backgroundColor: "#c33d3d", padding: 15, alignItems: "center", borderRadius: 10 },
   white: { color: "white", fontWeight: "700" },
