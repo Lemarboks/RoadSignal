@@ -5,6 +5,29 @@ import { apiClient } from "../lib/session-store";
 
 type ApiRoute = { name: string; duration_minutes: number; safety_score: number };
 
+function RouteTrack({ progress }: { progress: number }) {
+  const clamped = Math.max(0, Math.min(progress, 100));
+  return (
+    <View style={s.map}>
+      <View style={s.mapBadge}>
+        <Text style={s.mapBadgeText}>Cape Town · simulated route</Text>
+      </View>
+      <View style={s.road}>
+        <View style={[s.progressFill, { width: `${clamped}%` }]} />
+        <View style={s.startMarker} />
+        <View style={s.endMarker} />
+        <View
+          style={[
+            s.vehicleMarker,
+            { left: `${clamped}%`, marginLeft: -9 - (clamped / 100) * 4 },
+          ]}
+        />
+      </View>
+      <Text style={s.mapCaption}>{clamped}% of the way there</Text>
+    </View>
+  );
+}
+
 export default function Trip() {
   const params = useLocalSearchParams<{
     name?: string;
@@ -54,16 +77,13 @@ export default function Trip() {
 
   return (
     <View style={s.page}>
-      <View style={s.map}>
-        <Text>Simulated Cape Town route map</Text>
-        <Text style={s.pin}>● ━━━━━━━ ◉</Text>
-      </View>
+      <RouteTrack progress={progress} />
       <Text style={s.title}>
         {name} · {duration} min
       </Text>
       <Text style={s.score}>{score}/100 safety</Text>
       {isLive && <Text style={s.liveBadge}>Live route from the SafeRoute API</Text>}
-      <Text>Next: Continue on Nelson Mandela Boulevard</Text>
+      <Text style={s.next}>Next: Continue on Nelson Mandela Boulevard</Text>
       <Text style={s.alert}>Upcoming risk: Moderate congestion in 2.4 km</Text>
       <Pressable
         style={s.button}
@@ -72,7 +92,7 @@ export default function Trip() {
         <Text style={s.white}>Advance simulation · {progress}%</Text>
       </Pressable>
       <Pressable style={s.outline} onPress={() => void requestSaferReroute()} disabled={rerouting}>
-        {rerouting ? <ActivityIndicator /> : <Text>Request safer reroute</Text>}
+        {rerouting ? <ActivityIndicator /> : <Text style={s.outlineText}>Request safer reroute</Text>}
       </Pressable>
       <Link href="/sos" style={s.sosLink} asChild>
         <Pressable style={s.sos}>
@@ -86,27 +106,93 @@ export default function Trip() {
 const s = StyleSheet.create({
   page: { flex: 1, padding: 22, backgroundColor: "#f5f7f8" },
   map: {
-    height: 300,
-    backgroundColor: "#dfe9e7",
+    height: 220,
+    backgroundColor: "#e3edea",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 10,
+    borderRadius: 16,
+    overflow: "hidden",
   },
-  pin: { fontSize: 32, color: "#1769aa", marginTop: 30 },
+  mapBadge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    backgroundColor: "rgba(255,255,255,.92)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  mapBadgeText: { fontSize: 11, fontWeight: "700", color: "#14212b" },
+  road: {
+    width: "78%",
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#c7d6d1",
+    position: "relative",
+    marginTop: 10,
+  },
+  progressFill: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    backgroundColor: "#1769aa",
+    borderRadius: 999,
+  },
+  startMarker: {
+    position: "absolute",
+    left: -5,
+    top: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#178652",
+    borderWidth: 2,
+    borderColor: "white",
+  },
+  endMarker: {
+    position: "absolute",
+    right: -5,
+    top: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#c33d3d",
+    borderWidth: 2,
+    borderColor: "white",
+  },
+  vehicleMarker: {
+    position: "absolute",
+    top: -9,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#1769aa",
+    borderWidth: 3,
+    borderColor: "white",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  mapCaption: { marginTop: 24, fontSize: 12, color: "#4a5c56" },
   title: { fontSize: 25, fontWeight: "700", marginTop: 20 },
   score: { fontSize: 30, fontWeight: "800", color: "#178652" },
   liveBadge: { fontSize: 12, fontWeight: "700", color: "#178652", marginBottom: 6 },
-  alert: { backgroundColor: "#fff3d9", padding: 15, marginVertical: 18 },
-  button: { backgroundColor: "#1769aa", padding: 15, alignItems: "center", borderRadius: 7 },
+  next: { marginTop: 6 },
+  alert: { backgroundColor: "#fff3d9", padding: 15, marginVertical: 18, borderRadius: 9 },
+  button: { backgroundColor: "#1769aa", padding: 15, alignItems: "center", borderRadius: 10 },
   outline: {
     borderWidth: 1,
     borderColor: "#1769aa",
     padding: 15,
     alignItems: "center",
     marginTop: 10,
-    borderRadius: 7,
+    borderRadius: 10,
   },
+  outlineText: { color: "#1769aa", fontWeight: "700" },
   sosLink: { marginTop: 10 },
-  sos: { backgroundColor: "#c33d3d", padding: 15, alignItems: "center", borderRadius: 7 },
+  sos: { backgroundColor: "#c33d3d", padding: 15, alignItems: "center", borderRadius: 10 },
   white: { color: "white", fontWeight: "700" },
 });
