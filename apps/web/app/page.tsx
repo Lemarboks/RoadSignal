@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Incident, RouteOption, RoutePreference } from "@saferoute/types";
 import { RouteMap as MapView } from "../components/route-map";
 import { PlaceSearch } from "../components/place-search";
+import { navIcons } from "../components/nav-icons";
 import { demoRouteGeometry } from "../lib/demo-route-geometry";
 import {
   analyseOpenRoutes,
@@ -22,7 +23,6 @@ import { packagedRiskEvidence, type RiskEvidence } from "../lib/risk-evidence";
 const API =
   process.env.NEXT_PUBLIC_API_URL ??
   (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
-const navMarkers = ["DB", "RP", "LT", "IN", "RM", "AN", "FL", "ST"] as const;
 const nav = [
   "Dashboard",
   "Route Planner",
@@ -1311,7 +1311,7 @@ export default function App() {
               type="button"
               aria-current={page === n ? "page" : undefined}
             >
-              <i aria-hidden="true">{navMarkers[nav.indexOf(n)]}</i>
+              <i aria-hidden="true">{navIcons[n as keyof typeof navIcons]}</i>
               {n}
               {n === "Incidents" && <em>{incidents.length}</em>}
             </button>
