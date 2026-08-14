@@ -1,15 +1,37 @@
 import * as Location from "expo-location";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useState } from "react";
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { apiClient, useSessionStore } from "../lib/session-store";
 
 type PermissionState = "unknown" | "requesting" | "granted" | "denied";
 
+type ApiRoute = {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  safety_score: number;
+};
+
 export default function Home() {
+  const session = useSessionStore((state) => state.session);
+  const setSession = useSessionStore((state) => state.setSession);
   const [permission, setPermission] = useState<PermissionState>("unknown");
   const [locationLabel, setLocationLabel] = useState(
     "Cape Town CBD · simulation",
   );
+  const [origin, setOrigin] = useState("Cape Town City Centre");
+  const [destination, setDestination] = useState("Cape Town International Airport");
+  const [searching, setSearching] = useState(false);
+  const [notice, setNotice] = useState("");
 
   async function enableLocation() {
     setPermission("requesting");
@@ -27,8 +49,57 @@ export default function Home() {
     setPermission("granted");
   }
 
+  async function startSafeRoute() {
+    setSearching(true);
+    setNotice("");
+    try {
+      const data = await apiClient.request<{ routes: ApiRoute[]; provider?: string }>(
+        "/api/v1/routes/analyse",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            origin,
+            destination,
+            preference: "balanced",
+            departure_time: new Date().toISOString(),
+            vehicle_type: "car",
+          }),
+        },
+      );
+      const best = data.routes.find((r) => r.name) ?? data.routes[0];
+      router.push({
+        pathname: "/trip",
+        params: {
+          name: best.name,
+          durationMinutes: String(best.duration_minutes),
+          safetyScore: String(Math.round(best.safety_score)),
+          live: data.provider === "open" ? "1" : "0",
+        },
+      });
+    } catch {
+      setNotice("Live routing is unavailable. Continuing with the simulated demo trip.");
+      router.push("/trip");
+    } finally {
+      setSearching(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.page}>
+      <View style={styles.authRow}>
+        <Text style={styles.authText}>
+          {session ? `Signed in as ${session.user.name}` : "Not signed in"}
+        </Text>
+        {session ? (
+          <Pressable onPress={() => void apiClient.logout().then(() => setSession(null))}>
+            <Text style={styles.authLink}>Sign out</Text>
+          </Pressable>
+        ) : (
+          <Link href="/login" style={styles.authLink}>
+            Sign in
+          </Link>
+        )}
+      </View>
       <Text style={styles.eyebrow}>CAPE TOWN · DEMONSTRATION MODE</Text>
       <Text style={styles.title}>You are in a low-risk area</Text>
       <View style={styles.score}>
@@ -69,13 +140,21 @@ export default function Home() {
 
       <Text style={styles.label}>Current location</Text>
       <Text style={styles.card}>{locationLabel}</Text>
-      <Text style={styles.label}>Recent alerts</Text>
-      <Text style={styles.card}>Broken traffic light · 1.2 km away</Text>
-      <Link href="/trip" asChild>
-        <Pressable style={styles.primary}>
+
+      <Text style={styles.label}>Origin</Text>
+      <TextInput style={styles.input} value={origin} onChangeText={setOrigin} />
+      <Text style={styles.label}>Destination</Text>
+      <TextInput style={styles.input} value={destination} onChangeText={setDestination} />
+
+      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+
+      <Pressable style={styles.primary} onPress={() => void startSafeRoute()} disabled={searching}>
+        {searching ? (
+          <ActivityIndicator color="white" />
+        ) : (
           <Text style={styles.white}>Start SafeRoute</Text>
-        </Pressable>
-      </Link>
+        )}
+      </Pressable>
       <Link href="/report" style={styles.secondary}>
         Report incident
       </Link>
@@ -91,7 +170,15 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, padding: 24, backgroundColor: "#f5f7f8" },
-  eyebrow: { color: "#1769aa", fontWeight: "700", fontSize: 11, marginTop: 35 },
+  authRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 35,
+  },
+  authText: { fontSize: 12, color: "#66737d" },
+  authLink: { fontSize: 12, color: "#1769aa", fontWeight: "700" },
+  eyebrow: { color: "#1769aa", fontWeight: "700", fontSize: 11, marginTop: 10 },
   title: { fontSize: 28, fontWeight: "700", marginVertical: 14 },
   score: {
     backgroundColor: "#e5f4eb",
@@ -132,12 +219,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 5,
   },
+  input: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ccd4d8",
+    padding: 12,
+    marginTop: 5,
+    borderRadius: 8,
+  },
+  notice: { fontSize: 12, color: "#9a6b12", marginTop: 12 },
   primary: {
     backgroundColor: "#1769aa",
     padding: 16,
     borderRadius: 7,
     alignItems: "center",
-    marginTop: 28,
+    marginTop: 20,
   },
   white: { color: "white", fontWeight: "700" },
   secondary: { padding: 16, textAlign: "center", color: "#1769aa" },
