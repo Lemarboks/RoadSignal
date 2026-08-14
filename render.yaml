@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: saferoute-ai-api
+    env: docker
+    plan: free
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: ./apps/api
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: STORAGE_BACKEND
+        value: memory
+      - key: EVENT_BACKEND
+        value: memory
+      - key: ROUTE_PROVIDER
+        value: open
+      - key: ENVIRONMENT
+        value: development
+      - key: REQUIRE_AUTH
+        value: "true"
+      - key: CORS_ORIGINS
+        value: https://lemarboks.github.io,http://localhost:3000,http://localhost:8081
+      - key: JWT_SECRET
+        generateValue: true
+      - key: METRICS_BEARER_TOKEN
+        generateValue: true
