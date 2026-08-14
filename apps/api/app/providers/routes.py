@@ -72,8 +72,8 @@ class OpenRouteProvider(RouteProvider):
                 "distance_km": round(route["distance"] / 1000, 1),
                 "geometry": [[latitude, longitude] for longitude, latitude in route["geometry"]["coordinates"]],
             })
-        if len(routes) < 3:
-            raise ValueError("OSRM returned fewer than three alternatives")
+        if not routes:
+            raise ValueError("OSRM returned no routes")
         return routes
 
 
