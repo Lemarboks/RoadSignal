@@ -13,6 +13,20 @@ class UTCDateTime(TypeDecorator):
     impl = DateTime
     cache_ok = True
 
+    def __init__(self, *args, fsp: int | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._fsp = fsp
+
+    def load_dialect_impl(self, dialect):
+        # Plain MySQL DATETIME truncates to whole seconds, so rows written
+        # within the same second (e.g. rapid trip-location breadcrumbs) tie
+        # on ORDER BY and MySQL doesn't guarantee tie order. Microsecond
+        # precision keeps chronological ordering correct.
+        if self._fsp is not None and dialect.name == "mysql":
+            from sqlalchemy.dialects import mysql
+            return dialect.type_descriptor(mysql.DATETIME(fsp=self._fsp))
+        return super().load_dialect_impl(dialect)
+
     def process_bind_param(self, value, dialect):
         if value is None:
             return None
@@ -85,7 +99,7 @@ class TripLocation(Timestamped, Base):
     __tablename__ = "trip_locations"
     trip_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("trips.id", ondelete="CASCADE"), index=True)
     location: Mapped[str] = mapped_column(Geometry("POINT", srid=4326))
-    recorded_at: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)
+    recorded_at: Mapped[datetime] = mapped_column(UTCDateTime(fsp=6), index=True)
 
 
 class Route(Timestamped, Base):
