@@ -17,6 +17,7 @@ import {
 } from "../lib/open-weather";
 import { connectRealtimeEvents } from "../lib/realtime-events";
 import { AuthPanel } from "../components/auth-panel";
+import { EntryGate } from "../components/entry-gate";
 import { SafeRouteApiClient, type SessionSnapshot } from "../lib/api-client";
 import { packagedRiskEvidence, type RiskEvidence } from "../lib/risk-evidence";
 
@@ -284,6 +285,7 @@ export default function App() {
     );
   const apiClient = useMemo(() => new SafeRouteApiClient(API), []);
   const [session, setSession] = useState<SessionSnapshot | null>(null);
+  const [entered, setEntered] = useState(false);
   const [riskEvidence, setRiskEvidence] = useState<RiskEvidence>(packagedRiskEvidence);
   const [riskEvidenceSource, setRiskEvidenceSource] = useState<"packaged" | "api">("packaged");
   const [fleetAnalytics, setFleetAnalytics] = useState<FleetAnalytics>(demoFleetAnalytics);
@@ -654,7 +656,11 @@ export default function App() {
       `${type} injected; route score recalculated; fleet alerted`,
       ...a,
     ]);
-    setNotice("Fleet alert published and safer reroute calculated.");
+    setNotice(
+      safestAlternative
+        ? "Fleet alert published and safer reroute calculated."
+        : "Fleet alert published. No safer alternative route is available.",
+    );
   }
   function moderate(id: string, kind: "confirmations" | "disputes") {
     setIncidents((items) =>
@@ -1025,24 +1031,25 @@ export default function App() {
               <strong>Reroute recommended</strong>
               <br />
               {x}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!safestAlternative) return;
-                  setSelected(safestAlternative.id);
-                  setTrip((t) => ({
-                    ...t,
-                    score: safestAlternative.safetyScore,
-                    alerts: [],
-                  }));
-                  setAudit((a) => [
-                    `Reroute accepted via ${safestAlternative.name}`,
-                    ...a,
-                  ]);
-                }}
-              >
-                Accept safer route
-              </button>
+              {safestAlternative && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelected(safestAlternative.id);
+                    setTrip((t) => ({
+                      ...t,
+                      score: safestAlternative.safetyScore,
+                      alerts: [],
+                    }));
+                    setAudit((a) => [
+                      `Reroute accepted via ${safestAlternative.name}`,
+                      ...a,
+                    ]);
+                  }}
+                >
+                  Accept safer route
+                </button>
+              )}
             </div>
           ))}
           <div className="actions">
@@ -1290,6 +1297,18 @@ export default function App() {
       <p className="evidence-disclaimer">{riskEvidence.claims.disclaimer}</p>
     </>
   );
+  if (!entered) {
+    return (
+      <EntryGate
+        client={apiClient}
+        onSession={(next) => {
+          setSession(next);
+          setEntered(true);
+        }}
+        onGuest={() => setEntered(true)}
+      />
+    );
+  }
   return (
     <>
       <a className="skip-link" href="#main-content">Skip to main content</a>
