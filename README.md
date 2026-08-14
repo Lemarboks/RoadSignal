@@ -61,6 +61,17 @@ Repository-specific Codex workflows are versioned under `skills/`: release valid
 
 The repository includes `.github/workflows/pages.yml`. Pushes to `main` build the web workspace with the `/SafeRouteAI` base path and publish `apps/web/out` to GitHub Pages. The public static demonstration uses MapLibre/OpenFreeMap, Photon place suggestions, explicit Nominatim lookup, OSRM road geometry, and deterministic client-side risk scoring without API keys or a billing account. Public providers are conservatively throttled and backed by deterministic offline routes. GitHub Pages does not run the FastAPI, MySQL, Redis, or WebSocket services.
 
+## Free backend deployment (Render)
+
+`render.yaml` at the repository root is a Render Blueprint that deploys `apps/api` as a free Docker web service, with no database or Redis to provision: `STORAGE_BACKEND=memory` and `EVENT_BACKEND=memory` reset on every restart, and `ROUTE_PROVIDER=open` still calls live Nominatim, OSRM, and Open-Meteo. `JWT_SECRET` and `METRICS_BEARER_TOKEN` are generated automatically by Render.
+
+1. Sign up at [render.com](https://render.com) (free, no card required for the free plan).
+2. New + → Blueprint → connect the `SafeRouteAI` GitHub repository → Apply. Render reads `render.yaml` and provisions `saferoute-ai-api`. If that name is taken, Render lets you rename it; note the resulting `https://<name>.onrender.com` URL.
+3. In the GitHub repo, go to Settings → Secrets and variables → Actions → Variables, and add `NEXT_PUBLIC_API_URL` set to that URL.
+4. Re-run the `Deploy web app to GitHub Pages` workflow (or push to `main`) so the static build bakes in the backend URL.
+
+The free plan spins the service down after 15 minutes of inactivity; the first request after idling takes up to a minute to wake it. If the CORS origin in `render.yaml` doesn't match your Pages URL (default assumes `https://lemarboks.github.io`), update it before applying the blueprint.
+
 ## Production deployment
 
 See [Vendor-neutral self-hosting](docs/self-hosting.md) for the hardened Docker Compose stack, TLS, secrets, observability, backups, restore drills, and the owner decisions required for a public launch.
