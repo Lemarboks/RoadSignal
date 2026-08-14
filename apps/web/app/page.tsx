@@ -278,7 +278,10 @@ export default function App() {
     [dataMode, setDataMode] = useState<DataMode>("demo"),
     [weather, setWeather] = useState<RouteWeather | null>(null),
     [weatherStatus, setWeatherStatus] = useState<WeatherStatus>("loading"),
-    [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(API ? "connecting" : "offline");
+    [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(API ? "connecting" : "offline"),
+    [backendStatus, setBackendStatus] = useState<"unknown" | "waking" | "ready" | "unavailable">(
+      API ? "waking" : "unknown",
+    );
   const apiClient = useMemo(() => new SafeRouteApiClient(API), []);
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [riskEvidence, setRiskEvidence] = useState<RiskEvidence>(packagedRiskEvidence);
@@ -324,6 +327,28 @@ export default function App() {
       },
     });
   }, [session?.accessToken]);
+  useEffect(() => {
+    if (!API) return;
+    let active = true;
+    const controller = new AbortController();
+    // Free-tier hosts (e.g. Render) can take up to ~60s to wake a sleeping
+    // instance; a generous one-off health check lets the UI say so instead
+    // of the first search silently timing out into the public-data fallback.
+    const timeout = window.setTimeout(() => controller.abort(), 55_000);
+    setBackendStatus("waking");
+    fetch(`${API}/api/v1/health`, { signal: controller.signal })
+      .then((response) => {
+        if (active) setBackendStatus(response.ok ? "ready" : "unavailable");
+      })
+      .catch(() => {
+        if (active) setBackendStatus("unavailable");
+      })
+      .finally(() => window.clearTimeout(timeout));
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
   useEffect(() => {
     if (!API) return;
     let active = true;
@@ -515,7 +540,7 @@ export default function App() {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 8_000);
     try {
-      const data = await apiClient.request<{ routes: ApiRoute[] }>("/api/v1/routes/analyse", {
+      const data = await apiClient.request<{ routes: ApiRoute[]; provider?: string }>("/api/v1/routes/analyse", {
         method: "POST",
         body: JSON.stringify({
           origin,
@@ -552,7 +577,11 @@ export default function App() {
       setRoutes(apiRoutes);
       setSelected(apiRoutes.find((candidate) => candidate.recommended)?.id ?? apiRoutes[0].id);
       setDataMode("api");
-      setNotice("Routes analysed by the configured SafeRoute API.");
+      setNotice(
+        data.provider === "open"
+          ? "Routes analysed by the SafeRoute API using live Nominatim/OSRM road data."
+          : "Routes analysed by the SafeRoute API. Live map/routing services were unavailable, so the API served its built-in demonstration routes.",
+      );
     } finally {
       window.clearTimeout(timeout);
     }
@@ -1302,6 +1331,12 @@ export default function App() {
               {dataMode === "public" ? "Public data" : dataMode === "api" ? "API connected" : "Demo data"}
             </span>
             {API && <span className={`realtime-badge ${realtimeStatus}`}>Realtime: {realtimeStatus}</span>}
+            {API && backendStatus === "waking" && (
+              <span className="realtime-badge connecting">Backend: waking up (can take up to a minute)</span>
+            )}
+            {API && backendStatus === "unavailable" && (
+              <span className="realtime-badge disconnected">Backend: unavailable, using public/demo data</span>
+            )}
           </div>
         </section>
         {API && <AuthPanel client={apiClient} session={session} onSession={setSession} />}
