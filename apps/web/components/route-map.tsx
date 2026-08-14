@@ -181,6 +181,16 @@ export function RouteMap({ routes, selected, progress = 0 }: Props) {
   }, []);
 
   useEffect(() => {
+    if (!container.current) return;
+    // MapLibre's own resize watcher can miss layout changes driven by CSS
+    // Grid stretch (e.g. the planner's map column growing to match the
+    // controls column), leaving stale canvas dimensions and dead space.
+    const observer = new ResizeObserver(() => map.current?.resize());
+    observer.observe(container.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const instance = map.current;
     if (!instance) return;
     const update = () => {
