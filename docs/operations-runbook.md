@@ -25,6 +25,15 @@ The monthly availability error budget at 99.5% is about 3 hours 39 minutes. Paus
 5. Declare severity: SEV-1 for confidentiality/integrity loss or total outage, SEV-2 for major protected-flow degradation, SEV-3 for partial or portfolio-only degradation.
 6. Record timeline, decision owner, affected versions, mitigations, and evidence. Preserve logs without expanding personal-data collection.
 
+## Enabling distributed tracing
+
+Trace export is already wired (`apps/api/app/observability.py`) and inert until configured -- no code change is required to turn it on. Set two environment variables on the API service:
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: the collector's OTLP/HTTP traces endpoint.
+- `OTEL_EXPORTER_OTLP_HEADERS`: auth header(s) in `key=value` form (comma-separated for more than one), read automatically by the OTLP exporter -- no application code touches this variable.
+
+Any OTLP/HTTP-compatible backend works. For example, with a free Honeycomb account: `OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io` and `OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=<API key>`. Restart the API after setting them, then confirm spans are arriving by triggering a request and checking the backend for `service.name=saferoute-api`. Correlate with logs and alerts using the `trace_id` field already present on every `http_request` log line.
+
 ## Common responses
 
 - MySQL spatial unavailable: stop writes, inspect storage/credentials, use the latest verified backup only after checksum and SQL-dump validation, and follow the guarded restore command in `self-hosting.md`.
