@@ -21,7 +21,7 @@ describe("RoadSignalApiClient", () => {
   it("keeps credentials out of browser storage and sends bearer tokens", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(response({ access_token: "access", refresh_token: "refresh-token-value-that-is-long-enough", expires_in: 900, user }))
+      .mockResolvedValueOnce(response({ access_token: "access", expires_in: 900, user }))
       .mockResolvedValueOnce(response({ items: [] }));
     const client = new RoadSignalApiClient("https://api.example.test");
 
@@ -30,15 +30,17 @@ describe("RoadSignalApiClient", () => {
 
     const headers = new Headers(fetchMock.mock.calls[1][1]?.headers);
     expect(headers.get("Authorization")).toBe("Bearer access");
+    expect(fetchMock.mock.calls[0][1]?.credentials).toBe("include");
+    expect(fetchMock.mock.calls[1][1]?.credentials).toBe("include");
     expect(client.session?.user).toEqual(user);
   });
 
   it("rotates a refresh token once and retries an unauthorized request", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(response({ access_token: "old", refresh_token: "refresh-token-value-that-is-long-enough", expires_in: 900, user }))
+      .mockResolvedValueOnce(response({ access_token: "old", expires_in: 900, user }))
       .mockResolvedValueOnce(response({ detail: "expired" }, 401))
-      .mockResolvedValueOnce(response({ access_token: "new", refresh_token: "rotated-refresh-token-value-long-enough", expires_in: 900 }))
+      .mockResolvedValueOnce(response({ access_token: "new", expires_in: 900 }))
       .mockResolvedValueOnce(response({ ok: true }));
     const client = new RoadSignalApiClient("https://api.example.test");
 

@@ -50,6 +50,7 @@ class MemoryRefreshSession:
 
 MEMORY_USERS: dict[UUID, MemoryUser] = {}
 MEMORY_REFRESH_SESSIONS: dict[str, MemoryRefreshSession] = {}
+DUMMY_PASSWORD_HASH = password_hash.hash("not-a-real-account-password")
 
 
 def _now() -> datetime:
@@ -95,7 +96,8 @@ def register_user(email: str, name: str, password: str, role: Role, db: Session 
 
 def authenticate_user(email: str, password: str, db: Session | None):
     user = find_user_by_email(email, db)
-    if not user or not user.is_active or not password_hash.verify(password, user.password_hash):
+    password_valid = password_hash.verify(password, user.password_hash if user else DUMMY_PASSWORD_HASH)
+    if not user or not user.is_active or not password_valid:
         raise HTTPException(401, "Email or password is incorrect", headers={"WWW-Authenticate": "Bearer"})
     return user
 
