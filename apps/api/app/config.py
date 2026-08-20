@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     jwt_audience: str = "roadsignal-clients"
     jwt_expiry_minutes: int = 15
     refresh_expiry_days: int = 30
+    refresh_cookie_name: str = "roadsignal_refresh"
+    max_request_bytes: int = 1_048_576
     require_auth: bool = False
     route_provider: str = "open"
     nominatim_url: str = "https://nominatim.openstreetmap.org"
@@ -48,6 +50,8 @@ class Settings(BaseSettings):
                 raise ValueError("Production requires a random METRICS_BEARER_TOKEN of at least 32 characters")
             if any(origin == "*" for origin in self.allowed_origins):
                 raise ValueError("Wildcard CORS is forbidden in production")
+            if any(not origin.startswith("https://") for origin in self.allowed_origins):
+                raise ValueError("Production CORS origins must use HTTPS")
         return self
 
 

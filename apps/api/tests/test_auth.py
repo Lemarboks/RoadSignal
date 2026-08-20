@@ -27,11 +27,29 @@ def test_register_login_refresh_logout_flow():
         json={"email": "driver@example.com", "password": "Correct-Horse-2026"},
     )
     assert login.status_code == 200
-    refresh = client.post("/api/v1/auth/refresh", json={"refresh_token": login.json()["refresh_token"]})
+    assert "refresh_token" not in login.json()
+    assert "HttpOnly" in login.headers["set-cookie"]
+    assert "SameSite=strict" in login.headers["set-cookie"]
+    refresh = client.post("/api/v1/auth/refresh", json={})
     assert refresh.status_code == 200
-    assert refresh.json()["refresh_token"] != login.json()["refresh_token"]
-    assert client.post("/api/v1/auth/refresh", json={"refresh_token": login.json()["refresh_token"]}).status_code == 401
-    assert client.post("/api/v1/auth/logout", json={"refresh_token": refresh.json()["refresh_token"]}).status_code == 204
+    assert "refresh_token" not in refresh.json()
+    assert client.post("/api/v1/auth/logout", json={}).status_code == 204
+
+def test_mobile_refresh_tokens_require_explicit_client_header():
+    headers = {"X-RoadSignal-Client": "mobile"}
+    registration = client.post("/api/v1/auth/register", headers=headers, json={"email":"mobile@example.com","password":"Correct-Horse-2026","name":"Mobile Driver"})
+    token = registration.json()["refresh_token"]
+    refreshed = client.post("/api/v1/auth/refresh", headers=headers, json={"refresh_token": token})
+    assert refreshed.status_code == 200
+    assert refreshed.json()["refresh_token"] != token
+
+def test_unknown_fields_and_uploads_are_rejected():
+    bad = client.post("/api/v1/auth/login", json={"email":"driver@example.com","password":"Correct-Horse-2026","role":"administrator"})
+    assert bad.status_code == 422
+    upload = client.post("/api/v1/incidents", files={"file": ("report.txt", b"content")})
+    assert upload.status_code == 415
+    bot = client.post("/api/v1/auth/login", json={"email":"driver@example.com","password":"Correct-Horse-2026","website":"spam.example"})
+    assert bot.status_code == 422
 
 
 def test_duplicate_email_and_bad_password_are_rejected_without_leaking_hashes():
@@ -50,3 +68,4 @@ def test_security_headers_and_protected_profile():
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["cache-control"] == "no-store"
+    assert response.headers["content-security-policy"].startswith("default-src 'none'")

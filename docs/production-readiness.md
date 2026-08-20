@@ -103,11 +103,11 @@ A static portfolio build must remain useful when no API is configured, but silen
 
 ### Decision
 
-Data provenance is a first-class UI state: API, public open data, and built-in demonstration are separate modes. The secure default keeps tokens in memory and accepts the usability trade-off that a page reload requires signing in again. Protected actions never fall through to a local success state when an API session is expected.
+Data provenance is a first-class UI state: API, public open data, and built-in demonstration are separate modes. Access tokens stay in memory while refresh rotation uses an HttpOnly same-site cookie. Protected actions never fall through to a local success state when an API session is expected.
 
 ### Benefit
 
-Reviewers can see a real end-to-end authorization boundary and graceful degradation without confusing simulated behavior for production behavior. The browser has a small, testable security boundary that can later migrate refresh rotation to an HttpOnly same-site cookie when the web and API share a production origin.
+Reviewers can see a real end-to-end authorization boundary and graceful degradation without confusing simulated behavior for production behavior. Browser JavaScript cannot read the rotated refresh credential.
 ## Milestone 5: privacy-aware observability
 
 Implemented:
@@ -141,7 +141,7 @@ Implemented:
 - MySQL, Redis, API, and metrics credentials are generated locally, ignored by Git, mounted individually as read-only Docker secrets, and loaded without embedding them in images.
 - Redis uses append-only persistence and authentication; MySQL spatial and Redis have health-gated API startup.
 - Prometheus is an optional internal profile, bearer-authenticates to metrics, and binds only to host loopback.
-- Backup and guarded restore scripts create transaction-consistent MySQL SQL dumps, validate them, checksum them, enforce retention, and take a safety backup before destructive restore.
+- Backup and guarded restore scripts create AES-256 encrypted, transaction-consistent MySQL SQL dumps, validate them, checksum them, enforce retention, and take a safety backup before destructive restore.
 - CI validates the Compose model, builds every custom image, starts the production topology, waits for health, and probes the web and API over TLS.
 
 ### Challenge

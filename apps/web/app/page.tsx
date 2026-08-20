@@ -65,6 +65,18 @@ const demoFleetAnalytics: FleetAnalytics = {
   active_incidents: 2,
   trips_completed_today: 20,
 };
+const demoDrivers = [
+  { name: "Amina Daniels", vehicle: "CA 482-771", status: "On trip", route: "CBD to Airport", score: 87, updated: "Now" },
+  { name: "Lwazi Mbeki", vehicle: "CA 193-044", status: "Attention", route: "Woodstock to Bellville", score: 58, updated: "2 min ago" },
+  { name: "Nadia Jacobs", vehicle: "CY 827-519", status: "Available", route: "No active trip", score: 92, updated: "6 min ago" },
+  { name: "Ethan Williams", vehicle: "CA 614-208", status: "Offline", route: "Last trip: Pinelands", score: 76, updated: "28 min ago" },
+] as const;
+const demoRiskZones = [
+  { area: "Hospital Bend", level: "High", score: 48, signal: "Recent collision", confidence: "86%" },
+  { area: "Athlone", level: "Medium", score: 64, signal: "Community reports", confidence: "72%" },
+  { area: "Woodstock", level: "Medium", score: 71, signal: "Traffic disruption", confidence: "79%" },
+  { area: "Pinelands", level: "Low", score: 88, signal: "No active reports", confidence: "81%" },
+] as const;
 type WeatherStatus = "loading" | "ready" | "unavailable";
 type RealtimeStatus = "offline" | "connecting" | "connected" | "disconnected" | "unauthorized";
 type LocationPermissionStatus =
@@ -290,6 +302,9 @@ export default function App() {
   const [riskEvidenceSource, setRiskEvidenceSource] = useState<"packaged" | "api">("packaged");
   const [fleetAnalytics, setFleetAnalytics] = useState<FleetAnalytics>(demoFleetAnalytics);
   const [fleetAnalyticsSource, setFleetAnalyticsSource] = useState<"demo" | "api">("demo");
+  const [analyticsWindow, setAnalyticsWindow] = useState<"7" | "30" | "90">("30");
+  const [fleetQuery, setFleetQuery] = useState("");
+  const [fleetStatus, setFleetStatus] = useState("All statuses");
   const [trip, setTrip] = useState<{
     id?: string;
     active: boolean;
@@ -312,6 +327,12 @@ export default function App() {
   const safestAlternative = routes
     .filter((candidate) => candidate.id !== selected)
     .sort((first, second) => second.safetyScore - first.safetyScore)[0];
+  const visibleDrivers = demoDrivers.filter((driver) => {
+    const matchesQuery = `${driver.name} ${driver.vehicle} ${driver.route}`
+      .toLowerCase()
+      .includes(fleetQuery.trim().toLowerCase());
+    return matchesQuery && (fleetStatus === "All statuses" || driver.status === fleetStatus);
+  });
   useEffect(() => {
     if (!API) return;
     return connectRealtimeEvents({
@@ -1178,38 +1199,90 @@ export default function App() {
       </section>
     </>
   );
+  const riskMapPage = (
+    <>
+      <section className="heading risk-map-heading">
+        <div>
+          <p className="eyebrow">Live network exposure</p>
+          <h1>Network risk map</h1>
+          <p>Inspect route corridors and prioritise areas that need operational attention.</p>
+        </div>
+        <button type="button" className="primary" onClick={() => setPage("Incidents")}>Review incidents</button>
+      </section>
+      <div className="risk-map-toolbar" aria-label="Route layer selection">
+        <span>Route layer</span>
+        <div className="segmented-control">
+          {routes.map((candidate) => (
+            <button
+              type="button"
+              key={candidate.id}
+              aria-pressed={selected === candidate.id}
+              onClick={() => setSelected(candidate.id)}
+            >
+              {candidate.name}
+            </button>
+          ))}
+        </div>
+        <span className={`risk-map-score ${riskClass(route.safetyScore)}`}>{route.safetyScore}/100 estimate</span>
+      </div>
+      <div className="risk-map-layout">
+        <section className="risk-map-stage" aria-labelledby="risk-map-title">
+          <div className="section-heading-row">
+            <div><h2 id="risk-map-title">Cape Town route exposure</h2><p>{route.explanation}</p></div>
+            <span>{route.confidence ? `${Math.round(route.confidence * 100)}% confidence` : "Confidence unavailable"}</span>
+          </div>
+          <MapView routes={routes} selected={selected} progress={trip.progress} />
+        </section>
+        <section className="risk-zone-rail" aria-labelledby="risk-zone-title">
+          <div className="section-heading-row"><div><h2 id="risk-zone-title">Areas to review</h2><p>Ranked demonstration signals</p></div></div>
+          <ol className="risk-zone-list">
+            {demoRiskZones.map((zone) => (
+              <li key={zone.area}>
+                <div><strong>{zone.area}</strong><span>{zone.signal}</span></div>
+                <div className="zone-reading"><b className={zone.level.toLowerCase()}>{zone.level}</b><span>{zone.score}/100 · {zone.confidence}</span></div>
+              </li>
+            ))}
+          </ol>
+          <button type="button" className="rail-action" onClick={() => setPage("Route Planner")}>Plan around these signals</button>
+        </section>
+      </div>
+      <p className="view-disclaimer">Risk areas and scores are demonstration estimates, not guarantees of personal safety.</p>
+    </>
+  );
   const analyticsPage = (
     <>
       <section className="heading">
         <div>
-          <p className="eyebrow">Last 30 days - Demonstration data</p>
-          <h1>{page}</h1>
+          <p className="eyebrow">Operational trends · Demonstration data</p>
+          <h1>Performance analytics</h1>
           <p>Operational safety performance and confidence-weighted trends.</p>
         </div>
-        <span className={`evidence-source ${fleetAnalyticsSource}`}>
-          {fleetAnalyticsSource === "api" ? "Live from API" : "Demo data"}
-        </span>
+        <div className="analytics-actions">
+          <div className="segmented-control" aria-label="Analytics time range">
+            {(["7", "30", "90"] as const).map((days) => (
+              <button type="button" key={days} aria-pressed={analyticsWindow === days} onClick={() => setAnalyticsWindow(days)}>{days} days</button>
+            ))}
+          </div>
+          <span className={`evidence-source ${fleetAnalyticsSource}`}>{fleetAnalyticsSource === "api" ? "Live from API" : "Demo data"}</span>
+        </div>
       </section>
-      <div className="metrics">
+      <div className="analytics-summary">
         <Metric label="Average safety" value={fleetAnalytics.average_safety_score.toFixed(1)} />
-        <Metric label="Active drivers" value={fleetAnalytics.active_drivers} />
         <Metric label="Active incidents" value={fleetAnalytics.active_incidents} />
         <Metric label="Trips completed today" value={fleetAnalytics.trips_completed_today} />
-        <Metric label="High-risk drivers" value={fleetAnalytics.high_risk_drivers} />
-        <Metric label="Reroutes triggered" value="38" />
         <Metric label="Recommendations accepted" value="74%" />
       </div>
-      <div className="grid two">
-        <section className="panel">
-          <h2>Safety score by hour</h2>
-          <div className="chart" role="img" aria-label="Hourly safety estimates range from 69 to 88, ending at 88">
-            {[78, 81, 84, 86, 83, 79, 74, 69, 73, 80, 85, 88].map((v, i) => (
+      <div className="analytics-layout">
+        <section className="analytics-trend">
+          <div className="section-heading-row"><div><h2>Safety estimate trend</h2><p>Selected {analyticsWindow}-day demonstration window</p></div><strong>+4.8%</strong></div>
+          <div className="chart analytics-chart" role="img" aria-label="Safety estimates range from 69 to 88, ending at 88">
+            {(analyticsWindow === "7" ? [74, 79, 76, 82, 84, 83, 88] : analyticsWindow === "90" ? [68, 72, 70, 76, 74, 79, 81, 78, 84, 82, 86, 88] : [78, 81, 84, 86, 83, 79, 74, 69, 73, 80, 85, 88]).map((v, i) => (
               <i key={i} style={{ height: `${v}%` }} title={`${v}`} />
             ))}
           </div>
         </section>
-        <section className="panel">
-          <h2>Incident categories</h2>
+        <section className="analytics-breakdown">
+          <div className="section-heading-row"><div><h2>Incident mix</h2><p>Share of recorded signals</p></div></div>
           {[
             ["Traffic accidents", 34],
             ["Crime reports", 26],
@@ -1225,8 +1298,54 @@ export default function App() {
               <strong>{v}%</strong>
             </div>
           ))}
+          <div className="analytics-exception">
+            <span>Needs attention</span>
+            <strong>{fleetAnalytics.high_risk_drivers} high-risk driver</strong>
+            <button type="button" onClick={() => { setFleetStatus("Attention"); setPage("Fleet"); }}>Open fleet queue</button>
+          </div>
         </section>
       </div>
+    </>
+  );
+  const fleetPage = (
+    <>
+      <section className="heading fleet-heading">
+        <div>
+          <p className="eyebrow">Driver operations · Demonstration data</p>
+          <h1>Fleet roster</h1>
+          <p>Find drivers, inspect trip status, and move directly to active operations.</p>
+        </div>
+        <button type="button" className="primary" onClick={() => setPage("Live Trips")}>Monitor live trips</button>
+      </section>
+      <div className="fleet-summary" aria-label="Fleet status summary">
+        <div><span>Active</span><strong>3</strong></div>
+        <div><span>On trip</span><strong>2</strong></div>
+        <div><span>Attention</span><strong className="danger">1</strong></div>
+        <div><span>Offline</span><strong>1</strong></div>
+      </div>
+      <div className="fleet-controls">
+        <label><span className="sr-only">Search fleet</span><input value={fleetQuery} onChange={(event) => setFleetQuery(event.target.value)} placeholder="Search driver, vehicle or route" /></label>
+        <label><span className="sr-only">Filter fleet status</span><select value={fleetStatus} onChange={(event) => setFleetStatus(event.target.value)}><option>All statuses</option><option>On trip</option><option>Attention</option><option>Available</option><option>Offline</option></select></label>
+        <span aria-live="polite">{visibleDrivers.length} drivers shown</span>
+      </div>
+      <section className="fleet-table-wrap" aria-labelledby="fleet-table-title">
+        <div className="section-heading-row"><div><h2 id="fleet-table-title">Drivers and vehicles</h2><p>Operational status and latest known update</p></div></div>
+        {visibleDrivers.length ? (
+          <table className="fleet-table">
+            <thead><tr><th>Driver</th><th>Status</th><th>Current assignment</th><th>Safety estimate</th><th>Updated</th><th>Action</th></tr></thead>
+            <tbody>{visibleDrivers.map((driver) => (
+              <tr key={driver.vehicle}>
+                <td data-label="Driver"><strong>{driver.name}</strong><small>{driver.vehicle}</small></td>
+                <td data-label="Status"><span className={`driver-status ${driver.status.toLowerCase().replace(" ", "-")}`}>{driver.status}</span></td>
+                <td data-label="Current assignment">{driver.route}</td>
+                <td data-label="Safety estimate"><strong className={riskClass(driver.score)}>{driver.score}/100</strong></td>
+                <td data-label="Updated">{driver.updated}</td>
+                <td data-label="Action"><button type="button" onClick={() => { setNotice(`Opening ${driver.name}'s latest trip view.`); setPage("Live Trips"); }}>View trip</button></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        ) : <div className="empty fleet-empty">No drivers match this search. Clear the search or choose another status.</div>}
+      </section>
     </>
   );
   const evidencePage = (
@@ -1373,9 +1492,15 @@ export default function App() {
               ? live
               : page === "Incidents"
                 ? incidentPage
+                : page === "Risk Map"
+                  ? riskMapPage
+                  : page === "Analytics"
+                    ? analyticsPage
+                    : page === "Fleet"
+                      ? fleetPage
                 : page === "Settings"
                   ? evidencePage
-                  : analyticsPage}
+                  : dashboard}
       </main>
     </div>
     </>
