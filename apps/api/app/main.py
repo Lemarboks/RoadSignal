@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import Depends, FastAPI, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
-from .schemas import IncidentCreate, RouteAnalyseRequest, TripLocation
+from .schemas import EmergencyCreate, IncidentCreate, RouteAnalyseRequest, TripLocation
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
 from .providers.weather import OpenMeteoWeatherProvider
 from .risk.engine import RiskIncident, haversine_km, risk_level, route_score, segment_score
@@ -25,7 +25,7 @@ from slowapi.errors import RateLimitExceeded
 app = FastAPI(title="RoadSignal API", version="0.1.0", description="Route-risk decision support. Scores are estimates, not guarantees of safety.")
 app.add_middleware(SecurityHeadersMiddleware)
 configure_observability(app)
-app.add_middleware(CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "X-Request-ID"])
+app.add_middleware(CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-RoadSignal-Client"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(authentication.router)
@@ -232,8 +232,8 @@ def analytics(principal=Depends(require_roles_when_enabled("administrator","flee
 def audit_logs(principal=Depends(require_roles_when_enabled("administrator","incident_moderator"))): return {"items":repository.list_audit(100)}
 
 @app.post("/api/v1/emergencies")
-def emergency(payload: dict, principal=Depends(require_when_enabled)):
-    event={"id":str(uuid4()),"status":"active","created_at":datetime.now(timezone.utc),"location":payload.get("location")}; publish("emergency.created",event); return serialise(event)
+def emergency(payload: EmergencyCreate, principal=Depends(require_when_enabled)):
+    event={"id":str(uuid4()),"status":"active","created_at":datetime.now(timezone.utc),"location":payload.location.model_dump(),"user_id":str(principal.id) if principal else None}; publish("emergency.created",event); return serialise(event)
 @app.post("/api/v1/emergencies/{event_id}/cancel")
 def cancel_emergency(event_id: str, principal=Depends(require_when_enabled)): publish("emergency.cancelled",{"id":event_id}); return {"id":event_id,"status":"cancelled"}
 @app.post("/api/v1/emergencies/{event_id}/resolve")
