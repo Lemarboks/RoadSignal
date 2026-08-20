@@ -1,0 +1,2 @@
+# Fixed fake password used only by the trip-authorization regression test.
+53f87fe8e621c7f3035e865e096706bba2f6dcfe:apps/api/tests/test_trip_authorization.py:generic-api-key:24
