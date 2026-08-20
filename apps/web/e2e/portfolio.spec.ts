@@ -99,3 +99,32 @@ test("does not overflow the viewport", async ({ page }) => {
   }));
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
 });
+
+test("renders distinct risk map, analytics, and fleet workspaces", async ({ page }) => {
+  await enterAsGuest(page);
+
+  await page.getByRole("button", { name: "Risk Map" }).click();
+  await expect(page.getByRole("heading", { name: "Network risk map" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Areas to review" })).toBeVisible();
+  const safestRoute = page.getByRole("button", { name: "Safest Route" });
+  await safestRoute.click();
+  await expect(safestRoute).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/\d+\/100 estimate/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Analytics" }).click();
+  await expect(page.getByRole("heading", { name: "Performance analytics" })).toBeVisible();
+  await page.getByRole("button", { name: "7 days" }).click();
+  await expect(page.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", { name: "Fleet", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Fleet roster" })).toBeVisible();
+  await page.getByPlaceholder("Search driver, vehicle or route").fill("Lwazi");
+  await expect(page.getByText("Lwazi Mbeki")).toBeVisible();
+  await expect(page.getByText("Amina Daniels")).not.toBeVisible();
+
+  const dimensions = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+  }));
+  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+});

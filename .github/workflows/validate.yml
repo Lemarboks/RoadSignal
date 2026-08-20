@@ -113,7 +113,7 @@ jobs:
       - run: curl --fail --silent --show-error --insecure https://localhost/ | grep -q "RoadSignal"
       - run: infrastructure/scripts/backup-mysql.sh
       - run: |
-          backup=$(find backups/mysql -name 'roadsignal-*.sql' | sort | head -n 1)
+          backup=$(find backups/mysql -name 'roadsignal-*.sql.enc' | sort | head -n 1)
           CONFIRM_RESTORE=roadsignal infrastructure/scripts/restore-mysql.sh "$backup"
       - run: curl --fail --silent --show-error --insecure https://localhost/api/v1/ready
       - if: failure()
@@ -160,6 +160,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 10.13.1
@@ -178,6 +180,11 @@ jobs:
       - run: node scripts/audit-production.mjs
       - run: pip install pip-audit==2.9.0
       - run: pip-audit --strict --requirement apps/api/requirements.txt
+      - run: >-
+          docker run --rm
+          -v "$PWD:/src:ro"
+          zricethezav/gitleaks:v8.28.0
+          detect --source=/src --log-opts=--all --redact --no-banner
       - run: >-
           docker run --rm
           -v "$PWD:/src:ro"

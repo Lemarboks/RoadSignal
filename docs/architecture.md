@@ -42,7 +42,7 @@ Routes come from configurable OSRM/Nominatim adapters. Each sampled segment rece
 
 ## Key trade-offs
 
-- In-memory browser tokens reduce credential persistence and XSS blast radius, but a page reload requires sign-in. Same-origin deployments can later move refresh rotation to an HttpOnly SameSite cookie.
+- Browser access tokens remain in memory; rotated refresh tokens are held only in an HttpOnly, SameSite=Strict cookie. Native clients use an explicit mobile-only token response because they do not share browser cookies.
 - Redis Streams cost more memory than pub/sub, but permit bounded replay and multi-replica APIs.
 - Deterministic scoring is less flexible than a trained model, but is inspectable and defensible while licensed outcome data is absent.
 - Static export makes the portfolio resilient and free to host, but it is not the production backend. Provenance labels prevent that distinction from being hidden.

@@ -79,7 +79,7 @@ export class RoadSignalApiClient {
     try {
       await fetch(`${this.baseUrl}/api/v1/auth/logout`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-RoadSignal-Client": "mobile" },
         body: JSON.stringify({ refresh_token: token }),
       });
     } catch {
@@ -99,7 +99,7 @@ export class RoadSignalApiClient {
   private async authenticate(endpoint: "login" | "register", body: object) {
     const response = await fetch(`${this.baseUrl}/api/v1/auth/${endpoint}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-RoadSignal-Client": "mobile" },
       body: JSON.stringify(body),
     });
     const tokens = await this.parse<TokenResponse>(response);
@@ -121,7 +121,7 @@ export class RoadSignalApiClient {
       try {
         const response = await fetch(`${this.baseUrl}/api/v1/auth/refresh`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-RoadSignal-Client": "mobile" },
           body: JSON.stringify({ refresh_token: this.refreshToken }),
         });
         const tokens = await this.parse<TokenResponse>(response);
