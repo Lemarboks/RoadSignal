@@ -1,9 +1,9 @@
 ---
-name: saferoute-risk-audit
-description: Audit SafeRoute AI risk scoring, incident confidence, route aggregation, evidence provenance, bias, stale data, adversarial reports, and safety wording. Use when changing scoring weights, incident moderation, explanations, route recommendations, risk tests, or claims shown to drivers and fleet users.
+name: roadsignal-risk-audit
+description: Audit RoadSignal risk scoring, incident confidence, route aggregation, evidence provenance, bias, stale data, adversarial reports, and safety wording. Use when changing scoring weights, incident moderation, explanations, route recommendations, risk tests, or claims shown to drivers and fleet users.
 ---
 
-# SafeRoute risk audit
+# RoadSignal risk audit
 
 Review the model as decision support, not as a safety oracle.
 

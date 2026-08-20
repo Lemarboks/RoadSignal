@@ -1,4 +1,0 @@
-interface:
-  display_name: "SafeRoute Release Check"
-  short_description: "Validate SafeRoute builds before release"
-  default_prompt: "Use $saferoute-release-check to validate this SafeRoute AI release."

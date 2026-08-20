@@ -16,7 +16,7 @@ DEFAULT_REPORT = ROOT / "apps" / "api" / "app" / "risk" / "artifacts" / "demo-ri
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate and evaluate a SafeRoute risk dataset")
+    parser = argparse.ArgumentParser(description="Validate and evaluate a RoadSignal risk dataset")
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     mode = parser.add_mutually_exclusive_group(required=True)

@@ -46,11 +46,11 @@ function errorMessage(status: number, payload: unknown) {
   if (status === 401) return "Your email or password was not accepted.";
   if (status === 403) return "Your account does not have permission for this action.";
   if (status === 429) return "Too many attempts. Wait a minute and try again.";
-  if (status >= 500) return "The SafeRoute service is temporarily unavailable.";
+  if (status >= 500) return "The RoadSignal service is temporarily unavailable.";
   return "The request could not be completed.";
 }
 
-export class SafeRouteApiClient {
+export class RoadSignalApiClient {
   private accessToken = "";
   private refreshToken = "";
   private user: SessionUser | null = null;

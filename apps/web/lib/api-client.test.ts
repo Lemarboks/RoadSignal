@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, SafeRouteApiClient } from "./api-client";
+import { ApiError, RoadSignalApiClient } from "./api-client";
 
 const user = {
   id: "user-1",
@@ -17,13 +17,13 @@ function response(body: unknown, status = 200) {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("SafeRouteApiClient", () => {
+describe("RoadSignalApiClient", () => {
   it("keeps credentials out of browser storage and sends bearer tokens", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(response({ access_token: "access", refresh_token: "refresh-token-value-that-is-long-enough", expires_in: 900, user }))
       .mockResolvedValueOnce(response({ items: [] }));
-    const client = new SafeRouteApiClient("https://api.example.test");
+    const client = new RoadSignalApiClient("https://api.example.test");
 
     await client.login(user.email, "a secure password");
     await client.request("/api/v1/incidents");
@@ -40,7 +40,7 @@ describe("SafeRouteApiClient", () => {
       .mockResolvedValueOnce(response({ detail: "expired" }, 401))
       .mockResolvedValueOnce(response({ access_token: "new", refresh_token: "rotated-refresh-token-value-long-enough", expires_in: 900 }))
       .mockResolvedValueOnce(response({ ok: true }));
-    const client = new SafeRouteApiClient("https://api.example.test");
+    const client = new RoadSignalApiClient("https://api.example.test");
 
     await client.login(user.email, "a secure password");
     await expect(client.request("/api/v1/private")).resolves.toEqual({ ok: true });
@@ -51,7 +51,7 @@ describe("SafeRouteApiClient", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       response({ detail: [{ msg: "Value error, Choose a less common password" }] }, 422),
     );
-    const client = new SafeRouteApiClient("https://api.example.test");
+    const client = new RoadSignalApiClient("https://api.example.test");
     await expect(client.register("Test", user.email, "password1234")).rejects.toEqual(
       expect.objectContaining({ message: "Choose a less common password", status: 422 }),
     );

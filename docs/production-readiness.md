@@ -1,6 +1,6 @@
 # Production-readiness programme
 
-SafeRoute AI is being upgraded in evidence-driven milestones. A feature is marked production-ready only when its runtime path, failure behavior, tests, security boundary, and operating instructions exist. Demonstration fallbacks remain available in development, but production configuration refuses to start with in-memory security or persistence.
+RoadSignal is being upgraded in evidence-driven milestones. A feature is marked production-ready only when its runtime path, failure behavior, tests, security boundary, and operating instructions exist. Demonstration fallbacks remain available in development, but production configuration refuses to start with in-memory security or persistence.
 
 ## Milestone 1: identity and runtime boundaries
 
@@ -89,7 +89,7 @@ Fleet and driver views can receive the same ordered events across horizontally s
 
 Implemented:
 
-- The browser prefers the configured SafeRoute API for route analysis, falls back to public open routing when the API is unavailable, and labels built-in data as a demonstration fallback.
+- The browser prefers the configured RoadSignal API for route analysis, falls back to public open routing when the API is unavailable, and labels built-in data as a demonstration fallback.
 - A typed API client owns bearer authorization, one-time refresh rotation and retry, consistent error parsing, and logout revocation.
 - Access and refresh credentials remain only in JavaScript memory. They are never placed in local storage, session storage, URLs, or logs.
 - Login and driver registration expose loading, validation, rate-limit, service-error, and signed-in states with accessible form semantics.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadSignal Risk Audit"
+  short_description: "Audit scoring safety and evidence integrity"
+  default_prompt: "Use $roadsignal-risk-audit to review RoadSignal risk scoring."

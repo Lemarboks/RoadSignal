@@ -15,13 +15,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from .config import settings
 
 REQUESTS = Counter(
-    "saferoute_http_requests_total",
-    "HTTP requests processed by the SafeRoute API.",
+    "roadsignal_http_requests_total",
+    "HTTP requests processed by the RoadSignal API.",
     ("method", "route", "status"),
 )
 DURATION = Histogram(
-    "saferoute_http_request_duration_seconds",
-    "SafeRoute API request duration in seconds.",
+    "roadsignal_http_request_duration_seconds",
+    "RoadSignal API request duration in seconds.",
     ("method", "route"),
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10),
 )
@@ -47,7 +47,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging() -> logging.Logger:
-    logger = logging.getLogger("saferoute")
+    logger = logging.getLogger("roadsignal")
     logger.setLevel(settings.log_level.upper())
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stdout)
@@ -81,7 +81,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         if settings.otel_exporter_otlp_endpoint:
             from opentelemetry import trace
 
-            span_context = trace.get_tracer("saferoute.http").start_as_current_span("http.request")
+            span_context = trace.get_tracer("roadsignal.http").start_as_current_span("http.request")
         with span_context as span:
             try:
                 response = await call_next(request)
@@ -97,7 +97,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                     span.set_attribute("http.request.method", request.method)
                     span.set_attribute("http.route", route)
                     span.set_attribute("http.response.status_code", status)
-                    span.set_attribute("saferoute.request_id", request_id)
+                    span.set_attribute("roadsignal.request_id", request_id)
                 logger.info(
                     "http_request",
                     extra={

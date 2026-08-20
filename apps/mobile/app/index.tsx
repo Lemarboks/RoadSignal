@@ -49,7 +49,7 @@ export default function Home() {
     setPermission("granted");
   }
 
-  async function startSafeRoute() {
+  async function startRoadSignal() {
     setSearching(true);
     setNotice("");
     try {
@@ -150,11 +150,11 @@ export default function Home() {
 
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
-      <Pressable style={styles.primary} onPress={() => void startSafeRoute()} disabled={searching}>
+      <Pressable style={styles.primary} onPress={() => void startRoadSignal()} disabled={searching}>
         {searching ? (
           <ActivityIndicator color="white" />
         ) : (
-          <Text style={styles.white}>Start SafeRoute</Text>
+          <Text style={styles.white}>Start RoadSignal</Text>
         )}
       </Pressable>
       <Link href="/report" style={styles.secondary}>
