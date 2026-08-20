@@ -15,12 +15,10 @@ export function EntryGate({
   return (
     <div className="entry-gate">
       <div className="entry-gate-card">
-        <div className="entry-gate-brand">
-          <b>SR</b>
-          <span>
-            RoadSignal <strong>AI</strong>
-          </span>
-        </div>
+          <div className="entry-gate-brand">
+            <b>SR</b>
+            <span>RoadSignal</span>
+          </div>
         <h1>Route-risk intelligence for Cape Town</h1>
         <p>
           Sign in for protected trips, incident reporting, and realtime alerts
