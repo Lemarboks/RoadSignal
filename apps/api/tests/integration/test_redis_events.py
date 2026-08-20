@@ -15,7 +15,7 @@ def test_redis_stream_publishes_and_replays_from_cursor():
 
 async def _exercise_redis_stream():
     bus = RedisStreamEventBus()
-    bus.stream = f"saferoute:test:{uuid.uuid4().hex}"
+    bus.stream = f"roadsignal:test:{uuid.uuid4().hex}"
     try:
         assert bus.ready()
         first = bus.publish({"type": "trip.started", "payload": {"trip_id": "one"}})

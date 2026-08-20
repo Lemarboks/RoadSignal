@@ -20,9 +20,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @saferoute/web typecheck
-      - run: pnpm --filter @saferoute/web test
-      - run: pnpm --filter @saferoute/web build
+      - run: pnpm --filter @roadsignal/web typecheck
+      - run: pnpm --filter @roadsignal/web test
+      - run: pnpm --filter @roadsignal/web build
 
   api:
     runs-on: ubuntu-latest
@@ -42,20 +42,20 @@ jobs:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_DATABASE: saferoute
-          MYSQL_USER: saferoute
-          MYSQL_PASSWORD: saferoute
+          MYSQL_DATABASE: roadsignal
+          MYSQL_USER: roadsignal
+          MYSQL_PASSWORD: roadsignal
           MYSQL_ROOT_PASSWORD: local-root-only
         ports:
           - 3306:3306
         options: >-
-          --health-cmd "mysqladmin ping -h 127.0.0.1 -u saferoute -psaferoute --silent"
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u roadsignal -proadsignal --silent"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
     env:
       STORAGE_BACKEND: mysql
-      DATABASE_URL: mysql+pymysql://saferoute:saferoute@localhost:3306/saferoute?charset=utf8mb4
+      DATABASE_URL: mysql+pymysql://roadsignal:roadsignal@localhost:3306/roadsignal?charset=utf8mb4
       ENVIRONMENT: test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -110,11 +110,11 @@ jobs:
       - run: docker compose -f compose.production.yml config --quiet
       - run: docker compose -f compose.production.yml up -d --build --wait
       - run: curl --fail --silent --show-error --insecure https://localhost/api/v1/health
-      - run: curl --fail --silent --show-error --insecure https://localhost/ | grep -q "SafeRoute"
+      - run: curl --fail --silent --show-error --insecure https://localhost/ | grep -q "RoadSignal"
       - run: infrastructure/scripts/backup-mysql.sh
       - run: |
-          backup=$(find backups/mysql -name 'saferoute-*.sql' | sort | head -n 1)
-          CONFIRM_RESTORE=saferoute infrastructure/scripts/restore-mysql.sh "$backup"
+          backup=$(find backups/mysql -name 'roadsignal-*.sql' | sort | head -n 1)
+          CONFIRM_RESTORE=roadsignal infrastructure/scripts/restore-mysql.sh "$backup"
       - run: curl --fail --silent --show-error --insecure https://localhost/api/v1/ready
       - if: failure()
         run: |
@@ -134,20 +134,20 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @saferoute/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @roadsignal/web exec playwright install --with-deps chromium
       - name: Start browser-test server
         working-directory: apps/web
         run: |
-          node node_modules/next/dist/bin/next dev --hostname 127.0.0.1 > /tmp/saferoute-web.log 2>&1 &
+          node node_modules/next/dist/bin/next dev --hostname 127.0.0.1 > /tmp/roadsignal-web.log 2>&1 &
           for attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
               exit 0
             fi
             sleep 2
           done
-          cat /tmp/saferoute-web.log
+          cat /tmp/roadsignal-web.log
           exit 1
-      - run: pnpm --filter @saferoute/web test:e2e
+      - run: pnpm --filter @roadsignal/web test:e2e
         env:
           PLAYWRIGHT_EXTERNAL_SERVER: "1"
       - if: failure()

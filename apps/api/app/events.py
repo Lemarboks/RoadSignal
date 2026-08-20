@@ -45,7 +45,7 @@ class MemoryEventBus(EventBus):
 
 
 class RedisStreamEventBus(EventBus):
-    stream = "saferoute:events"
+    stream = "roadsignal:events"
 
     def __init__(self):
         self.sync_client = redis.from_url(settings.redis_url, decode_responses=True, socket_timeout=3)

@@ -4,7 +4,7 @@ import type {
   RiskBreakdown,
   RouteOption,
   RoutePreference,
-} from "@saferoute/types";
+} from "@roadsignal/types";
 
 const NOMINATIM_URL =
   process.env.NEXT_PUBLIC_GEOCODER_URL ??
@@ -15,7 +15,7 @@ const OSRM_URL =
   process.env.NEXT_PUBLIC_ROUTER_URL ??
   "https://routing.openstreetmap.de/routed-car/route/v1/driving";
 const CAPE_TOWN_VIEWBOX = "18.28,-33.74,18.98,-34.36";
-const CACHE_PREFIX = "saferoute:place:";
+const CACHE_PREFIX = "roadsignal:place:";
 const PUBLIC_REQUEST_TIMEOUT_MS = 8_000;
 
 function requestSignal(signal?: AbortSignal) {

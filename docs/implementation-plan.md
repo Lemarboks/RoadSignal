@@ -1,4 +1,4 @@
-# SafeRoute AI implementation plan
+# RoadSignal implementation plan
 
 This checklist is the delivery contract for the production-quality MVP. Items marked complete are implemented in this repository; deferred items remain explicit rather than hidden behind placeholder UI.
 

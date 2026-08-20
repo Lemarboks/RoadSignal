@@ -2,7 +2,7 @@
 
 ## Current decision
 
-SafeRoute AI does not ship a trained safety model. The repository has no licensed, representative real-world dataset linking prediction-time route conditions to a well-defined future safety outcome. Training on demonstration incidents would create invalid accuracy claims and geographic bias. The checked-in pipeline therefore evaluates the transparent deterministic baseline and fails closed at the training gate.
+RoadSignal does not ship a trained safety model. The repository has no licensed, representative real-world dataset linking prediction-time route conditions to a well-defined future safety outcome. Training on demonstration incidents would create invalid accuracy claims and geographic bias. The checked-in pipeline therefore evaluates the transparent deterministic baseline and fails closed at the training gate.
 
 ## Reproducible pipeline
 

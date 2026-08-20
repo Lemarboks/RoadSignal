@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: saferoute-ai-api
+    name: roadsignal-ai-api
     env: docker
     plan: free
     dockerfilePath: ./apps/api/Dockerfile

@@ -1,9 +1,9 @@
 {
-  "dataset_id": "saferoute-demo-risk-events",
+  "dataset_id": "roadsignal-demo-risk-events",
   "version": "1.0.0",
   "file": "demo-risk-events-v1.csv",
   "sha256": "33589d9530a8c84c01d5ff6442a95d829ca6f7d6477ec5b4562979c6be3b9ac7",
-  "source": "SafeRoute AI maintainers; manually authored synthetic scenarios",
+  "source": "RoadSignal maintainers; manually authored synthetic scenarios",
   "license": "CC0-1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "allowed_use": ["testing", "evaluation", "demonstration"],

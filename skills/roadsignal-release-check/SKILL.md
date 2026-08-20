@@ -1,9 +1,9 @@
 ---
-name: saferoute-release-check
-description: Validate SafeRoute AI before a pull request or GitHub Pages deployment. Use for release readiness, static-export verification, route-geometry checks, test execution, deployment evidence, or diagnosing whether the showcase is safe to publish.
+name: roadsignal-release-check
+description: Validate RoadSignal before a pull request or GitHub Pages deployment. Use for release readiness, static-export verification, route-geometry checks, test execution, deployment evidence, or diagnosing whether the showcase is safe to publish.
 ---
 
-# SafeRoute release check
+# RoadSignal release check
 
 Run a bounded, evidence-based release gate. Do not publish when a required check fails.
 
