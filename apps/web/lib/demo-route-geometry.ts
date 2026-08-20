@@ -1,4 +1,4 @@
-import type { Coordinate } from "@saferoute/types";
+import type { Coordinate } from "@roadsignal/types";
 
 // Simplified OSRM road geometry bundled so GitHub Pages works offline.
 export const demoRouteGeometry = {

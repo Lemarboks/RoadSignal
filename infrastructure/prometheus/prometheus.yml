@@ -3,7 +3,7 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: saferoute-api
+  - job_name: roadsignal-api
     metrics_path: /metrics/
     bearer_token_file: /run/secrets/metrics_token
     static_configs:

@@ -15,7 +15,7 @@ redis_password=$(openssl rand -hex 32)
 
 printf '%s' "$mysql_password" > "$secret_dir/mysql_password"
 printf '%s' "$mysql_root_password" > "$secret_dir/mysql_root_password"
-printf 'mysql+pymysql://saferoute:%s@db:3306/saferoute?charset=utf8mb4' "$mysql_password" > "$secret_dir/database_url"
+printf 'mysql+pymysql://roadsignal:%s@db:3306/roadsignal?charset=utf8mb4' "$mysql_password" > "$secret_dir/database_url"
 printf '%s' "$redis_password" > "$secret_dir/redis_password"
 printf 'redis://:%s@redis:6379/0' "$redis_password" > "$secret_dir/redis_url"
 openssl rand -hex 48 | tr -d '\n' > "$secret_dir/jwt_secret"

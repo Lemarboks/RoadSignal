@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadSignal Release Check"
+  short_description: "Validate RoadSignal builds before release"
+  default_prompt: "Use $roadsignal-release-check to validate this RoadSignal release."

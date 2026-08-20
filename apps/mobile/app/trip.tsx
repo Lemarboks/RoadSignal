@@ -91,7 +91,7 @@ export default function Trip() {
         {name} · {duration} min
       </Text>
       <Text style={s.score}>{score}/100 safety</Text>
-      {isLive && <Text style={s.liveBadge}>Live route from the SafeRoute API</Text>}
+      {isLive && <Text style={s.liveBadge}>Live route from the RoadSignal API</Text>}
       <Text style={s.next}>Next: Continue on Nelson Mandela Boulevard</Text>
       <Text style={s.alert}>Upcoming risk: Moderate congestion in 2.4 km</Text>
       <Pressable

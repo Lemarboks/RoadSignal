@@ -9,13 +9,13 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $env:GITHUB_ACTIONS = "true"
-$env:GITHUB_REPOSITORY = "Lemarboks/SafeRouteAI"
+$env:GITHUB_REPOSITORY = "Lemarboks/RoadSignal"
 & .\apps\web\node_modules\.bin\next.CMD build apps\web
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $html = Get-Content apps\web\out\index.html -Raw
-if (-not $html.Contains("/SafeRouteAI/_next/")) {
+if (-not $html.Contains("/RoadSignal/_next/")) {
   throw "Static export does not contain the GitHub Pages base path."
 }
 
-Write-Output "SafeRoute release gate passed."
+Write-Output "RoadSignal release gate passed."

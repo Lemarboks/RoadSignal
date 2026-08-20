@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import type { Incident, RouteOption, RoutePreference } from "@saferoute/types";
+import type { Incident, RouteOption, RoutePreference } from "@roadsignal/types";
 import { RouteMap as MapView } from "../components/route-map";
 import { PlaceSearch } from "../components/place-search";
 import { navIcons } from "../components/nav-icons";
@@ -18,7 +18,7 @@ import {
 import { connectRealtimeEvents } from "../lib/realtime-events";
 import { AuthPanel } from "../components/auth-panel";
 import { EntryGate } from "../components/entry-gate";
-import { SafeRouteApiClient, type SessionSnapshot } from "../lib/api-client";
+import { RoadSignalApiClient, type SessionSnapshot } from "../lib/api-client";
 import { packagedRiskEvidence, type RiskEvidence } from "../lib/risk-evidence";
 
 const API =
@@ -283,7 +283,7 @@ export default function App() {
     [backendStatus, setBackendStatus] = useState<"unknown" | "waking" | "ready" | "unavailable">(
       API ? "waking" : "unknown",
     );
-  const apiClient = useMemo(() => new SafeRouteApiClient(API), []);
+  const apiClient = useMemo(() => new RoadSignalApiClient(API), []);
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [entered, setEntered] = useState(false);
   const [riskEvidence, setRiskEvidence] = useState<RiskEvidence>(packagedRiskEvidence);
@@ -495,7 +495,7 @@ export default function App() {
         await findApiRoutes();
         return;
       } catch {
-        setNotice("The SafeRoute API is unavailable. Trying public routing services instead.");
+        setNotice("The RoadSignal API is unavailable. Trying public routing services instead.");
       } finally {
         setLoading(false);
       }
@@ -581,8 +581,8 @@ export default function App() {
       setDataMode("api");
       setNotice(
         data.provider === "open"
-          ? "Routes analysed by the SafeRoute API using live Nominatim/OSRM road data."
-          : "Routes analysed by the SafeRoute API. Live map/routing services were unavailable, so the API served its built-in demonstration routes.",
+          ? "Routes analysed by the RoadSignal API using live Nominatim/OSRM road data."
+          : "Routes analysed by the RoadSignal API. Live map/routing services were unavailable, so the API served its built-in demonstration routes.",
       );
     } finally {
       window.clearTimeout(timeout);
@@ -1313,11 +1313,11 @@ export default function App() {
     <>
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <div className="shell">
-      <aside aria-label="SafeRoute AI navigation">
+      <aside aria-label="RoadSignal navigation">
         <div className="brand">
           <b>SR</b>
           <span>
-            SafeRoute <strong>AI</strong>
+            RoadSignal
             <small>Route-risk intelligence</small>
           </span>
         </div>

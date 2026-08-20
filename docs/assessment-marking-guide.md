@@ -1,4 +1,4 @@
-# SafeRoute AI assessment evidence guide
+# RoadSignal assessment evidence guide
 
 This document maps the repository to the **App Development 2 Summative Assignment**. Rewrite reflective sections in your own voice and add your own screenshots, contact details, dates, repository URL, and presentation evidence before submission. Do not claim a test or contact attempt that you did not personally complete.
 
@@ -19,7 +19,7 @@ This document maps the repository to the **App Development 2 Summative Assignmen
 
 These are relevant examples because the project demonstrates TypeScript, Python, cloud deployment, geospatial data, API design and user-focused safety software. Verify a real contact through each organisation's official website or LinkedIn before submission.
 
-| Organisation | Why SafeRoute AI is relevant | Contact person | Phone | Email |
+| Organisation | Why RoadSignal is relevant | Contact person | Phone | Email |
 | --- | --- | --- | --- | --- |
 | Amazon Development Centre South Africa | Cloud and software engineering | **Learner to verify** | **Learner to verify** | **Learner to verify** |
 | Takealot Group | Logistics, routing and large-scale software | **Learner to verify** | **Learner to verify** | **Learner to verify** |
@@ -29,11 +29,11 @@ These are relevant examples because the project demonstrates TypeScript, Python,
 
 ### Exhibition invitation draft
 
-**Subject: Invitation to SafeRoute AI software exhibition**
+**Subject: Invitation to RoadSignal software exhibition**
 
 Dear **[name]**,
 
-I am completing my Software Engineering qualification and would like to invite you to our student software exhibition on **[date, time and venue]**. I will demonstrate SafeRoute AI, a web and mobile prototype that compares driving routes using travel time and confidence-weighted risk information. The project combines a Next.js interface, FastAPI service, geospatial data design, automated testing and cloud-ready deployment.
+I am completing my Software Engineering qualification and would like to invite you to our student software exhibition on **[date, time and venue]**. I will demonstrate RoadSignal, a web and mobile prototype that compares driving routes using travel time and confidence-weighted risk information. The project combines a Next.js interface, FastAPI service, geospatial data design, automated testing and cloud-ready deployment.
 
 The demonstration will explain the problem, the system design, how route-risk estimates are calculated, the limitations of the current prototype and the next steps required for responsible production use. I believe it may be relevant to your work in **[company-specific reason]**.
 
@@ -52,11 +52,11 @@ Kind regards,
 4. Engineering evidence: tests, GitHub Actions and Pages deployment.
 5. Limitations, future improvements and lessons learned.
 
-Presentation cover artwork: `docs/presentation/saferoute-exhibition-cover.png`. This is generated supporting artwork, not evidence of application functionality.
+Presentation cover artwork: `docs/presentation/roadsignal-exhibition-cover.png`. This is generated supporting artwork, not evidence of application functionality.
 
 ### 3–5 minute monologue draft
 
-> SafeRoute AI was motivated by a simple problem: the fastest route is not always the most appropriate route. Drivers and fleet managers may also want to understand recent incidents, road conditions and the confidence of available reports. I designed SafeRoute AI as decision-support software rather than as a guarantee of safety.
+> RoadSignal was motivated by a simple problem: the fastest route is not always the most appropriate route. Drivers and fleet managers may also want to understand recent incidents, road conditions and the confidence of available reports. I designed RoadSignal as decision-support software rather than as a guarantee of safety.
 >
 > The solution includes a responsive Next.js fleet console, an Expo mobile prototype and a Python FastAPI service. The system compares route duration with a confidence-weighted risk score. Route segments are assessed separately so that one high-risk section is not hidden by a good route average. Reports also gain or lose confidence through confirmations and disputes.
 >
@@ -70,7 +70,7 @@ Presentation cover artwork: `docs/presentation/saferoute-exhibition-cover.png`. 
 
 ### Software description, motivation and beneficiaries
 
-SafeRoute AI is a route-risk decision-support prototype. It compares driving alternatives by travel time and an explainable risk estimate derived from baseline risk factors and confidence-weighted incidents. Potential beneficiaries include individual drivers, delivery or service fleets, incident moderators and transport operations teams. All included identities, trips and incidents are demonstration data.
+RoadSignal is a route-risk decision-support prototype. It compares driving alternatives by travel time and an explainable risk estimate derived from baseline risk factors and confidence-weighted incidents. Potential beneficiaries include individual drivers, delivery or service fleets, incident moderators and transport operations teams. All included identities, trips and incidents are demonstration data.
 
 ### Design specification and interaction flow
 
@@ -159,7 +159,7 @@ Use these only if they match work you actually performed, and attach your own be
 
 | Issue | Cause | Technique and resolution | Screenshot |
 | --- | --- | --- | --- |
-| Static site assets could fail under `/SafeRouteAI/` | GitHub project Pages uses a repository subpath | Derived `basePath` and `assetPrefix` from `GITHUB_REPOSITORY`, enabled static export and added `.nojekyll` | **[insert]** |
+| Static site assets could fail under `/RoadSignal/` | GitHub project Pages uses a repository subpath | Derived `basePath` and `assetPrefix` from `GITHUB_REPOSITORY`, enabled static export and added `.nojekyll` | **[insert]** |
 | Public route search occasionally fails | Public Photon/Nominatim/OSRM services have rate limits and no SLA | Added bounded requests, cached places, deterministic route fallback and a manual demo option | **[insert]** |
 | Map tiles may not load | Network, CSP or shared tile-service failure | MapLibre reports an error and the component displays an offline schematic | **[insert]** |
 | Pages tried a nonexistent local API route | Production API URL can be empty | Skip the API call when it is not configured and use built-in demo data | **[insert]** |
@@ -183,7 +183,7 @@ The repository contains more than the required two unit tests:
 Run and capture:
 
 ```bash
-pnpm --filter @saferoute/web test
+pnpm --filter @roadsignal/web test
 python -m pytest apps/api/tests
 ```
 

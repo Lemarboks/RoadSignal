@@ -36,15 +36,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Type-check web application
-        run: pnpm --filter @saferoute/web typecheck
+        run: pnpm --filter @roadsignal/web typecheck
 
       - name: Test web application
-        run: pnpm --filter @saferoute/web test
+        run: pnpm --filter @roadsignal/web test
 
       - name: Build static web application
-        run: pnpm --filter @saferoute/web build
+        run: pnpm --filter @roadsignal/web build
         env:
-          SAFEROUTE_GITHUB_PAGES: "true"
+          ROADSIGNAL_GITHUB_PAGES: "true"
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
 
       - name: Disable Jekyll processing

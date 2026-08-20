@@ -1,12 +1,12 @@
 "use client";
 
-import type { RouteOption } from "@saferoute/types";
+import type { RouteOption } from "@roadsignal/types";
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 const OPEN_STYLE = "https://tiles.openfreemap.org/styles/liberty";
-const ROUTE_SOURCE = "saferoute-routes";
-const ROUTE_LAYER = "saferoute-route-lines";
+const ROUTE_SOURCE = "roadsignal-routes";
+const ROUTE_LAYER = "roadsignal-route-lines";
 
 type Props = { routes: RouteOption[]; selected: string; progress?: number };
 

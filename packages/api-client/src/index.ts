@@ -1,6 +1,6 @@
-import type { Incident, RouteOption, RoutePreference, Trip } from "@saferoute/types";
+import type { Incident, RouteOption, RoutePreference, Trip } from "@roadsignal/types";
 
-export class SafeRouteClient {
+export class RoadSignalClient {
   constructor(private readonly baseUrl = "http://localhost:8000") {}
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, { ...init, headers: { "Content-Type": "application/json", ...init?.headers } });

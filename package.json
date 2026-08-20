@@ -1,16 +1,16 @@
 {
-  "name": "saferoute-ai",
+  "name": "roadsignal-ai",
   "private": true,
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "turbo dev",
-    "build": "corepack pnpm --filter @saferoute/web build && node scripts/prepare-hosting.mjs",
+    "build": "corepack pnpm --filter @roadsignal/web build && node scripts/prepare-hosting.mjs",
     "build:all": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
-    "dev:web": "pnpm --filter @saferoute/web dev",
-    "dev:mobile": "pnpm --filter @saferoute/mobile start"
+    "dev:web": "pnpm --filter @roadsignal/web dev",
+    "dev:mobile": "pnpm --filter @roadsignal/mobile start"
   },
   "pnpm": {
     "overrides": {

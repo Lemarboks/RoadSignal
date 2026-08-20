@@ -1,4 +1,4 @@
-import type { Coordinate, RouteOption, RoutePreference } from "@saferoute/types";
+import type { Coordinate, RouteOption, RoutePreference } from "@roadsignal/types";
 
 const DEFAULT_WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 const REQUEST_TIMEOUT_MS = 6_500;

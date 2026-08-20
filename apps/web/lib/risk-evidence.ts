@@ -40,7 +40,7 @@ export const packagedRiskEvidence: RiskEvidence = {
     version: "1.0.0",
   },
   evaluation: {
-    dataset_id: "saferoute-demo-risk-events",
+    dataset_id: "roadsignal-demo-risk-events",
     dataset_version: "1.0.0",
     synthetic: true,
     rows: 40,

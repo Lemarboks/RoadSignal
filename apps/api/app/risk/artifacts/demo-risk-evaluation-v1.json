@@ -83,14 +83,14 @@
     "geography": [
       "Cape Town synthetic zones"
     ],
-    "id": "saferoute-demo-risk-events",
+    "id": "roadsignal-demo-risk-events",
     "license": "CC0-1.0",
     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
     "observation_end": "2026-02-28T23:59:59Z",
     "observation_start": "2026-01-01T00:00:00Z",
     "outcome_definition": "Synthetic indicator that a route segment had a simulated hazard within 24 hours",
     "prediction_horizon_hours": 24,
-    "source": "SafeRoute AI maintainers; manually authored synthetic scenarios",
+    "source": "RoadSignal maintainers; manually authored synthetic scenarios",
     "synthetic": true,
     "version": "1.0.0"
   },

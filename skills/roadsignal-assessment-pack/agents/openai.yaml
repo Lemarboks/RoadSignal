@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadSignal Assessment Pack"
+  short_description: "Collect genuine assignment evidence"
+  default_prompt: "Use $roadsignal-assessment-pack to prepare verified assessment evidence."

@@ -22,7 +22,7 @@ from .rate_limit import limiter
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-app = FastAPI(title="SafeRoute AI API", version="0.1.0", description="Route-risk decision support. Scores are estimates, not guarantees of safety.")
+app = FastAPI(title="RoadSignal API", version="0.1.0", description="Route-risk decision support. Scores are estimates, not guarantees of safety.")
 app.add_middleware(SecurityHeadersMiddleware)
 configure_observability(app)
 app.add_middleware(CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "X-Request-ID"])
@@ -58,7 +58,7 @@ def risk_incidents():
     return incidents
 
 @app.get("/api/v1/health")
-def health(): return {"status":"healthy","service":"saferoute-api"}
+def health(): return {"status":"healthy","service":"roadsignal-api"}
 
 @app.get("/api/v1/risk/evidence")
 def get_risk_evidence(): return risk_evidence()

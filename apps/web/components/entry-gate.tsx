@@ -1,26 +1,24 @@
 "use client";
 
 import { AuthPanel } from "./auth-panel";
-import { SafeRouteApiClient, type SessionSnapshot } from "../lib/api-client";
+import { RoadSignalApiClient, type SessionSnapshot } from "../lib/api-client";
 
 export function EntryGate({
   client,
   onSession,
   onGuest,
 }: {
-  client: SafeRouteApiClient;
+  client: RoadSignalApiClient;
   onSession: (session: SessionSnapshot) => void;
   onGuest: () => void;
 }) {
   return (
     <div className="entry-gate">
       <div className="entry-gate-card">
-        <div className="entry-gate-brand">
-          <b>SR</b>
-          <span>
-            SafeRoute <strong>AI</strong>
-          </span>
-        </div>
+          <div className="entry-gate-brand">
+            <b>SR</b>
+            <span>RoadSignal</span>
+          </div>
         <h1>Route-risk intelligence for Cape Town</h1>
         <p>
           Sign in for protected trips, incident reporting, and realtime alerts
