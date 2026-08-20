@@ -1,9 +1,9 @@
 ---
-name: saferoute-assessment-pack
-description: Prepare genuine SafeRoute AI assignment and exhibition evidence from repository artifacts. Use for marking guides, implementation plans, debugging logs, test records, screenshots, presentation scripts, GitHub history, release links, or final submission checklists without fabricating personal activity.
+name: roadsignal-assessment-pack
+description: Prepare genuine RoadSignal assignment and exhibition evidence from repository artifacts. Use for marking guides, implementation plans, debugging logs, test records, screenshots, presentation scripts, GitHub history, release links, or final submission checklists without fabricating personal activity.
 ---
 
-# SafeRoute assessment pack
+# RoadSignal assessment pack
 
 Collect evidence already supported by source, Git, tests, workflows, and the deployed application.
 

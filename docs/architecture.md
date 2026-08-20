@@ -1,6 +1,6 @@
 # Architecture
 
-SafeRoute AI is a vendor-neutral route-risk decision-support system. The production path is a browser client served by Caddy, a versioned FastAPI boundary, MySQL 8 spatial as the system of record, and Redis Streams as the replayable event channel. The static GitHub Pages release is a separate portfolio mode: it uses public open providers and clearly labelled deterministic fallbacks, but does not claim that the protected backend is running.
+RoadSignal is a vendor-neutral route-risk decision-support system. The production path is a browser client served by Caddy, a versioned FastAPI boundary, MySQL 8 spatial as the system of record, and Redis Streams as the replayable event channel. The static GitHub Pages release is a separate portfolio mode: it uses public open providers and clearly labelled deterministic fallbacks, but does not claim that the protected backend is running.
 
 ```mermaid
 flowchart LR

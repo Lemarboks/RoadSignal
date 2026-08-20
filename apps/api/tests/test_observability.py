@@ -27,7 +27,7 @@ def test_invalid_request_id_is_replaced():
 
 
 def test_json_logs_include_operational_fields_without_sensitive_values():
-    record = logging.LogRecord("saferoute", logging.INFO, "", 0, "http_request", (), None)
+    record = logging.LogRecord("roadsignal", logging.INFO, "", 0, "http_request", (), None)
     record.request_id = "request-1"
     record.method = "GET"
     record.route = "/api/v1/auth/me"

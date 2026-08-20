@@ -1,14 +1,14 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ApiError, SafeRouteApiClient, type SessionSnapshot } from "../lib/api-client";
+import { ApiError, RoadSignalApiClient, type SessionSnapshot } from "../lib/api-client";
 
 export function AuthPanel({
   client,
   session,
   onSession,
 }: {
-  client: SafeRouteApiClient;
+  client: RoadSignalApiClient;
   session: SessionSnapshot | null;
   onSession: (session: SessionSnapshot | null) => void;
 }) {

@@ -3,14 +3,14 @@ services:
     image: mysql:8.4
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
     environment:
-      MYSQL_DATABASE: saferoute
-      MYSQL_USER: saferoute
-      MYSQL_PASSWORD: saferoute
+      MYSQL_DATABASE: roadsignal
+      MYSQL_USER: roadsignal
+      MYSQL_PASSWORD: roadsignal
       MYSQL_ROOT_PASSWORD: local-root-only
     ports: ["3306:3306"]
     volumes: ["mysql_data:/var/lib/mysql"]
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u saferoute -psaferoute --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u roadsignal -proadsignal --silent"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -24,7 +24,7 @@ services:
     env_file: .env
     environment:
       STORAGE_BACKEND: mysql
-      DATABASE_URL: mysql+pymysql://saferoute:saferoute@db:3306/saferoute?charset=utf8mb4
+      DATABASE_URL: mysql+pymysql://roadsignal:roadsignal@db:3306/roadsignal?charset=utf8mb4
       EVENT_BACKEND: redis
       REDIS_URL: redis://redis:6379/0
     ports: ["8000:8000"]

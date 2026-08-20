@@ -32,7 +32,7 @@ Trace export is already wired (`apps/api/app/observability.py`) and inert until 
 - `OTEL_EXPORTER_OTLP_ENDPOINT`: the collector's OTLP/HTTP traces endpoint.
 - `OTEL_EXPORTER_OTLP_HEADERS`: auth header(s) in `key=value` form (comma-separated for more than one), read automatically by the OTLP exporter -- no application code touches this variable.
 
-Any OTLP/HTTP-compatible backend works. For example, with a free Honeycomb account: `OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io` and `OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=<API key>`. Restart the API after setting them, then confirm spans are arriving by triggering a request and checking the backend for `service.name=saferoute-api`. Correlate with logs and alerts using the `trace_id` field already present on every `http_request` log line.
+Any OTLP/HTTP-compatible backend works. For example, with a free Honeycomb account: `OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io` and `OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=<API key>`. Restart the API after setting them, then confirm spans are arriving by triggering a request and checking the backend for `service.name=roadsignal-api`. Correlate with logs and alerts using the `trace_id` field already present on every `http_request` log line.
 
 ## Common responses
 

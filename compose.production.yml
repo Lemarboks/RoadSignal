@@ -1,4 +1,4 @@
-name: saferoute-production
+name: roadsignal-production
 
 x-service-security: &service-security
   restart: unless-stopped
@@ -77,8 +77,8 @@ services:
     image: mysql:8.4
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
     environment:
-      MYSQL_DATABASE: saferoute
-      MYSQL_USER: saferoute
+      MYSQL_DATABASE: roadsignal
+      MYSQL_USER: roadsignal
       MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
     secrets: [mysql_password, mysql_root_password]
@@ -88,7 +88,7 @@ services:
     cap_drop: [NET_RAW]
     networks: [backend]
     healthcheck:
-      test: ["CMD-SHELL", "MYSQL_PWD=$(cat /run/secrets/mysql_password) mysqladmin ping -h 127.0.0.1 -u saferoute --silent"]
+      test: ["CMD-SHELL", "MYSQL_PWD=$(cat /run/secrets/mysql_password) mysqladmin ping -h 127.0.0.1 -u roadsignal --silent"]
       interval: 10s
       timeout: 5s
       retries: 10

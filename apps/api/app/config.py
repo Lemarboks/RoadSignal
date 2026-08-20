@@ -5,13 +5,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "mysql+pymysql://saferoute:saferoute@localhost:3306/saferoute?charset=utf8mb4"
+    database_url: str = "mysql+pymysql://roadsignal:roadsignal@localhost:3306/roadsignal?charset=utf8mb4"
     storage_backend: Literal["memory", "mysql"] = "memory"
     redis_url: str = "redis://localhost:6379/0"
     event_backend: Literal["memory", "redis"] = "memory"
     jwt_secret: str = "development-only-secret-change-before-deploy"
-    jwt_issuer: str = "saferoute-api"
-    jwt_audience: str = "saferoute-clients"
+    jwt_issuer: str = "roadsignal-api"
+    jwt_audience: str = "roadsignal-clients"
     jwt_expiry_minutes: int = 15
     refresh_expiry_days: int = 30
     require_auth: bool = False
@@ -20,10 +20,10 @@ class Settings(BaseSettings):
     osrm_url: str = "https://routing.openstreetmap.de/routed-car"
     open_meteo_url: str = "https://api.open-meteo.com/v1/forecast"
     provider_timeout_seconds: float = 8.0
-    provider_user_agent: str = "SafeRouteAI/1.0 (self-hostable routing client)"
+    provider_user_agent: str = "RoadSignal/1.0 (self-hostable routing client)"
     cors_origins: str = "http://localhost:3000,http://localhost:8081"
     environment: Literal["development", "test", "production"] = "development"
-    service_name: str = "saferoute-api"
+    service_name: str = "roadsignal-api"
     log_level: Literal["debug", "info", "warning", "error"] = "info"
     otel_exporter_otlp_endpoint: str = ""
     metrics_bearer_token: str = ""

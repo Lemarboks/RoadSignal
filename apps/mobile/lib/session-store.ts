@@ -1,10 +1,10 @@
 import { create } from "zustand";
-import { SafeRouteApiClient, type SessionSnapshot } from "./api-client";
+import { RoadSignalApiClient, type SessionSnapshot } from "./api-client";
 
 export const API_URL =
   process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000";
 
-export const apiClient = new SafeRouteApiClient(API_URL);
+export const apiClient = new RoadSignalApiClient(API_URL);
 
 type SessionStore = {
   session: SessionSnapshot | null;

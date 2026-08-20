@@ -2,11 +2,11 @@
 set -eu
 
 if [ "$#" -ne 1 ]; then
-  echo "Usage: CONFIRM_RESTORE=saferoute $0 <backup.sql>" >&2
+  echo "Usage: CONFIRM_RESTORE=roadsignal $0 <backup.sql>" >&2
   exit 2
 fi
-if [ "${CONFIRM_RESTORE:-}" != "saferoute" ]; then
-  echo "Restore is destructive. Re-run with CONFIRM_RESTORE=saferoute." >&2
+if [ "${CONFIRM_RESTORE:-}" != "roadsignal" ]; then
+  echo "Restore is destructive. Re-run with CONFIRM_RESTORE=roadsignal." >&2
   exit 2
 fi
 
@@ -23,5 +23,5 @@ grep -q '^CREATE TABLE' "$backup"
 safety_dir=${BACKUP_DIR:-backups/mysql}
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 BACKUP_DIR="$safety_dir" "$script_dir/backup-mysql.sh"
-docker compose -f "$compose_file" exec -T db sh -c 'MYSQL_PWD=$(cat /run/secrets/mysql_password) exec mysql -u saferoute saferoute' < "$backup"
+docker compose -f "$compose_file" exec -T db sh -c 'MYSQL_PWD=$(cat /run/secrets/mysql_password) exec mysql -u roadsignal roadsignal' < "$backup"
 echo "Restore completed from $backup"

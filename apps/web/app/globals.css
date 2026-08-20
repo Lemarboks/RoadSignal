@@ -716,7 +716,7 @@ th {
   }
 }
 
-/* SafeRoute visual theme and responsive refinement */
+/* RoadSignal visual theme and responsive refinement */
 :root {
   --ink: #132823; --muted: #61716c; --line: #dce6e1; --bg: #f4f7f5;
   --blue: #087f73; --green: #168459; --amber: #b86d0b; --red: #bd3f46;

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadSignal Accessibility Review"
+  short_description: "Review maps and workflows for accessibility"
+  default_prompt: "Use $roadsignal-accessibility-review to audit the RoadSignal interface."

@@ -82,7 +82,7 @@ infrastructure/scripts/backup-mysql.sh
 Schedule it with systemd or cron and copy completed `.sql` and `.sha256` files to encrypted off-host storage. A backup is not proven until a restore drill succeeds. Restore requires an explicit confirmation value, verifies the checksum and dump markers, and takes a fresh safety backup first:
 
 ```sh
-CONFIRM_RESTORE=saferoute infrastructure/scripts/restore-mysql.sh backups/mysql/saferoute-TIMESTAMP.sql
+CONFIRM_RESTORE=roadsignal infrastructure/scripts/restore-mysql.sh backups/mysql/roadsignal-TIMESTAMP.sql
 ```
 
 Restore only during a maintenance window after stopping API writes. Redis contains a replay buffer rather than the system of record; MySQL spatial is the authoritative backup target.

@@ -1,9 +1,9 @@
 ---
-name: saferoute-accessibility-review
-description: Review SafeRoute AI web maps, route selection, incident tables, charts, navigation, location permissions, live-trip alerts, mobile layouts, and status messages for accessibility. Use for WCAG audits, keyboard testing, screen-reader semantics, touch-target checks, forced-colour support, or responsive accessibility fixes.
+name: roadsignal-accessibility-review
+description: Review RoadSignal web maps, route selection, incident tables, charts, navigation, location permissions, live-trip alerts, mobile layouts, and status messages for accessibility. Use for WCAG audits, keyboard testing, screen-reader semantics, touch-target checks, forced-colour support, or responsive accessibility fixes.
 ---
 
-# SafeRoute accessibility review
+# RoadSignal accessibility review
 
 Audit critical workflows before decorative details.
 

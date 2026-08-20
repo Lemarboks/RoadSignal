@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
 Set-Location $root
 
-Write-Output "# SafeRoute evidence snapshot"
+Write-Output "# RoadSignal evidence snapshot"
 Write-Output ""
 Write-Output "## Git"
 git status -sb
