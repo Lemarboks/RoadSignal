@@ -18,5 +18,5 @@
       "sharp": "0.35.3"
     }
   },
-  "devDependencies": { "turbo": "^2.5.4", "typescript": "^5.8.3" }
+  "devDependencies": { "turbo": "^2.10.10", "typescript": "^5.8.3" }
 }
