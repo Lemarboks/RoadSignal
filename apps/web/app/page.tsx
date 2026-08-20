@@ -1317,7 +1317,7 @@ export default function App() {
         <div className="brand">
           <b>SR</b>
           <span>
-            RoadSignal <strong>AI</strong>
+            RoadSignal
             <small>Route-risk intelligence</small>
           </span>
         </div>
