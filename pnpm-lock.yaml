@@ -36,6 +36,9 @@ importers:
       expo-router:
         specifier: ~5.1.0
         version: 5.1.11(50975ce2fbe074c614b7a2fe289aa7b2)
+      expo-video:
+        specifier: ~2.2.2
+        version: 2.2.3(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.5(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       react:
         specifier: 19.0.0
         version: 19.0.0
@@ -2291,6 +2294,13 @@ packages:
         optional: true
       react-server-dom-webpack:
         optional: true
+
+  expo-video@2.2.3:
+    resolution: {integrity: sha512-3e58J0ZOfXAz10NBsSbCGykAazi41tLOu/1QNglDPmK1yeA0t2tpLuZk59PZNy/t4ZVSn/cRDCZxG+gfQpx2yg==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
 
   expo@53.0.27:
     resolution: {integrity: sha512-iQwe2uWLb88opUY4vBYEW1d2GUq3lsa43gsMBEdDV+6pw0Oek93l/4nDLe0ODDdrBRjIJm/rdhKqJC/ehHCUqw==}
@@ -6508,6 +6518,12 @@ snapshots:
       - react
       - react-native
       - supports-color
+
+  expo-video@2.2.3(expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.5(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
+    dependencies:
+      expo: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.5(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      react: 19.0.0
+      react-native: 0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)
 
   expo@53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@5.0.5(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.3(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
     dependencies:
