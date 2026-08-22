@@ -1,5 +1,5 @@
 import * as Location from "expo-location";
-import { Link, router } from "expo-router";
+import { Link, Redirect, router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -84,6 +84,10 @@ export default function Home() {
     } finally {
       setSearching(false);
     }
+  }
+
+  if (!session) {
+    return <Redirect href="/login" />;
   }
 
   return (
