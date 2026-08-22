@@ -1,0 +1,249 @@
+.gate {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #06171d;
+  color: #fff;
+  isolation: isolate;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -3;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(180deg, rgba(2, 16, 22, 0.2) 0%, rgba(2, 16, 22, 0.52) 46%, rgba(2, 16, 22, 0.92) 100%),
+    linear-gradient(90deg, rgba(2, 16, 22, 0.62), transparent 62%);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 470px);
+  gap: clamp(48px, 8vw, 120px);
+  align-items: end;
+  width: min(1180px, calc(100% - 48px));
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: clamp(32px, 6vh, 72px) 0;
+}
+
+.intro {
+  align-self: center;
+  max-width: 620px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: clamp(52px, 10vh, 112px);
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.brand b {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffda00;
+  color: #08232b;
+  font-size: 12px;
+}
+
+.kicker {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.intro h1 {
+  display: grid;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(58px, 8vw, 104px);
+  font-weight: 900;
+  line-height: 0.82;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.intro h1 strong {
+  color: #ffda00;
+  text-align: right;
+}
+
+.card {
+  width: 100%;
+  padding: 28px;
+  border-radius: 16px;
+  background: rgba(7, 27, 35, 0.94);
+  color: #fff;
+  box-shadow: 0 24px 64px rgba(0, 11, 15, 0.42);
+}
+
+.card > h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 28px;
+  letter-spacing: -0.03em;
+}
+
+.cardIntro {
+  margin: 7px 0 20px;
+  color: #becbd0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.gate :global(.auth-panel) {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.gate :global(.auth-panel > div) {
+  display: none;
+}
+
+.gate :global(.auth-panel form) {
+  display: grid;
+  gap: 12px;
+}
+
+.gate :global(.auth-panel label) {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  color: #fff;
+  font-size: 12px;
+}
+
+.gate :global(.auth-panel input) {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.gate :global(.auth-panel input:focus) {
+  outline: 2px solid #ffda00;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.gate :global(.auth-panel .primary) {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 4px;
+  border-radius: 14px;
+  background: #ffda00;
+  color: #08232b;
+}
+
+.gate :global(.auth-switch) {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  color: #fff;
+}
+
+.gate :global(.session-note) {
+  display: block;
+  color: #94a4aa;
+  text-align: center;
+}
+
+.gate :global(.auth-error) {
+  color: #ffd3cd !important;
+}
+
+.divider {
+  margin: 18px 0;
+  color: #94a4aa;
+}
+
+.divider::before,
+.divider::after {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.guest {
+  min-height: 50px;
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #fff;
+}
+
+.guest:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.note {
+  margin: 16px 0 0;
+  color: #94a4aa;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    align-content: space-between;
+    width: min(100% - 32px, 480px);
+    padding: max(20px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom));
+  }
+
+  .intro {
+    align-self: start;
+  }
+
+  .brand {
+    margin-bottom: clamp(36px, 8vh, 72px);
+  }
+
+  .intro h1 {
+    font-size: clamp(50px, 15vw, 72px);
+  }
+
+  .card {
+    padding: 20px;
+  }
+}
+
+@media (max-height: 760px) and (max-width: 760px) {
+  .brand {
+    margin-bottom: 24px;
+  }
+
+  .intro h1 {
+    font-size: 46px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video {
+    display: none;
+  }
+}
