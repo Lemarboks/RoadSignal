@@ -41,10 +41,10 @@ def test_json_logs_include_operational_fields_without_sensitive_values():
 
 
 def test_degraded_readiness_returns_service_unavailable(monkeypatch):
-    import app.main as main
+    import app.routers.system as system
 
-    monkeypatch.setattr(main.settings, "storage_backend", "mysql")
-    monkeypatch.setattr(main, "database_ready", lambda: False)
+    monkeypatch.setattr(system.settings, "storage_backend", "mysql")
+    monkeypatch.setattr(system, "database_ready", lambda: False)
     response = client.get("/api/v1/ready")
     assert response.status_code == 503
     assert response.json()["status"] == "degraded"

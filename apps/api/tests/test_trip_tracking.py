@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-import app.main as main
+import app.services as services
 from app.main import app
 
 
@@ -9,8 +9,8 @@ class ClearWeather:
         return 0.0, []
 
 
-main.provider = main.fallback_provider
-main.weather_provider = ClearWeather()
+services.route_provider = services.fallback_provider
+services.weather_provider = ClearWeather()
 client = TestClient(app)
 
 
