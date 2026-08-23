@@ -21,6 +21,8 @@ type ApiRoute = {
   safety_score: number;
 };
 
+type ApiTrip = { id: string };
+
 export default function Home() {
   const session = useSessionStore((state) => state.session);
   const setSession = useSessionStore((state) => state.setSession);
@@ -67,6 +69,9 @@ export default function Home() {
         },
       );
       const best = data.routes.find((r) => r.name) ?? data.routes[0];
+      const trip = await apiClient.request<ApiTrip>(`/api/v1/routes/${best.id}/start`, {
+        method: "POST",
+      });
       router.push({
         pathname: "/trip",
         params: {
@@ -76,6 +81,7 @@ export default function Home() {
           live: data.provider === "open" ? "1" : "0",
           origin,
           destination,
+          tripId: trip.id,
         },
       });
     } catch {

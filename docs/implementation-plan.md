@@ -44,7 +44,7 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Implement home, route comparison, active-trip simulation, reporting, alerts, history, profile, and SOS screens
 - [x] Add simulated-location abstraction and MVP-labelled SOS countdown
 - [x] Persist mobile refresh sessions in encrypted device storage and restore them safely on launch
-- [ ] Complete native push-notification registration and background-location production entitlements
+- [x] Complete native push-notification registration and background-location production entitlements
 
 ## 5. Quality, security, and delivery
 
