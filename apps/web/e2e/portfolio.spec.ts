@@ -25,7 +25,7 @@ async function enterAsGuest(page: import("@playwright/test").Page) {
 }
 
 test("gates the app behind sign-in, with a guest path in", async ({ page }) => {
-  await expect(page.getByRole("heading", { name: "Route-risk intelligence for Cape Town" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Beyond\s+risk\.\s+Onward\./i })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fleet operations overview" })).not.toBeVisible();
 
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
