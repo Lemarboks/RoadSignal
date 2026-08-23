@@ -1,7 +1,8 @@
 import { Link, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { apiClient } from "../lib/session-store";
+import { startActiveTripTracking, stopActiveTripTracking } from "../lib/background-tracking";
 
 type ApiRoute = { name: string; duration_minutes: number; safety_score: number };
 
@@ -36,6 +37,7 @@ export default function Trip() {
     live?: string;
     origin?: string;
     destination?: string;
+    tripId?: string;
   }>();
   const origin = params.origin ?? "Cape Town City Centre";
   const destination = params.destination ?? "Cape Town International Airport";
@@ -50,6 +52,30 @@ export default function Trip() {
   const [rerouting, setRerouting] = useState(false);
   const [rerouteNotice, setRerouteNotice] = useState("");
   const isLive = params.live === "1";
+  const [tracking, setTracking] = useState("Starting active-trip protection…");
+
+  useEffect(() => {
+    if (!params.tripId) {
+      setTracking("Simulation only — no background location is being shared.");
+      return;
+    }
+    void startActiveTripTracking(params.tripId).then((status) => {
+      setTracking(
+        status === "started"
+          ? "Active-trip alerts and background progress are enabled."
+          : "Background location is off. The trip remains usable in the foreground.",
+      );
+    });
+  }, [params.tripId]);
+
+  async function endTrip() {
+    await stopActiveTripTracking();
+    if (params.tripId) {
+      await apiClient.request(`/api/v1/trips/${params.tripId}/end`, { method: "POST" });
+    }
+    setProgress(100);
+    setTracking("Trip ended. Background location has stopped.");
+  }
 
   async function requestSaferReroute() {
     setRerouting(true);
@@ -92,6 +118,7 @@ export default function Trip() {
       </Text>
       <Text style={s.score}>{score}/100 safety</Text>
       {isLive && <Text style={s.liveBadge}>Live route from the RoadSignal API</Text>}
+      <Text style={s.tracking}>{tracking}</Text>
       <Text style={s.next}>Next: Continue on Nelson Mandela Boulevard</Text>
       <Text style={s.alert}>Upcoming risk: Moderate congestion in 2.4 km</Text>
       <Pressable
@@ -104,6 +131,9 @@ export default function Trip() {
         {rerouting ? <ActivityIndicator /> : <Text style={s.outlineText}>Request safer reroute</Text>}
       </Pressable>
       {rerouteNotice ? <Text style={s.rerouteNotice}>{rerouteNotice}</Text> : null}
+      <Pressable style={s.endButton} onPress={() => void endTrip()}>
+        <Text style={s.endText}>End trip and stop location</Text>
+      </Pressable>
       <Link href="/sos" style={s.sosLink} asChild>
         <Pressable style={s.sos}>
           <Text style={s.white}>SOS</Text>
@@ -190,6 +220,7 @@ const s = StyleSheet.create({
   title: { fontSize: 25, fontWeight: "700", marginTop: 20 },
   score: { fontSize: 30, fontWeight: "800", color: "#178652" },
   liveBadge: { fontSize: 12, fontWeight: "700", color: "#178652", marginBottom: 6 },
+  tracking: { fontSize: 12, lineHeight: 17, color: "#4a5c56", marginBottom: 4 },
   next: { marginTop: 6 },
   alert: { backgroundColor: "#fff3d9", padding: 15, marginVertical: 18, borderRadius: 9 },
   button: { backgroundColor: "#1769aa", padding: 15, alignItems: "center", borderRadius: 10 },
@@ -203,6 +234,8 @@ const s = StyleSheet.create({
   },
   outlineText: { color: "#1769aa", fontWeight: "700" },
   rerouteNotice: { marginTop: 8, fontSize: 12, color: "#4a5c56", textAlign: "center" },
+  endButton: { padding: 14, alignItems: "center", marginTop: 10 },
+  endText: { color: "#4a5c56", fontWeight: "700" },
   sosLink: { marginTop: 10 },
   sos: { backgroundColor: "#c33d3d", padding: 15, alignItems: "center", borderRadius: 10 },
   white: { color: "white", fontWeight: "700" },

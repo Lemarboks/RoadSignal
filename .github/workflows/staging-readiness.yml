@@ -1,0 +1,44 @@
+name: Verify staging readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: HTTPS origin of the operator-approved staging API
+        required: true
+        type: string
+      requests:
+        description: Bounded route-analysis requests (1-500)
+        required: false
+        default: "60"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-readiness
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Run bounded staging verification
+        run: >-
+          python scripts/staging-readiness.py
+          --base-url "${{ inputs.base_url }}"
+          --requests "${{ inputs.requests }}"
+          --output artifacts/staging-readiness.json
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: staging-readiness-evidence
+          path: artifacts/staging-readiness.json
+          if-no-files-found: error
+          retention-days: 30

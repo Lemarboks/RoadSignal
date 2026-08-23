@@ -1,9 +1,14 @@
+import asyncio
+from copy import deepcopy
+
 from fastapi import APIRouter, HTTPException
 
 from ..repositories import repository
 from ..risk.engine import risk_level, route_score, segment_score
 from ..schemas import RouteAnalyseRequest
 from .. import services
+
+CACHE_TTL_SECONDS = 60
 
 router = APIRouter(prefix="/api/v1/routes", tags=["routes"])
 
@@ -18,6 +23,20 @@ PREFERENCE_WEIGHTS = {"safest": (0.9, 0.1), "balanced": (0.75, 0.25), "fastest":
 
 @router.post("/analyse")
 async def analyse(request: RouteAnalyseRequest):
+    key = (request.origin.casefold(), request.destination.casefold(), request.preference, request.vehicle_type)
+    cached = services.route_analysis_cache.get(key)
+    if cached and asyncio.get_running_loop().time() - cached[0] < CACHE_TTL_SECONDS:
+        return deepcopy(cached[1])
+    async with services.route_analysis_lock:
+        cached = services.route_analysis_cache.get(key)
+        if cached and asyncio.get_running_loop().time() - cached[0] < CACHE_TTL_SECONDS:
+            return deepcopy(cached[1])
+        result = await _analyse_uncached(request)
+        services.route_analysis_cache[key] = (asyncio.get_running_loop().time(), deepcopy(result))
+        return result
+
+
+async def _analyse_uncached(request: RouteAnalyseRequest):
     options = await services.route_provider.alternatives(request.origin, request.destination)
     incidents = services.active_risk_incidents()
     fastest = min(option["duration_minutes"] for option in options)

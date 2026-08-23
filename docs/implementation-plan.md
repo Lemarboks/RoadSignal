@@ -44,7 +44,7 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Implement home, route comparison, active-trip simulation, reporting, alerts, history, profile, and SOS screens
 - [x] Add simulated-location abstraction and MVP-labelled SOS countdown
 - [x] Persist mobile refresh sessions in encrypted device storage and restore them safely on launch
-- [ ] Complete native push-notification registration and background-location production entitlements
+- [x] Complete native push-notification registration and background-location production entitlements
 
 ## 5. Quality, security, and delivery
 
@@ -54,7 +54,8 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Add request validation, CORS, rate limiting, audit events, password hashing, and expiring JWTs
 - [x] Add architecture, API, risk, schema, threat-model, privacy, deployment, and demo documentation
 - [x] Run locally available lint/type/test checks and record limitations
-- [ ] Perform a staging deployment and load/security test against self-hosted provider instances
+- [x] Add an operator-approved staging workflow for bounded load, readiness, TLS, and security-header evidence
+- [ ] Run the staging workflow against the owner-selected public host and self-hosted provider instances
 
 ## Acceptance flow
 

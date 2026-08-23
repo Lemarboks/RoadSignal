@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -7,6 +8,9 @@ from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, Resi
 from .providers.weather import OpenMeteoWeatherProvider
 from .repositories import repository, serialise
 from .risk.engine import RiskIncident
+
+route_analysis_cache: dict[tuple[str, str, str, str], tuple[float, dict]] = {}
+route_analysis_lock = asyncio.Lock()
 
 fallback_provider = MockCapeTownRouteProvider()
 route_provider = (
@@ -23,6 +27,10 @@ route_provider = (
     else fallback_provider
 )
 weather_provider = OpenMeteoWeatherProvider(settings.open_meteo_url, settings.provider_timeout_seconds)
+
+
+def clear_route_analysis_cache() -> None:
+    route_analysis_cache.clear()
 
 
 def publish(kind: str, payload: dict) -> None:

@@ -8,18 +8,33 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow RoadSignal to use your location to plan routes and provide safety alerts during an active trip."
+          "locationWhenInUsePermission": "Allow RoadSignal to use your location to plan routes and provide safety alerts during an active trip.",
+          "locationAlwaysAndWhenInUsePermission": "Allow RoadSignal to update active-trip progress and safety alerts when the screen is locked. Location sharing stops when you end the trip.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-secure-store"
     ],
     "ios": {
+      "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "RoadSignal uses your location only for route planning, active-trip progress, and safety alerts."
+        "NSLocationWhenInUseUsageDescription": "RoadSignal uses your location only for route planning, active-trip progress, and safety alerts.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "RoadSignal updates progress and safety alerts during an active trip when the screen is locked. Location sharing stops when you end the trip.",
+        "UIBackgroundModes": ["location", "remote-notification"]
       }
     },
     "android": {
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "experiments": {
       "typedRoutes": true
