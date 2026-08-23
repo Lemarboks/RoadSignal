@@ -178,7 +178,7 @@ export default function Login() {
                   {isLogin ? "New to RoadSignal? Create an account" : "Already registered? Sign in"}
                 </Text>
               </Pressable>
-              <Text style={s.privacy}>Your session is cleared when the app restarts.</Text>
+              <Text style={s.privacy}>Your session is protected in encrypted device storage.</Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
