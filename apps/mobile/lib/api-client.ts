@@ -17,6 +17,11 @@ export type SessionSnapshot = {
   accessToken: string;
 };
 
+export type PersistedSession = {
+  user: SessionUser;
+  refreshToken: string;
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -55,6 +60,7 @@ export class RoadSignalApiClient {
   private refreshToken = "";
   private user: SessionUser | null = null;
   private refreshPromise: Promise<boolean> | null = null;
+  private persistenceListener: ((session: PersistedSession | null) => void) | null = null;
 
   constructor(readonly baseUrl: string) {}
 
@@ -62,6 +68,16 @@ export class RoadSignalApiClient {
     return this.user && this.accessToken
       ? { user: this.user, accessToken: this.accessToken }
       : null;
+  }
+
+  setPersistenceListener(listener: (session: PersistedSession | null) => void) {
+    this.persistenceListener = listener;
+  }
+
+  async restore(session: PersistedSession) {
+    this.user = session.user;
+    this.refreshToken = session.refreshToken;
+    return (await this.refresh()) ? this.session : null;
   }
 
   async login(email: string, password: string) {
@@ -142,12 +158,14 @@ export class RoadSignalApiClient {
     this.accessToken = tokens.access_token;
     this.refreshToken = tokens.refresh_token;
     this.user = user;
+    this.persistenceListener?.({ user, refreshToken: tokens.refresh_token });
   }
 
   private clear() {
     this.accessToken = "";
     this.refreshToken = "";
     this.user = null;
+    this.persistenceListener?.(null);
   }
 
   private async parse<T>(response: Response): Promise<T> {
