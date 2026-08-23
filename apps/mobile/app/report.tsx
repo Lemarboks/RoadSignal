@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +11,8 @@ import {
 import { ApiError } from "../lib/api-client";
 import { apiClient } from "../lib/session-store";
 
+const PENDING_REPORT_KEY = "roadsignal.mobile.pending-report.v1";
+
 export default function Report() {
   const [incidentType, setIncidentType] = useState("Accident");
   const [severity, setSeverity] = useState("3");
@@ -20,17 +23,19 @@ export default function Report() {
   async function submit() {
     setSubmitting(true);
     setStatus("");
+    const report = {
+      incident_type: incidentType,
+      severity: Math.min(5, Math.max(1, Number(severity) || 1)),
+      description,
+      location: { latitude: -33.9249, longitude: 18.4241 },
+    };
+    await SecureStore.setItemAsync(PENDING_REPORT_KEY, JSON.stringify(report));
     try {
       await apiClient.request("/api/v1/incidents", {
         method: "POST",
-        body: JSON.stringify({
-          incident_type: incidentType,
-          severity: Math.min(5, Math.max(1, Number(severity) || 1)),
-          description,
-          // Cape Town CBD, matching the app's simulated current location.
-          location: { latitude: -33.9249, longitude: 18.4241 },
-        }),
+        body: JSON.stringify(report),
       });
+      await SecureStore.deleteItemAsync(PENDING_REPORT_KEY);
       setStatus("Report submitted. It begins unverified with a confidence estimate.");
       setDescription("");
     } catch (err) {
@@ -39,7 +44,7 @@ export default function Report() {
           ? "Sign in to submit a report."
           : err instanceof ApiError
             ? err.message
-            : "The report service is unavailable.",
+            : "The report service is unavailable. This report is secured on your device; press submit to retry.",
       );
     } finally {
       setSubmitting(false);
