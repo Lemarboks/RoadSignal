@@ -2,6 +2,10 @@
 
 RoadSignal is being upgraded in evidence-driven milestones. A feature is marked production-ready only when its runtime path, failure behavior, tests, security boundary, and operating instructions exist. Demonstration fallbacks remain available in development, but production configuration refuses to start with in-memory security or persistence.
 
+## Staging verification
+
+The manual `Verify staging readiness` GitHub Actions workflow accepts an operator-approved HTTPS staging origin. It checks health and dependency readiness, verifies the API security-header boundary, then runs a deliberately bounded route-analysis sample (maximum 500 requests and 20 workers). It uploads a JSON latency and failure report for 30 days. This repository supplies the repeatable evidence mechanism; the owner must still provide the staging host, self-hosted provider instances, approval for traffic, and resulting evidence before real journey data is handled.
+
 ## Milestone 1: identity and runtime boundaries
 
 Implemented:
