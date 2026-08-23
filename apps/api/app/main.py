@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from fastapi import Depends, FastAPI, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
@@ -40,6 +41,8 @@ provider = ResilientRouteProvider(
     fallback_provider,
 ) if settings.route_provider == "open" else fallback_provider
 weather_provider = OpenMeteoWeatherProvider(settings.open_meteo_url, settings.provider_timeout_seconds)
+route_analysis_cache: dict[tuple[str, str, str, str], tuple[float, dict]] = {}
+route_analysis_lock = asyncio.Lock()
 
 def publish(kind: str, payload: dict):
     event = {"id":str(uuid4()),"type":kind,"occurred_at":datetime.now(timezone.utc).isoformat(),"payload":serialise(payload)}
@@ -76,6 +79,19 @@ def ready(response: Response):
 
 @app.post("/api/v1/routes/analyse")
 async def analyse(request: RouteAnalyseRequest):
+    key = (request.origin.casefold(), request.destination.casefold(), request.preference, request.vehicle_type)
+    cached = route_analysis_cache.get(key)
+    if cached and asyncio.get_running_loop().time() - cached[0] < 60:
+        return deepcopy(cached[1])
+    async with route_analysis_lock:
+        cached = route_analysis_cache.get(key)
+        if cached and asyncio.get_running_loop().time() - cached[0] < 60:
+            return deepcopy(cached[1])
+        result = await _analyse_uncached(request)
+        route_analysis_cache[key] = (asyncio.get_running_loop().time(), deepcopy(result))
+        return result
+
+async def _analyse_uncached(request: RouteAnalyseRequest):
     options, all_incidents = await provider.alternatives(request.origin, request.destination), risk_incidents()
     baseline_by_id = {"route-balanced":{"crime":10,"accident":7,"traffic":11,"weather":2,"road_condition":4,"community":3},"route-safest":{"crime":5,"accident":4,"traffic":7,"weather":2,"road_condition":3,"community":2},"route-fastest":{"crime":18,"accident":12,"traffic":16,"weather":3,"road_condition":6,"community":5}}
     fastest = min(x["duration_minutes"] for x in options)
@@ -178,7 +194,7 @@ def nearby(latitude: float = Query(ge=-90, le=90), longitude: float = Query(ge=-
 def create_incident(body: IncidentCreate, principal=Depends(require_when_enabled)):
     confidence, flags=calculate_confidence(ConfidenceEvidence(gps_distance_km=0 if not body.reporter_location else .2))
     incident={"id":str(uuid4()),"incident_type":body.incident_type,"severity":body.severity,"source_type":"anonymous" if body.anonymous else "community","verification_status":"unverified","confidence":confidence,"description":body.description,"occurred_at":body.occurred_at,"expires_at":body.occurred_at+timedelta(hours=6),"location":body.location.model_dump(),"confirmations":0,"disputes":0,"status":"active","abuse_flags":flags}
-    repository.save_incident(incident); publish("incident.created",incident)
+    repository.save_incident(incident); route_analysis_cache.clear(); publish("incident.created",incident)
     for trip in repository.list_trips():
         if trip["status"]=="active" and body.severity>=4:
             trip["safety_score"]=max(20,round(trip["safety_score"]-18.5,1)); trip["alerts"].append("High-severity incident detected ahead. A safer alternative is available."); repository.save_trip(trip); publish("route.risk_changed",{"trip_id":trip["id"],"safety_score":trip["safety_score"],"reroute":"route-safest"})
@@ -191,7 +207,7 @@ def moderate(incident_id: str, action: str):
     elif action=="dispute": incident["disputes"]+=1
     else: incident.update(status="resolved",verification_status="resolved")
     if action != "resolve": incident["confidence"],_=calculate_confidence(ConfidenceEvidence(confirmations=incident["confirmations"],disputes=incident["disputes"],reporter_trust=.5,account_age_days=180,previous_accuracy=.7))
-    repository.save_incident(incident); publish(f"incident.{action}",incident); return serialise(incident)
+    repository.save_incident(incident); route_analysis_cache.clear(); publish(f"incident.{action}",incident); return serialise(incident)
 
 @app.post("/api/v1/incidents/{incident_id}/confirm")
 def confirm(incident_id: str, principal=Depends(require_when_enabled)): return moderate(incident_id,"confirm")

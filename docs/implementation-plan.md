@@ -54,7 +54,8 @@ This checklist is the delivery contract for the production-quality MVP. Items ma
 - [x] Add request validation, CORS, rate limiting, audit events, password hashing, and expiring JWTs
 - [x] Add architecture, API, risk, schema, threat-model, privacy, deployment, and demo documentation
 - [x] Run locally available lint/type/test checks and record limitations
-- [ ] Perform a staging deployment and load/security test against self-hosted provider instances
+- [x] Add an operator-approved staging workflow for bounded load, readiness, TLS, and security-header evidence
+- [ ] Run the staging workflow against the owner-selected public host and self-hosted provider instances
 
 ## Acceptance flow
 
