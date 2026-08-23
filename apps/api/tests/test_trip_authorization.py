@@ -3,6 +3,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 import app.main as main
+import app.services as services
 from app.config import settings
 from app.main import app
 
@@ -28,12 +29,12 @@ def register_driver(label: str) -> dict:
 
 def test_drivers_cannot_read_or_mutate_another_drivers_trip():
     original_auth = settings.require_auth
-    original_provider = main.provider
-    original_weather = main.weather_provider
+    original_provider = services.route_provider
+    original_weather = services.weather_provider
     settings.require_auth = True
     main.limiter._storage.reset()
-    main.provider = main.fallback_provider
-    main.weather_provider = ClearWeather()
+    services.route_provider = services.fallback_provider
+    services.weather_provider = ClearWeather()
     try:
         owner = register_driver("Trip Owner")
         stranger = register_driver("Other Driver")
@@ -63,5 +64,5 @@ def test_drivers_cannot_read_or_mutate_another_drivers_trip():
         assert client.post(f"{trip_path}/end", headers=owner_headers).status_code == 200
     finally:
         settings.require_auth = original_auth
-        main.provider = original_provider
-        main.weather_provider = original_weather
+        services.route_provider = original_provider
+        services.weather_provider = original_weather
