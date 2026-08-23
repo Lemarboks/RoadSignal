@@ -1,0 +1,43 @@
+/* Distinct operational views */
+.segmented-control { display:flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:11px; background:var(--soft); }
+.segmented-control button { min-height:36px; padding:7px 11px; border:0; border-radius:8px; background:transparent; color:var(--muted); font-weight:750; cursor:pointer; white-space:nowrap; }
+.segmented-control button[aria-pressed="true"] { background:var(--surface); color:var(--ink); box-shadow:0 3px 10px rgba(16,44,40,.1); }
+.section-heading-row { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:18px; }
+.section-heading-row h2 { margin:0; font-size:18px; letter-spacing:-.02em; }
+.section-heading-row p { margin:4px 0 0; color:var(--muted); font-size:12px; }
+.section-heading-row > span,.section-heading-row > strong { flex:none; color:var(--green); font-size:12px; }
+.risk-map-toolbar { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:14px; margin-bottom:18px; }
+.risk-map-toolbar > span:first-child { color:var(--muted); font-size:12px; font-weight:750; }
+.risk-map-score { font-weight:850; white-space:nowrap; }
+.risk-map-layout { display:grid; grid-template-columns:minmax(0,2fr) minmax(300px,.72fr); gap:18px; align-items:start; }
+.risk-map-stage,.risk-zone-rail,.analytics-trend,.analytics-breakdown,.fleet-table-wrap { min-width:0; padding:22px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
+.risk-map-stage .map,.risk-map-stage .maplibre-canvas { min-height:520px; }
+.risk-zone-list { list-style:none; margin:0; padding:0; }
+.risk-zone-list li { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px 0; border-bottom:1px solid var(--line); }
+.risk-zone-list li:first-child { padding-top:0; }.risk-zone-list li:last-child { border-bottom:0; }
+.risk-zone-list strong,.risk-zone-list span,.zone-reading b { display:block; }
+.risk-zone-list span { margin-top:3px; color:var(--muted); font-size:11px; }
+.zone-reading { flex:none; text-align:right; }.zone-reading b { font-size:12px; }.zone-reading .high { color:var(--red); }.zone-reading .medium { color:var(--amber); }.zone-reading .low { color:var(--green); }
+.rail-action { width:100%; min-height:42px; margin-top:18px; border:1px solid var(--blue); border-radius:10px; background:transparent; color:var(--blue); font-weight:750; cursor:pointer; }
+.view-disclaimer { margin:14px 2px 0; color:var(--muted); font-size:11px; }
+.analytics-actions { display:flex; align-items:center; gap:10px; }
+.analytics-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:18px; }
+.analytics-layout { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(300px,.75fr); gap:18px; }
+.analytics-chart { height:330px; padding-top:24px; }
+.analytics-exception { display:grid; gap:5px; margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+.analytics-exception span { color:var(--red); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+.analytics-exception button { justify-self:start; min-height:38px; margin-top:7px; padding:7px 11px; border:1px solid var(--input-border); border-radius:9px; background:var(--surface); color:var(--ink); font-weight:700; cursor:pointer; }
+.fleet-summary { display:flex; align-items:center; gap:0; margin-bottom:18px; border-block:1px solid var(--line); }
+.fleet-summary div { min-width:130px; padding:16px 28px 16px 0; margin-right:28px; border-inline-end:1px solid var(--line); }
+.fleet-summary div:last-child { border:0; }.fleet-summary span,.fleet-summary strong { display:block; }.fleet-summary span { color:var(--muted); font-size:11px; }.fleet-summary strong { margin-top:3px; font-size:25px; }
+.fleet-controls { display:grid; grid-template-columns:minmax(260px,1fr) minmax(170px,220px) auto; align-items:center; gap:10px; margin-bottom:14px; }
+.fleet-controls input,.fleet-controls select { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--input-border); border-radius:10px; background:var(--surface); color:var(--ink); font:inherit; }
+.fleet-controls > span { color:var(--muted); font-size:12px; text-align:right; }
+.fleet-table-wrap { padding:0; overflow:auto; }.fleet-table-wrap .section-heading-row { padding:22px 22px 0; }
+.fleet-table { min-width:840px; }.fleet-table td strong,.fleet-table td small { display:block; }.fleet-table td small { margin-top:3px; color:var(--muted); }
+.driver-status { display:inline-block; padding:5px 8px; border-radius:999px; background:var(--tint-neutral-bg); color:var(--tint-neutral-ink); font-size:11px; font-weight:800; }
+.driver-status.on-trip,.driver-status.available { background:var(--tint-bg); color:var(--tint-ink); }.driver-status.attention { background:var(--tint-red-bg); color:var(--tint-red-ink); }.driver-status.offline { background:var(--soft); color:var(--muted); }
+.fleet-empty { margin:0 22px 22px; }
+@media (max-width:1050px) { .risk-map-layout,.analytics-layout { grid-template-columns:1fr; }.risk-map-stage .map,.risk-map-stage .maplibre-canvas { min-height:420px; }.analytics-summary { grid-template-columns:1fr 1fr; } }
+@media (max-width:700px) { .risk-map-toolbar { grid-template-columns:1fr; }.risk-map-toolbar .segmented-control { overflow-x:auto; }.risk-map-score { justify-self:start; }.analytics-actions { align-items:flex-start; flex-direction:column; }.fleet-summary { display:grid; grid-template-columns:1fr 1fr; }.fleet-summary div { min-width:0; margin:0; padding:13px 16px; border-inline-end:1px solid var(--line); border-bottom:1px solid var(--line); }.fleet-summary div:nth-child(2n) { border-inline-end:0; }.fleet-summary div:nth-last-child(-n+2) { border-bottom:0; }.fleet-controls { grid-template-columns:1fr; }.fleet-controls > span { text-align:left; }.risk-map-stage .map,.risk-map-stage .maplibre-canvas { min-height:340px; } }
+@media (max-width:560px) { .risk-map-stage,.risk-zone-rail,.analytics-trend,.analytics-breakdown { padding:17px; }.analytics-summary { gap:10px; }.fleet-table-wrap { padding:0; overflow:visible; border:0; background:transparent; box-shadow:none; }.fleet-table-wrap .section-heading-row { padding:0; }.fleet-table { min-width:0; }.fleet-table tbody { gap:12px; }.fleet-table tr { padding:14px; }.fleet-table td[data-label="Action"] { grid-template-columns:minmax(92px,.7fr) minmax(0,1.3fr); }.fleet-empty { margin:0; } }
