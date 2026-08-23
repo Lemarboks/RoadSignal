@@ -8,6 +8,7 @@ from ..incidents.confidence import ConfidenceEvidence, calculate_confidence
 from ..repositories import repository, serialise
 from ..risk.engine import haversine_km
 from ..schemas import IncidentCreate
+from .. import services
 from ..services import publish
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
@@ -57,6 +58,7 @@ def create_incident(body: IncidentCreate, principal=Depends(require_when_enabled
         "abuse_flags": flags,
     }
     repository.save_incident(incident)
+    services.clear_route_analysis_cache()
     publish("incident.created", incident)
     for trip in repository.list_trips():
         if trip["status"] == "active" and body.severity >= 4:
@@ -88,6 +90,7 @@ def moderate(incident_id: str, action: str):
             )
         )
     repository.save_incident(incident)
+    services.clear_route_analysis_cache()
     publish(f"incident.{action}", incident)
     return serialise(incident)
 

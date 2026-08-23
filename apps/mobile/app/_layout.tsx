@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSessionStore } from "../lib/session-store";
+import "../lib/background-tracking";
 
 export default function Layout() {
   const hydrated = useSessionStore((state) => state.hydrated);

@@ -10,6 +10,7 @@ services.route_provider = services.fallback_provider
 services.weather_provider = ClearWeather()
 client=TestClient(app)
 def test_critical_flow():
+    services.route_analysis_cache.clear()
     response=client.post("/api/v1/routes/analyse",json={"origin":"Cape Town CBD","destination":"Airport","preference":"balanced","departure_time":"2026-07-17T12:00:00Z","vehicle_type":"car"})
     assert response.status_code==200
     routes=response.json()["routes"]; assert len(routes)==3
@@ -19,3 +20,11 @@ def test_critical_flow():
     updated=client.get(f"/api/v1/trips/{trip['id']}").json(); assert updated["safety_score"] < original; assert updated["alerts"]
     assert client.post(f"/api/v1/incidents/{incident['id']}/confirm").status_code==200
     assert client.post(f"/api/v1/trips/{trip['id']}/end").json()["status"]=="completed"
+
+def test_route_analysis_cache_is_invalidated_by_new_incident():
+    services.route_analysis_cache.clear()
+    payload={"origin":"Cape Town CBD","destination":"Airport","preference":"balanced","departure_time":"2026-07-17T12:00:00Z","vehicle_type":"car"}
+    assert client.post("/api/v1/routes/analyse",json=payload).status_code==200
+    assert services.route_analysis_cache
+    assert client.post("/api/v1/incidents",json={"incident_type":"Road closure","severity":4,"description":"Cache invalidation test","location":{"latitude":-33.951,"longitude":18.473}}).status_code==200
+    assert not services.route_analysis_cache
