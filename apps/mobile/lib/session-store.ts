@@ -33,6 +33,17 @@ function isPersistedSession(value: unknown): value is PersistedSession {
   );
 }
 
+export async function restorePersistedSession() {
+  const stored = await SecureStore.getItemAsync(SESSION_KEY);
+  if (!stored) return null;
+  const parsed: unknown = JSON.parse(stored);
+  if (!isPersistedSession(parsed)) {
+    await SecureStore.deleteItemAsync(SESSION_KEY);
+    return null;
+  }
+  return apiClient.restore(parsed);
+}
+
 apiClient.setPersistenceListener((session) => {
   const operation = session
     ? SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session))
@@ -54,14 +65,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   hydrated: false,
   hydrate: async () => {
     try {
-      const stored = await SecureStore.getItemAsync(SESSION_KEY);
-      if (!stored) return;
-      const parsed: unknown = JSON.parse(stored);
-      if (!isPersistedSession(parsed)) {
-        await SecureStore.deleteItemAsync(SESSION_KEY);
-        return;
-      }
-      const session = await apiClient.restore(parsed);
+      const session = await restorePersistedSession();
       set({ session });
     } catch {
       await SecureStore.deleteItemAsync(SESSION_KEY).catch(() => undefined);
