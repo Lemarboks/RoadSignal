@@ -49,12 +49,6 @@ aside {
   border-bottom: 1px solid var(--line);
   font-size: 18px;
 }
-.brand > b {
-  background: #1769aa;
-  color: white;
-  border-radius: 9px;
-  padding: 8px;
-}
 .brand span > strong {
   color: var(--blue);
 }
