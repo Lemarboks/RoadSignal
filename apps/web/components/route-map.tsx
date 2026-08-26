@@ -31,7 +31,7 @@ function routeFeatures(routes: RouteOption[], selected: string) {
               route.id === selected
                 ? riskColour(segmentScore)
                 : route.id === "route-balanced"
-                  ? "#1976d2"
+                  ? "#d4b600"
                   : route.id === "route-safest"
                     ? "#1f9d61"
                     : "#d45545",
@@ -67,7 +67,7 @@ function pointAtProgress(route: RouteOption | undefined, progress: number) {
 
 function SchematicFallback({ routes, selected, progress = 0 }: Props) {
   const colours: Record<string, string> = {
-    "route-balanced": "#1976d2",
+    "route-balanced": "#d4b600",
     "route-safest": "#1f9d61",
     "route-fastest": "#d45545",
   };
@@ -112,8 +112,8 @@ function SchematicFallback({ routes, selected, progress = 0 }: Props) {
               : 235
         }
         r="10"
-        fill="#1769aa"
-        stroke="white"
+        fill="#ffda00"
+        stroke="#20211d"
         strokeWidth="4"
       />
     </svg>

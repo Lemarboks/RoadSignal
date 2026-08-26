@@ -14,7 +14,7 @@
   color: var(--tint-ink);
 }
 .evidence-hero {
-  background: #132823;
+  background: #20221d;
   color: #fff;
   border-radius: 14px;
   padding: 30px;
@@ -22,11 +22,11 @@
   grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
   gap: 34px;
   margin-bottom: 20px;
-  box-shadow: 0 10px 30px #13282324;
+  box-shadow: 0 12px 30px #20221d24;
 }
 .evidence-verdict > span {
   display: inline-block;
-  color: #a8d8c1;
+  color: #ffdf38;
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 18px;
@@ -39,7 +39,7 @@
   letter-spacing: -0.025em;
 }
 .evidence-verdict p {
-  color: #d4e3dc;
+  color: #d8d8cf;
   max-width: 64ch;
   margin: 0;
 }
@@ -64,7 +64,7 @@
   letter-spacing: 0.07em;
 }
 .evidence-facts dt {
-  color: #a8bbb2;
+  color: #c7c6bb;
 }
 .evidence-facts dd,
 .evidence-metrics dd {

@@ -55,10 +55,17 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border: 2px solid #08232b;
+  border-radius: 7px;
   background: #ffda00;
   color: #08232b;
   font-size: 12px;
+  box-shadow: 0 0 0 1px #ffda00;
+  transform: rotate(45deg);
+}
+
+.brand b span {
+  transform: rotate(-45deg);
 }
 
 .kicker {
@@ -192,6 +199,10 @@
 
 .guest:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.guest:active {
+  transform: translateY(1px);
 }
 
 .note {
