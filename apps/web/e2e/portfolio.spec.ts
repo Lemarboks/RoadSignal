@@ -24,15 +24,26 @@ async function enterAsGuest(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: /Continue as guest/ }).click();
 }
 
+async function expectGeneratedLogo(page: import("@playwright/test").Page) {
+  const logo = page.locator("[data-roadsignal-logo]");
+  await expect(logo).toHaveCount(1);
+  await expect(logo).toBeVisible();
+  await expect(logo).toHaveJSProperty("complete", true);
+  await expect(logo).not.toHaveJSProperty("naturalWidth", 0);
+  await expect(page.locator("body")).not.toHaveText(/(^|\s)SR($|\s)/);
+}
+
 test("gates the app behind sign-in, with a guest path in", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Beyond\s+risk\.\s+Onward\./i })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fleet operations overview" })).not.toBeVisible();
+  await expectGeneratedLogo(page);
 
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(accessibility.violations).toEqual([]);
 
   await page.getByRole("button", { name: /Continue as guest/ }).click();
   await expect(page.getByRole("heading", { name: "Fleet operations overview" })).toBeVisible();
+  await expectGeneratedLogo(page);
 });
 
 test("exposes data provenance and keyboard navigation", async ({ page }) => {

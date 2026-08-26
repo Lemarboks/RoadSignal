@@ -8,6 +8,7 @@ export function BrandMark({ className }: { className?: string }) {
       aria-hidden="true"
       alt=""
       className={className}
+      data-roadsignal-logo=""
       height={64}
       priority
       sizes="48px"
