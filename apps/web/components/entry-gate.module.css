@@ -50,22 +50,11 @@
   font-weight: 850;
 }
 
-.brand b {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 2px solid #08232b;
-  border-radius: 7px;
-  background: #ffda00;
-  color: #08232b;
-  font-size: 12px;
-  box-shadow: 0 0 0 1px #ffda00;
-  transform: rotate(45deg);
-}
-
-.brand b span {
-  transform: rotate(-45deg);
+.brandMark {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
 }
 
 .kicker {
