@@ -46,6 +46,17 @@ test("gates the app behind sign-in, with a guest path in", async ({ page }) => {
   await expectGeneratedLogo(page);
 });
 
+test("keeps the sign-in form on the landing screen only", async ({ page }) => {
+  await enterAsGuest(page);
+  await expect(page.getByRole("heading", { name: "Connect your account" })).not.toBeVisible();
+  await expect(page.getByRole("link", { name: "Skip to main content" })).not.toBeFocused();
+
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in securely" })).toBeVisible();
+});
+
 test("exposes data provenance and keyboard navigation", async ({ page }) => {
   await enterAsGuest(page);
   await expect(page.getByRole("heading", { name: "Fleet operations overview" })).toBeVisible();

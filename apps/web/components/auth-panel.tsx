@@ -5,39 +5,14 @@ import { ApiError, RoadSignalApiClient, type SessionSnapshot } from "../lib/api-
 
 export function AuthPanel({
   client,
-  session,
   onSession,
 }: {
   client: RoadSignalApiClient;
-  session: SessionSnapshot | null;
-  onSession: (session: SessionSnapshot | null) => void;
+  onSession: (session: SessionSnapshot) => void;
 }) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-
-  if (session) {
-    return (
-      <section className="session-panel" aria-label="Signed-in account">
-        <span className="session-avatar" aria-hidden="true">
-          {session.user.name.slice(0, 2).toUpperCase()}
-        </span>
-        <span className="session-identity">
-          <strong>{session.user.name}</strong>
-          <small>{session.user.role.replaceAll("_", " ")}</small>
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            void client.logout();
-            onSession(null);
-          }}
-        >
-          Sign out
-        </button>
-      </section>
-    );
-  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
