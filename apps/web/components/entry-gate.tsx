@@ -34,7 +34,7 @@ export function EntryGate({
       <div className={styles.layout}>
         <div className={styles.intro}>
           <div className={styles.brand}>
-            <b>SR</b>
+            <b><span>SR</span></b>
             <span>RoadSignal</span>
           </div>
           <p className={styles.kicker}>SAFER MOVEMENT STARTS HERE</p>
@@ -65,7 +65,7 @@ export function EntryGate({
             type="button"
             onClick={onGuest}
           >
-            Continue as guest &mdash; view demo
+            Continue as guest - view demo
           </button>
           <p className={styles.note}>
             Demonstration risk estimates support decisions; they do not

@@ -16,7 +16,7 @@
 .auth-panel form { display: flex; align-items: flex-end; gap: 10px; min-width: 0; }
 .auth-panel label { display: grid; flex: 1; min-width: 0; gap: 5px; color: var(--ink); font-size: 12px; font-weight: 700; }
 .auth-panel input { min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--input-border); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
-.auth-panel input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(8,127,115,.1); outline: none; }
+.auth-panel input:focus { border-color: #b99e00; box-shadow: 0 0 0 3px rgba(255,218,0,.2); outline: none; }
 .auth-panel .primary { flex: none; white-space: nowrap; }
 .auth-panel form > small { max-width: 180px; color: var(--muted); font-size: 11px; }
 .auth-error { width: 100%; color: var(--red)!important; font-weight: 700; overflow-wrap: anywhere; }
@@ -36,7 +36,7 @@
   place-items: center;
   min-height: 100dvh;
   padding: 32px 20px;
-  background: radial-gradient(circle at 20% 0%, rgba(114,223,188,.14), transparent 42rem), linear-gradient(180deg, #102f2a, #0c2724);
+  background: radial-gradient(circle at 20% 0%, rgba(255,218,0,.14), transparent 42rem), linear-gradient(180deg, #1b1d18, #11130f);
 }
 .entry-gate-card {
   width: 100%;
@@ -60,9 +60,9 @@
   place-items: center;
   width: 36px;
   height: 36px;
-  color: #0c3932;
-  background: linear-gradient(135deg, #72dfbc, #d4f5e8);
-  border-radius: 11px;
+  color: #20211d;
+  background: var(--accent);
+  border-radius: 8px;
   font-size: 13px;
 }
 .entry-gate-brand strong { color: var(--blue); }

@@ -246,7 +246,7 @@ export default function App() {
       <div className="shell">
         <aside aria-label="RoadSignal navigation">
           <div className="brand">
-            <b>SR</b>
+            <b><span>SR</span></b>
             <span>
               RoadSignal
               <small>Route-risk intelligence</small>
