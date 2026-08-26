@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthPanel } from "./auth-panel";
+import { BrandMark } from "./brand-mark";
 import { RoadSignalApiClient, type SessionSnapshot } from "../lib/api-client";
 import styles from "./entry-gate.module.css";
 
@@ -34,7 +35,7 @@ export function EntryGate({
       <div className={styles.layout}>
         <div className={styles.intro}>
           <div className={styles.brand}>
-            <b><span>SR</span></b>
+            <BrandMark className={styles.brandMark} />
             <span>RoadSignal</span>
           </div>
           <p className={styles.kicker}>SAFER MOVEMENT STARTS HERE</p>

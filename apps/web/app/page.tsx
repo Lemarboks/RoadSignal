@@ -1,6 +1,7 @@
 "use client";
 import { navIcons } from "../components/nav-icons";
 import { AuthPanel } from "../components/auth-panel";
+import { BrandMark } from "../components/brand-mark";
 import { EntryGate } from "../components/entry-gate";
 import { defaultDestination, defaultOrigin } from "../features/demo-data";
 import {
@@ -246,7 +247,7 @@ export default function App() {
       <div className="shell">
         <aside aria-label="RoadSignal navigation">
           <div className="brand">
-            <b><span>SR</span></b>
+            <BrandMark className="brand-mark" />
             <span>
               RoadSignal
               <small>Route-risk intelligence</small>
