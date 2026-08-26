@@ -1,6 +1,6 @@
 "use client";
+import { useEffect } from "react";
 import { navIcons } from "../components/nav-icons";
-import { AuthPanel } from "../components/auth-panel";
 import { BrandMark } from "../components/brand-mark";
 import { EntryGate } from "../components/entry-gate";
 import { defaultDestination, defaultOrigin } from "../features/demo-data";
@@ -87,6 +87,18 @@ export default function App() {
     inject,
     moderate,
   } = useRoadSignalController();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, [entered]);
+  const showEntryGate = () => {
+    setEntered(false);
+  };
+  const enterWorkspace = () => {
+    setEntered(true);
+  };
   const dashboard = (
     <DashboardPage
       incidents={incidents}
@@ -233,9 +245,9 @@ export default function App() {
         client={apiClient}
         onSession={(next) => {
           setSession(next);
-          setEntered(true);
+          enterWorkspace();
         }}
-        onGuest={() => setEntered(true)}
+        onGuest={enterWorkspace}
       />
     );
   }
@@ -268,6 +280,33 @@ export default function App() {
               </button>
             ))}
           </nav>
+          <div className={`account-dock ${session ? "signed-in" : "guest"}`}>
+            {session ? (
+              <>
+                <span className="account-avatar" aria-hidden="true">
+                  {session.user.name.slice(0, 2).toUpperCase()}
+                </span>
+                <span className="account-identity">
+                  <strong>{session.user.name}</strong>
+                  <small>{session.user.role.replaceAll("_", " ")}</small>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void apiClient.logout();
+                    setSession(null);
+                    showEntryGate();
+                  }}
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={showEntryGate}>
+                Sign in
+              </button>
+            )}
+          </div>
         </aside>
         <main id="main-content" tabIndex={-1}>
           <section className="demo-banner" aria-label="Demonstration status">
@@ -308,13 +347,6 @@ export default function App() {
               )}
             </div>
           </section>
-          {API && (
-            <AuthPanel
-              client={apiClient}
-              session={session}
-              onSession={setSession}
-            />
-          )}
           {notice && (
             <div className="toast" role="status" aria-live="polite">
               <span>{notice}</span>

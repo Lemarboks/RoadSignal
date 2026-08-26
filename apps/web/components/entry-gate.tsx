@@ -53,9 +53,8 @@ export function EntryGate({
           </p>
           <AuthPanel
             client={client}
-            session={null}
             onSession={(session) => {
-              if (session) onSession(session);
+              onSession(session);
             }}
           />
           <div className={`${styles.divider} entry-gate-divider`}>

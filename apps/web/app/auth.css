@@ -22,15 +22,9 @@
 .auth-error { width: 100%; color: var(--red)!important; font-weight: 700; overflow-wrap: anywhere; }
 .auth-switch { align-self: center; border: 0; background: transparent; color: var(--blue); font-weight: 750; cursor: pointer; }
 .session-note { grid-column: 2; color: var(--muted); font-size: 11px; }
-.session-panel { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding: 12px 16px; border: 1px solid var(--tint-border); border-radius: 13px; background: var(--tint-bg); }
-.session-avatar { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: var(--tint-border); color: var(--tint-ink); font-size: 12px; font-weight: 850; }
-.session-identity { display: grid; min-width: 0; margin-inline-end: auto; }
-.session-identity strong,.session-identity small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.session-identity small { color: var(--muted); text-transform: capitalize; }
-.session-panel button { min-height: 38px; padding: 7px 11px; border: 1px solid var(--tint-border); border-radius: 9px; background: var(--surface); color: var(--tint-ink); font-weight: 700; cursor: pointer; }
 @media (max-width:1100px) { .auth-panel { grid-template-columns: 1fr; align-items: stretch; } .auth-panel form { flex-wrap: wrap; } .auth-panel form label { min-width: min(220px,100%); } .session-note { grid-column: 1; } }
 @media (max-width:560px) { .auth-panel { padding: 17px; } .auth-panel form { display: grid; } .auth-panel form label,.auth-panel .primary,.auth-switch { width: 100%; } .auth-switch { min-height: 44px; } }
-@media (forced-colors:active) { .auth-panel,.session-panel { border: 1px solid CanvasText; } }
+@media (forced-colors:active) { .auth-panel { border: 1px solid CanvasText; } }
 .entry-gate {
   display: grid;
   place-items: center;
