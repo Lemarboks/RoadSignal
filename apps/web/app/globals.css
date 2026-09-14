@@ -230,6 +230,7 @@ main {
 }
 .legend {
   position: absolute;
+  z-index: 3;
   bottom: 10px;
   right: 10px;
   background: white;
@@ -238,6 +239,76 @@ main {
   display: flex;
   gap: 10px;
   font-size: 10px;
+}
+.map-weather {
+  position: absolute;
+  z-index: 3;
+  bottom: 49px;
+  left: 12px;
+  width: min(356px, calc(100% - 24px));
+  padding: 10px 12px;
+  border: 1px solid rgba(32, 33, 29, 0.14);
+  border-radius: 10px;
+  background: rgba(253, 253, 249, 0.96);
+  color: #20211d;
+  box-shadow: 0 7px 22px rgba(32, 33, 29, 0.12);
+}
+.map-weather header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 7px;
+  margin-bottom: 7px;
+  border-bottom: 1px solid rgba(32, 33, 29, 0.12);
+}
+.map-weather header strong {
+  font-size: 13px;
+}
+.map-weather header span {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+}
+.map-weather dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.map-weather dt,
+.map-weather > small {
+  color: #62675f;
+  font-size: 9px;
+}
+.map-weather dd {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.map-weather > small {
+  display: block;
+  margin-top: 7px;
+}
+.map-weather.low header span {
+  color: #176f4d;
+}
+.map-weather.moderate header span {
+  color: #8b590d;
+}
+.map-weather.high header span,
+.map-weather.unavailable {
+  color: #a6363e;
+}
+.map-weather.message {
+  width: auto;
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 750;
+}
+.map-weather.loading {
+  color: #62675f;
 }
 .dot {
   display: inline-block;
