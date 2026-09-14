@@ -1,4 +1,6 @@
 import { demoDrivers, type DemoDriver } from "../demo-data";
+import { FleetMonitor } from "../monitoring/fleet-monitor";
+import type { RoadSignalApiClient, SessionSnapshot } from "../../lib/api-client";
 
 const riskClass = (score: number) => score >= 80 ? "low" : score >= 60 ? "medium" : "high";
 
@@ -9,6 +11,8 @@ export function FleetPage({
   onQueryChange,
   onStatusChange,
   onViewTrip,
+  client,
+  session,
 }: {
   query: string;
   status: string;
@@ -16,6 +20,8 @@ export function FleetPage({
   onQueryChange: (query: string) => void;
   onStatusChange: (status: string) => void;
   onViewTrip: (driver: DemoDriver) => void;
+  client: RoadSignalApiClient;
+  session: SessionSnapshot | null;
 }) {
   const activeTrips = demoDrivers.filter((driver) => driver.activeTrip);
   return (
@@ -55,6 +61,7 @@ export function FleetPage({
           <strong>1</strong>
         </div>
       </div>
+      <FleetMonitor onViewTrip={onViewTrip} client={client} session={session} />
       <div className="fleet-controls">
         <label>
           <span className="sr-only">Search fleet</span>

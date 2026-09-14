@@ -156,8 +156,8 @@ test("renders distinct risk map, analytics, and fleet workspaces", async ({ page
   await page.getByRole("button", { name: "Fleet", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Fleet roster" })).toBeVisible();
   await page.getByPlaceholder("Search driver, vehicle or route").fill("Lwazi");
-  await expect(page.getByText("Lwazi Mbeki")).toBeVisible();
-  await expect(page.getByText("Amina Daniels")).not.toBeVisible();
+  await expect(page.locator(".fleet-table").getByText("Lwazi Mbeki")).toBeVisible();
+  await expect(page.locator(".fleet-table").getByText("Amina Daniels")).not.toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
     documentWidth: document.documentElement.scrollWidth,
