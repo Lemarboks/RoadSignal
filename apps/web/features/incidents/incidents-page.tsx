@@ -1,14 +1,30 @@
 import type { Incident } from "@roadsignal/types";
+import { useState } from "react";
+import type { RoadSignalApiClient } from "../../lib/api-client";
+import type { AssistantStatus, IncidentReport } from "../../lib/assistant";
+import type { ResolvedPlace } from "../../lib/open-routing";
+import { IncidentComposer } from "./incident-composer";
 
 export function IncidentsPage({
   incidents,
   onReport,
   onModerate,
+  client,
+  signedIn,
+  serviceEnabled,
+  assistantStatus,
+  initialPlace,
 }: {
   incidents: Incident[];
-  onReport: () => void;
+  onReport: (report: IncidentReport) => Promise<void>;
   onModerate: (id: string, field: "confirmations" | "disputes") => void;
+  client: RoadSignalApiClient;
+  signedIn: boolean;
+  serviceEnabled: boolean;
+  assistantStatus: AssistantStatus | null;
+  initialPlace: ResolvedPlace | null;
 }) {
+  const [composing, setComposing] = useState(false);
   return (
     <>
       <section className="heading">
@@ -17,10 +33,12 @@ export function IncidentsPage({
           <h1>Incidents</h1>
           <p>Review, confirm, dispute, and resolve recent reports.</p>
         </div>
-        <button type="button" className="primary" onClick={onReport}>
+        <button type="button" className="primary" aria-expanded={composing} onClick={() => setComposing(true)}>
           Report incident
         </button>
       </section>
+      {composing && <IncidentComposer client={client} signedIn={signedIn} serviceEnabled={serviceEnabled}
+        status={assistantStatus} initialPlace={initialPlace} onReport={onReport} onClose={() => setComposing(false)} />}
       <div className="filters">
         <input aria-label="Search incidents" placeholder="Search incidents" />
         <select aria-label="Filter by incident type">

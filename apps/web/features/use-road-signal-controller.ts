@@ -11,6 +11,7 @@ import {
   type RouteWeather,
 } from "../lib/open-weather";
 import { RoadSignalApiClient, type SessionSnapshot } from "../lib/api-client";
+import { assistantRequest, fromApiIncident, type ApiIncident, type IncidentReport } from "../lib/assistant";
 import {
   defaultDestination,
   defaultOrigin,
@@ -132,6 +133,14 @@ export function useRoadSignalController() {
       }
     },
   });
+  useEffect(() => {
+    if (!API_ENABLED || !session) return;
+    const controller = new AbortController();
+    void assistantRequest<{ items: ApiIncident[] }>(apiClient, "/api/v1/incidents", { signal: controller.signal }, 8_000)
+      .then((data) => { if (!controller.signal.aborted) setIncidents(data.items.map(fromApiIncident)); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [apiClient, session]);
   useEffect(() => {
     if (!trip.active || trip.paused) return;
     const timer = setInterval(
@@ -507,6 +516,27 @@ export function useRoadSignalController() {
       ...a,
     ]);
   }
+  async function reportIncident(report: IncidentReport) {
+    let item: Incident;
+    if (API_ENABLED && session) {
+      const result = await assistantRequest<ApiIncident>(apiClient, "/api/v1/incidents", {
+        method: "POST", body: JSON.stringify(report),
+      }, 15_000);
+      item = fromApiIncident(result);
+      setNotice("Your reviewed incident report was submitted.");
+    } else {
+      item = {
+        id: `local-${crypto.randomUUID()}`, incidentType: report.incident_type,
+        severity: report.severity, description: report.description, location: report.location,
+        sourceType: "Local demonstration", verificationStatus: "unverified", confidence: 0.25,
+        occurredAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+        confirmations: 0, disputes: 0, status: "active",
+      };
+      setNotice("Demo report saved in this browser session. It has not been published.");
+    }
+    setIncidents((items) => [item, ...items]);
+    setAudit((items) => [`${item.incidentType}: reviewed report ${API_ENABLED && session ? "submitted" : "saved locally"}`, ...items]);
+  }
   return {
     page,
     setPage,
@@ -567,5 +597,6 @@ export function useRoadSignalController() {
     viewDriverTrip,
     inject,
     moderate,
+    reportIncident,
   };
 }

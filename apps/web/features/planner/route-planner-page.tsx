@@ -4,6 +4,8 @@ import { PlaceSearch } from "../../components/place-search";
 import { RouteMap as MapView } from "../../components/route-map";
 import type { ResolvedPlace } from "../../lib/open-routing";
 import type { RouteWeather } from "../../lib/open-weather";
+import type { RoadSignalApiClient } from "../../lib/api-client";
+import { RouteAssistant } from "./route-assistant";
 
 type LocationPermission =
   | "checking"
@@ -40,6 +42,8 @@ export function RoutePlannerPage({
   onRetryWeather,
   onSelectRoute,
   onStartTrip,
+  apiClient,
+  canExplain,
 }: {
   routes: RouteOption[];
   selected: string;
@@ -65,6 +69,8 @@ export function RoutePlannerPage({
   onRetryWeather: () => void;
   onSelectRoute: (routeId: string) => void;
   onStartTrip: () => void;
+  apiClient: RoadSignalApiClient;
+  canExplain: boolean;
 }) {
   const permissionTitle =
     locationPermission === "granted"
@@ -334,6 +340,7 @@ export function RoutePlannerPage({
           ))}
         </div>
         <p>{route.explanation}</p>
+        <RouteAssistant key={`${route.id}-${route.safetyScore}-${canExplain}`} client={apiClient} routeId={route.id} canExplain={canExplain} />
         <p className="disclaimer">
           Safety scores are decision-support estimates based on available data.
           They do not measure or guarantee personal safety.
