@@ -18,7 +18,25 @@ export const demoFleetAnalytics: FleetAnalytics = {
   trips_completed_today: 20,
 };
 
-export const demoDrivers = [
+export type DemoDriver = {
+  name: string;
+  vehicle: string;
+  status: "On trip" | "Attention" | "Available" | "Offline";
+  route: string;
+  score: number;
+  updated: string;
+  activeTrip?: {
+    routeId: string;
+    origin: string;
+    destination: string;
+    currentRoad: string;
+    progress: number;
+    etaMinutes: number;
+    alerts: string[];
+  };
+};
+
+export const demoDrivers: readonly DemoDriver[] = [
   {
     name: "Amina Daniels",
     vehicle: "CA 482-771",
@@ -26,6 +44,15 @@ export const demoDrivers = [
     route: "CBD to Airport",
     score: 87,
     updated: "Now",
+    activeTrip: {
+      routeId: "route-balanced",
+      origin: "Cape Town CBD",
+      destination: "Cape Town International Airport",
+      currentRoad: "Settlers Way",
+      progress: 64,
+      etaMinutes: 11,
+      alerts: [],
+    },
   },
   {
     name: "Lwazi Mbeki",
@@ -34,6 +61,17 @@ export const demoDrivers = [
     route: "Woodstock to Bellville",
     score: 58,
     updated: "2 min ago",
+    activeTrip: {
+      routeId: "route-fastest",
+      origin: "Woodstock",
+      destination: "Bellville",
+      currentRoad: "N1 inbound near Maitland",
+      progress: 38,
+      etaMinutes: 19,
+      alerts: [
+        "Elevated incident risk ahead near the Maitland interchange. Review the safer alternative.",
+      ],
+    },
   },
   {
     name: "Nadia Jacobs",
@@ -51,7 +89,7 @@ export const demoDrivers = [
     score: 76,
     updated: "28 min ago",
   },
-] as const;
+];
 
 export const demoRiskZones = [
   {

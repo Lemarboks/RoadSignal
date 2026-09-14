@@ -1,6 +1,7 @@
 import type { RouteOption } from "@roadsignal/types";
 import { Metric } from "../../components/metric";
 import { RouteMap as MapView } from "../../components/route-map";
+import type { DemoDriver } from "../demo-data";
 
 const riskClass = (score: number) =>
   score >= 80 ? "low" : score >= 60 ? "medium" : "high";
@@ -12,6 +13,7 @@ export function LiveTripPage({
   origin,
   destination,
   audit,
+  driver,
   safestAlternative,
   onAcceptSaferRoute,
   onTogglePause,
@@ -30,20 +32,35 @@ export function LiveTripPage({
   origin: string;
   destination: string;
   audit: string[];
+  driver: DemoDriver | null;
   safestAlternative?: RouteOption;
   onAcceptSaferRoute: (route: RouteOption) => void;
   onTogglePause: () => void;
   onSimulateIncident: (type: string) => void;
   onEndTrip: () => void;
 }) {
+  const driverTrip = driver?.activeTrip;
+  const eta = driverTrip
+    ? Math.max(
+        1,
+        Math.round(
+          (driverTrip.etaMinutes * (100 - trip.progress)) /
+            Math.max(1, 100 - driverTrip.progress),
+        ),
+      )
+    : Math.max(1, Math.round(29 * (1 - trip.progress / 100)));
   return (
     <>
       <section className="heading">
         <div>
           <p className="eyebrow">
-            {trip.active ? "Trip in progress" : "No active trip"}
+            {driver
+              ? "Fleet trip monitoring"
+              : trip.active
+                ? "Trip in progress"
+                : "No active trip"}
           </p>
-          <h1>Live Trip</h1>
+          <h1>{driver ? `${driver.name}'s trip` : "Live Trip"}</h1>
           <p>
             {origin} to {destination}
           </p>
@@ -55,9 +72,25 @@ export function LiveTripPage({
       <div className="grid live">
         <MapView routes={routes} selected={selected} progress={trip.progress} />
         <section className="panel">
+          {driver && driverTrip && (
+            <div className="fleet-trip-driver" aria-label="Driver trip details">
+              <div>
+                <span>Vehicle</span>
+                <strong>{driver.vehicle}</strong>
+              </div>
+              <div>
+                <span>Current road</span>
+                <strong>{driverTrip.currentRoad}</strong>
+              </div>
+              <div>
+                <span>Last update</span>
+                <strong>{driver.updated}</strong>
+              </div>
+            </div>
+          )}
           <Metric
             label="ETA"
-            value={`${Math.max(1, Math.round(29 * (1 - trip.progress / 100)))} min`}
+            value={`${eta} min`}
           />
           <Metric label="Progress" value={`${trip.progress}%`} />
           <Metric
