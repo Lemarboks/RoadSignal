@@ -1,10 +1,11 @@
-import type { RouteOption, RoutePreference } from "@roadsignal/types";
+import type { Incident, RouteOption, RoutePreference } from "@roadsignal/types";
 import { Metric } from "../../components/metric";
 import { PlaceSearch } from "../../components/place-search";
 import { RouteMap as MapView } from "../../components/route-map";
 import type { ResolvedPlace } from "../../lib/open-routing";
 import type { RouteWeather } from "../../lib/open-weather";
 import type { RoadSignalApiClient } from "../../lib/api-client";
+import type { MapCellsState } from "../../lib/map-cells";
 import { RouteAssistant } from "./route-assistant";
 
 type LocationPermission =
@@ -31,6 +32,7 @@ export function RoutePlannerPage({
   preference,
   weather,
   weatherStatus,
+  incidents,
   onOriginChange,
   onDestinationChange,
   onOriginResolved,
@@ -44,6 +46,7 @@ export function RoutePlannerPage({
   onStartTrip,
   apiClient,
   canExplain,
+  cells,
 }: {
   routes: RouteOption[];
   selected: string;
@@ -58,6 +61,7 @@ export function RoutePlannerPage({
   preference: RoutePreference;
   weather: RouteWeather | null;
   weatherStatus: "loading" | "ready" | "unavailable";
+  incidents: Incident[];
   onOriginChange: (value: string) => void;
   onDestinationChange: (value: string) => void;
   onOriginResolved: (place: ResolvedPlace | null) => void;
@@ -71,6 +75,7 @@ export function RoutePlannerPage({
   onStartTrip: () => void;
   apiClient: RoadSignalApiClient;
   canExplain: boolean;
+  cells: MapCellsState;
 }) {
   const permissionTitle =
     locationPermission === "granted"
@@ -215,7 +220,15 @@ export function RoutePlannerPage({
             </a>
           </p>
         </section>
-        <MapView routes={routes} selected={selected} />
+        <MapView
+          routes={routes}
+          selected={selected}
+          weather={weather}
+          weatherStatus={weatherStatus}
+          incidents={incidents}
+          onSelectRoute={onSelectRoute}
+          cells={cells}
+        />
       </div>
       <section
         className={`weather-strip ${weatherStatus}`}
@@ -228,7 +241,7 @@ export function RoutePlannerPage({
           </span>
           <div>
             <h2>Route weather</h2>
-            <p>Current conditions near the route corridor</p>
+            <p>Current model estimate across three route points</p>
           </div>
         </div>
         {weatherStatus === "loading" ? (
@@ -276,7 +289,7 @@ export function RoutePlannerPage({
               </div>
             </dl>
             <p className="weather-source">
-              Live data by{" "}
+              Current model data by{" "}
               <a
                 href="https://open-meteo.com/"
                 target="_blank"
@@ -284,7 +297,8 @@ export function RoutePlannerPage({
               >
                 Open-Meteo
               </a>
-              . No API key, cookies, or precise device location is sent.
+              . Coordinates are rounded to roughly 1 km; conditions can vary
+              between the three sampled points.
             </p>
           </>
         )}
