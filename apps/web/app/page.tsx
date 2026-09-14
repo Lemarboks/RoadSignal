@@ -16,8 +16,11 @@ import { LiveTripPage } from "../features/trips/live-trip-page";
 import { IncidentsPage } from "../features/incidents/incidents-page";
 import {
   API,
+  API_ENABLED,
   useRoadSignalController,
 } from "../features/use-road-signal-controller";
+import { useAssistantServices } from "../features/use-assistant-services";
+import { deployment } from "../lib/deployment";
 const nav = [
   "Dashboard",
   "Route Planner",
@@ -61,6 +64,8 @@ export default function App() {
     setFleetQuery,
     fleetStatus,
     setFleetStatus,
+    viewedDriver,
+    setViewedDriver,
     trip,
     setTrip,
     incidents,
@@ -84,15 +89,18 @@ export default function App() {
     findRoutes,
     useDemoRoutes,
     startTrip,
+    viewDriverTrip,
     inject,
     moderate,
+    reportIncident,
   } = useRoadSignalController();
+  const { assistantStatus, cells } = useAssistantServices(apiClient, API_ENABLED && entered, incidents.length);
   useEffect(() => {
     window.scrollTo(0, 0);
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-  }, [entered]);
+  }, [entered, page]);
   const showEntryGate = () => {
     setEntered(false);
   };
@@ -105,7 +113,11 @@ export default function App() {
       routes={routes}
       selected={selected}
       trip={trip}
+      weather={weather}
+      weatherStatus={weatherStatus}
       onPlanRoute={() => setPage("Route Planner")}
+      onSelectRoute={setSelected}
+      onOpenFleet={() => setPage("Fleet")}
     />
   );
   const planner = (
@@ -123,6 +135,7 @@ export default function App() {
       preference={preference}
       weather={weather}
       weatherStatus={weatherStatus}
+      incidents={incidents}
       onOriginChange={setOrigin}
       onDestinationChange={setDestination}
       onOriginResolved={setResolvedOrigin}
@@ -140,6 +153,9 @@ export default function App() {
       }
       onSelectRoute={setSelected}
       onStartTrip={() => void startTrip()}
+      apiClient={apiClient}
+      canExplain={Boolean(session) && dataMode === "api"}
+      cells={cells}
     />
   );
   const live = (
@@ -152,6 +168,10 @@ export default function App() {
         resolvedDestination?.displayName.split(",")[0] ?? destination
       }
       audit={audit}
+      driver={viewedDriver}
+      weather={weather}
+      weatherStatus={weatherStatus}
+      incidents={incidents}
       safestAlternative={safestAlternative}
       onAcceptSaferRoute={(alternative) => {
         setSelected(alternative.id);
@@ -170,6 +190,7 @@ export default function App() {
       }
       onSimulateIncident={inject}
       onEndTrip={() => {
+        setViewedDriver(null);
         setTrip((current) => ({
           ...current,
           active: false,
@@ -181,13 +202,19 @@ export default function App() {
           ...current,
         ]);
       }}
+      onSelectRoute={setSelected}
     />
   );
   const incidentPage = (
     <IncidentsPage
       incidents={incidents}
-      onReport={() => inject("Road closure")}
+      onReport={reportIncident}
       onModerate={moderate}
+      client={apiClient}
+      signedIn={Boolean(session)}
+      serviceEnabled={API_ENABLED}
+      assistantStatus={assistantStatus}
+      initialPlace={resolvedOrigin}
     />
   );
   const riskMapPage = (
@@ -196,8 +223,12 @@ export default function App() {
       selected={selected}
       route={route}
       tripProgress={trip.progress}
+      weather={weather}
+      weatherStatus={weatherStatus}
+      incidents={incidents}
       onSelectRoute={setSelected}
       onNavigate={setPage}
+      cells={cells}
     />
   );
   const analyticsPage = (
@@ -214,16 +245,14 @@ export default function App() {
   );
   const fleetPage = (
     <FleetPage
+      client={apiClient}
+      session={session}
       query={fleetQuery}
       status={fleetStatus}
       visibleDrivers={visibleDrivers}
       onQueryChange={setFleetQuery}
       onStatusChange={setFleetStatus}
-      onNavigate={setPage}
-      onViewTrip={(driverName) => {
-        setNotice(`Opening ${driverName}'s latest trip view.`);
-        setPage("Live Trips");
-      }}
+      onViewTrip={viewDriverTrip}
     />
   );
   const evidencePage = (
@@ -303,7 +332,7 @@ export default function App() {
               </>
             ) : (
               <button type="button" onClick={showEntryGate}>
-                Sign in
+                {deployment.demoOnly ? "About demo" : "Sign in"}
               </button>
             )}
           </div>
@@ -311,7 +340,7 @@ export default function App() {
         <main id="main-content" tabIndex={-1}>
           <section className="demo-banner" aria-label="Demonstration status">
             <div>
-              <strong>GitHub Pages demonstration</strong>
+              <strong>{deployment.demoOnly ? "RoadSignal · GitHub Pages demo" : "RoadSignal demonstration"}</strong>
               <span>
                 This showcase uses{" "}
                 {dataMode === "public"
@@ -320,6 +349,7 @@ export default function App() {
                     ? "the configured API"
                     : "built-in simulated data"}
                 . It is decision support, not a guarantee of safety.
+                {deployment.demoOnly && " Connected devices, AI workers and n8n are available in the Docker deployment, not this static site."}
               </span>
             </div>
             <div className="connection-badges" aria-live="polite">
@@ -330,17 +360,17 @@ export default function App() {
                     ? "API connected"
                     : "Demo data"}
               </span>
-              {API && (
+              {API_ENABLED && (
                 <span className={`realtime-badge ${realtimeStatus}`}>
                   Realtime: {realtimeStatus}
                 </span>
               )}
-              {API && backendStatus === "waking" && (
+              {API_ENABLED && backendStatus === "waking" && (
                 <span className="realtime-badge connecting">
                   Backend: waking up (can take up to a minute)
                 </span>
               )}
-              {API && backendStatus === "unavailable" && (
+              {API_ENABLED && backendStatus === "unavailable" && (
                 <span className="realtime-badge disconnected">
                   Backend: unavailable, using public/demo data
                 </span>

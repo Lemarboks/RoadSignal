@@ -4,15 +4,41 @@ RoadSignal is a production-oriented route-risk decision-support portfolio system
 
 > All included people, trips, incidents, risk zones, and scores are demonstration data. A score is decision support based on available data; it is not a guarantee of safety.
 
-## Quick start
+## Docker showcase
 
-Prerequisites on Windows: Docker Desktop, Node 20+, pnpm 10+, and Python 3.12+. A separate Linux installation is not required.
+The complete showcase runs in Docker: the exported Next.js interface, FastAPI, MySQL, Redis, and a Caddy gateway. The only prerequisite is Docker Desktop (Windows/macOS) or Docker Engine with Compose v2 (Linux).
 
 ```bash
 git clone <repository>
 cd RoadSignal
-cp .env.example .env
 docker compose up -d --build --wait
+```
+
+Open <http://localhost:3000>. Choose **Continue as guest** for the deterministic walkthrough, or register a demonstration account to exercise protected API-backed trips and realtime events. API documentation remains available at <http://localhost:8000/docs>.
+
+Useful showcase commands:
+
+```bash
+docker compose ps
+docker compose logs -f web api
+docker compose down
+```
+
+MySQL data persists between starts. To deliberately reset all local showcase data, run `docker compose down --volumes`.
+
+## Local development
+
+Optional local intelligence adds H3 incident counts, Qwen duplicate retrieval, reviewed incident drafts, Whisper voice input, and OpenTelemetry/Jaeger tracing. See [the open-source stack guide](docs/open-source-stack.md) for Docker profiles, memory requirements, tests, and the gated XGBoost/Valhalla integrations.
+
+The Fleet workspace includes animated demo GPS trackers and simulated street-sensor readings with playback, offline/stale states, and reduced-motion support. See [monitoring and evidence verification](docs/monitoring-and-verification.md) for the difference between these synthetic devices and real monitoring integrations.
+
+For the connected Docker demonstration (Traccar, ThingsBoard, n8n, local text/vision models and Valhalla), use the [monitoring setup guide](docs/monitoring-setup.md). It includes the local operator login instructions and memory-saving service modes. All device inputs remain labelled synthetic; no real feed credentials are required.
+
+Prerequisites: Node 20+, pnpm 10+, Python 3.12+, and Docker. Copy `.env.example` to `.env`, start the backing services, then run the API and web development servers:
+
+```bash
+cp .env.example .env
+docker compose up -d db redis --wait
 corepack enable
 corepack prepare pnpm@10.13.1 --activate
 pnpm install
@@ -24,9 +50,9 @@ uvicorn app.main:app --app-dir apps/api --reload --port 8000
 pnpm dev:web
 ```
 
-Open <http://localhost:3000>; API documentation is at <http://localhost:8000/docs>. The web UI has deterministic route and incident fallbacks, so its complete interaction can still be demonstrated on free static hosting when the API is unavailable. `pnpm build` writes a deployment bundle to `dist/`, with static assets under `dist/client` and a minimal asset worker under `dist/server`.
+The web UI has deterministic route and incident fallbacks, so its complete interaction can still be demonstrated when the API or a public data provider is unavailable. `pnpm build` writes a deployment bundle to `dist/`, with static assets under `dist/client` and a minimal asset worker under `dist/server`.
 
-Run mobile separately with `pnpm dev:mobile`. MySQL, Redis, and the API persist locally in Docker volumes; stop containers with `docker compose stop` without deleting that data. For migrations: `cd apps/api && alembic upgrade head`. The API uses Nominatim, OSRM, and Open-Meteo by default and falls back to deterministic demonstration routes when a public service is unavailable. For production, point the configurable URLs at self-hosted instances.
+Run mobile separately with `pnpm dev:mobile`. For migrations: `cd apps/api && alembic upgrade head`. The API uses Nominatim, OSRM, and Open-Meteo by default and falls back to deterministic demonstration routes when a public service is unavailable. For production, point the configurable URLs at self-hosted instances.
 
 ## Verification
 
@@ -49,9 +75,9 @@ Copy `.env.example`. Required in production: `DATABASE_URL`, `REDIS_URL`, a stro
 - `apps/api` - FastAPI domains, scoring engines, providers, persistence, and tests
 - `packages/types` and `packages/api-client` - shared TypeScript contract
 - `docs` - architecture, operations, risk, privacy, security, deployment, and demo notes
-- `docker-compose.yml` - local open-source MySQL spatial, Redis, and API services
+- `docker-compose.yml` - one-command local showcase with web, API, MySQL, and Redis
 
-See [architecture and trade-offs](docs/architecture.md), [operations runbook](docs/operations-runbook.md), [data and model governance](docs/data-and-model-governance.md), [demo instructions](docs/demo.md), and [known limitations](docs/architecture.md#known-limitations).
+See [architecture and trade-offs](docs/architecture.md), [operations runbook](docs/operations-runbook.md), [data and model governance](docs/data-and-model-governance.md), [AI model strategy](docs/ai-model-strategy.md), [demo instructions](docs/demo.md), and [known limitations](docs/architecture.md#known-limitations).
 
 For assignment submission evidence, use the [assessment marking guide](docs/assessment-marking-guide.md) and replace every learner placeholder with personally verified information.
 

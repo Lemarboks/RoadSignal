@@ -1,14 +1,37 @@
 import type { Incident } from "@roadsignal/types";
+import { useState } from "react";
+import type { RoadSignalApiClient } from "../../lib/api-client";
+import type { AssistantStatus, IncidentReport } from "../../lib/assistant";
+import type { ResolvedPlace } from "../../lib/open-routing";
+import { IncidentComposer } from "./incident-composer";
 
 export function IncidentsPage({
   incidents,
   onReport,
   onModerate,
+  client,
+  signedIn,
+  serviceEnabled,
+  assistantStatus,
+  initialPlace,
 }: {
   incidents: Incident[];
-  onReport: () => void;
+  onReport: (report: IncidentReport) => Promise<void>;
   onModerate: (id: string, field: "confirmations" | "disputes") => void;
+  client: RoadSignalApiClient;
+  signedIn: boolean;
+  serviceEnabled: boolean;
+  assistantStatus: AssistantStatus | null;
+  initialPlace: ResolvedPlace | null;
 }) {
+  const [composing, setComposing] = useState(false);
+  const [query, setQuery] = useState("");
+  const [type, setType] = useState("");
+  const [confidence, setConfidence] = useState("");
+  const [status, setStatus] = useState("active");
+  const visible = incidents.filter((item) =>
+    (!query || `${item.incidentType} ${item.description}`.toLowerCase().includes(query.toLowerCase())) &&
+    (!type || item.incidentType === type) && (!confidence || item.confidence >= 0.75) && (!status || item.status === status));
   return (
     <>
       <section className="heading">
@@ -17,24 +40,27 @@ export function IncidentsPage({
           <h1>Incidents</h1>
           <p>Review, confirm, dispute, and resolve recent reports.</p>
         </div>
-        <button type="button" className="primary" onClick={onReport}>
+        <button type="button" className="primary" aria-expanded={composing} onClick={() => setComposing(true)}>
           Report incident
         </button>
       </section>
+      {composing && <IncidentComposer client={client} signedIn={signedIn} serviceEnabled={serviceEnabled}
+        status={assistantStatus} initialPlace={initialPlace} onReport={onReport} onClose={() => setComposing(false)} />}
       <div className="filters">
-        <input aria-label="Search incidents" placeholder="Search incidents" />
-        <select aria-label="Filter by incident type">
-          <option>All types</option>
-          <option>Accident</option>
-          <option>Crime</option>
+        <input aria-label="Search incidents" placeholder="Search incidents" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <select aria-label="Filter by incident type" value={type} onChange={(event) => setType(event.target.value)}>
+          <option value="">All types</option>
+          {[...new Set(incidents.map((item) => item.incidentType))].map((value) => <option key={value}>{value}</option>)}
         </select>
-        <select aria-label="Filter by confidence">
-          <option>All confidence</option>
-          <option>High confidence</option>
+        <select aria-label="Filter by confidence" value={confidence} onChange={(event) => setConfidence(event.target.value)}>
+          <option value="">All confidence</option>
+          <option value="high">High confidence</option>
         </select>
-        <select aria-label="Filter by status">
-          <option>Active</option>
-          <option>Expired</option>
+        <select aria-label="Filter by status" value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="resolved">Resolved</option>
+          <option value="">All statuses</option>
         </select>
       </div>
       <section className="panel table-wrap">
@@ -51,8 +77,8 @@ export function IncidentsPage({
             </tr>
           </thead>
           <tbody>
-            {incidents.map((incident) => (
-              <tr key={incident.id}>
+            {visible.map((incident) => (
+              <tr key={incident.id} id={`incident-${encodeURIComponent(incident.id)}`} tabIndex={-1}>
                 <td data-label="Incident">
                   <strong>{incident.incidentType}</strong>
                   <small>{incident.description}</small>
@@ -94,6 +120,7 @@ export function IncidentsPage({
             ))}
           </tbody>
         </table>
+        {!visible.length && <p className="assistant-caption">No incidents match these filters.</p>}
       </section>
     </>
   );

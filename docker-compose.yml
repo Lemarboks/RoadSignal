@@ -1,4 +1,27 @@
+name: roadsignal-showcase
+
 services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Use the browser's current origin; Caddy proxies /api to FastAPI.
+        NEXT_PUBLIC_API_URL: /
+    environment:
+      DOMAIN: http://:3000
+      ACME_EMAIL: demo@example.invalid
+    ports: ["3000:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
   db:
     image: mysql:8.4
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
@@ -15,21 +38,40 @@ services:
       timeout: 3s
       retries: 20
       start_period: 20s
+    restart: unless-stopped
+
   redis:
     image: redis:7.4-alpine
     ports: ["6379:6379"]
     healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 10 }
+    restart: unless-stopped
+
   api:
     build: { context: ./apps/api }
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
+      ENVIRONMENT: development
       STORAGE_BACKEND: mysql
       DATABASE_URL: mysql+pymysql://roadsignal:roadsignal@db:3306/roadsignal?charset=utf8mb4
       EVENT_BACKEND: redis
       REDIS_URL: redis://redis:6379/0
+      REQUIRE_AUTH: "true"
+      ROUTE_PROVIDER: open
+      CORS_ORIGINS: http://localhost:3000,http://localhost:8081
+      JWT_SECRET: ${JWT_SECRET:-development-only-secret-change-before-deploy}
     ports: ["8000:8000"]
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
-    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"], interval: 10s, timeout: 5s, retries: 10 }
-volumes: { mysql_data: {} }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  mysql_data: {}

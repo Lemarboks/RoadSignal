@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     route_provider: str = "open"
     nominatim_url: str = "https://nominatim.openstreetmap.org"
     osrm_url: str = "https://routing.openstreetmap.de/routed-car"
+    valhalla_url: str = "http://valhalla:8002"
     open_meteo_url: str = "https://api.open-meteo.com/v1/forecast"
     provider_timeout_seconds: float = 8.0
     provider_user_agent: str = "RoadSignal/1.0 (self-hostable routing client)"
@@ -29,6 +30,23 @@ class Settings(BaseSettings):
     log_level: Literal["debug", "info", "warning", "error"] = "info"
     otel_exporter_otlp_endpoint: str = ""
     metrics_bearer_token: str = ""
+    ai_enabled: bool = False
+    ai_base_url: str = ""
+    ai_model: str = "gpt-oss-20b"
+    ai_timeout_seconds: float = 20.0
+    embedding_base_url: str = ""
+    embedding_model: str = "Qwen/Qwen3-Embedding-0.6B"
+    reranker_base_url: str = ""
+    reranker_model: str = "Qwen/Qwen3-Reranker-0.6B"
+    whisper_base_url: str = ""
+    whisper_model: str = "small"
+    ai_max_audio_bytes: int = 10_485_760
+    monitoring_token_file: str = ""
+    monitoring_stale_seconds: int = Field(default=120, ge=30, le=86400)
+    verification_base_url: str = ""
+    vision_base_url: str = ""
+    model_worker_token_file: str = ""
+    monitoring_model_timeout_seconds: float = Field(default=90, ge=1, le=120)
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

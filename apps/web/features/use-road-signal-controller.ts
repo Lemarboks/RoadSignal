@@ -11,19 +11,21 @@ import {
   type RouteWeather,
 } from "../lib/open-weather";
 import { RoadSignalApiClient, type SessionSnapshot } from "../lib/api-client";
+import { assistantRequest, fromApiIncident, type ApiIncident, type IncidentReport } from "../lib/assistant";
 import {
   defaultDestination,
   defaultOrigin,
   demoDrivers,
+  type DemoDriver,
   fallbackRoutes,
   initialIncidents,
 } from "./demo-data";
 import type { AppPage } from "./operations/operations-pages";
 import { useBackendData } from "./use-backend-data";
+import { deployment } from "../lib/deployment";
 
-export const API =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+export const API_ENABLED = deployment.backendEnabled;
+export const API = deployment.apiUrl;
 
 type DataMode = "demo" | "public" | "api";
 type ApiRoute = {
@@ -76,6 +78,7 @@ export function useRoadSignalController() {
   );
   const [fleetQuery, setFleetQuery] = useState("");
   const [fleetStatus, setFleetStatus] = useState("All statuses");
+  const [viewedDriver, setViewedDriver] = useState<DemoDriver | null>(null);
   const [trip, setTrip] = useState<{
     id?: string;
     active: boolean;
@@ -116,6 +119,7 @@ export function useRoadSignalController() {
     fleetAnalyticsSource,
   } = useBackendData({
     apiUrl: API,
+    apiEnabled: API_ENABLED,
     apiClient,
     accessToken: session?.accessToken,
     page,
@@ -129,6 +133,14 @@ export function useRoadSignalController() {
       }
     },
   });
+  useEffect(() => {
+    if (!API_ENABLED || !session) return;
+    const controller = new AbortController();
+    void assistantRequest<{ items: ApiIncident[] }>(apiClient, "/api/v1/incidents", { signal: controller.signal }, 8_000)
+      .then((data) => { if (!controller.signal.aborted) setIncidents(data.items.map(fromApiIncident)); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [apiClient, session]);
   useEffect(() => {
     if (!trip.active || trip.paused) return;
     const timer = setInterval(
@@ -240,7 +252,7 @@ export function useRoadSignalController() {
   async function findRoutes() {
     setLoading(true);
     setNotice("");
-    if (API) {
+    if (API_ENABLED) {
       try {
         await findApiRoutes();
         return;
@@ -366,7 +378,8 @@ export function useRoadSignalController() {
     ).then(setRoutes);
   }
   async function startTrip() {
-    if (API && dataMode === "api") {
+    setViewedDriver(null);
+    if (API_ENABLED && dataMode === "api") {
       if (!session) {
         setNotice("Sign in before starting a protected live trip.");
         return;
@@ -412,6 +425,34 @@ export function useRoadSignalController() {
     }
     setPage("Live Trips");
     setAudit((a) => [`Trip started on ${route.name}`, ...a]);
+  }
+  function viewDriverTrip(driver: DemoDriver) {
+    if (!driver.activeTrip) {
+      setNotice(`${driver.name} does not have an active trip to monitor.`);
+      return;
+    }
+    const activeTrip = driver.activeTrip;
+    setViewedDriver(driver);
+    setRoutes(fallbackRoutes);
+    setSelected(activeTrip.routeId);
+    setOrigin(activeTrip.origin);
+    setDestination(activeTrip.destination);
+    setResolvedOrigin(null);
+    setResolvedDestination(null);
+    setDataMode("demo");
+    setTrip({
+      active: true,
+      paused: false,
+      progress: activeTrip.progress,
+      score: driver.score,
+      alerts: activeTrip.alerts,
+    });
+    setAudit((current) => [
+      `Opened ${driver.name}'s live fleet trip on ${activeTrip.currentRoad}`,
+      ...current,
+    ]);
+    setNotice(`Monitoring ${driver.name} in ${driver.vehicle}.`);
+    setPage("Live Trips");
   }
   function inject(type = "Accident") {
     const item: Incident = {
@@ -475,6 +516,27 @@ export function useRoadSignalController() {
       ...a,
     ]);
   }
+  async function reportIncident(report: IncidentReport) {
+    let item: Incident;
+    if (API_ENABLED && session) {
+      const result = await assistantRequest<ApiIncident>(apiClient, "/api/v1/incidents", {
+        method: "POST", body: JSON.stringify(report),
+      }, 15_000);
+      item = fromApiIncident(result);
+      setNotice("Your reviewed incident report was submitted.");
+    } else {
+      item = {
+        id: `local-${crypto.randomUUID()}`, incidentType: report.incident_type,
+        severity: report.severity, description: report.description, location: report.location,
+        sourceType: "Local demonstration", verificationStatus: "unverified", confidence: 0.25,
+        occurredAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+        confirmations: 0, disputes: 0, status: "active",
+      };
+      setNotice("Demo report saved in this browser session. It has not been published.");
+    }
+    setIncidents((items) => [item, ...items]);
+    setAudit((items) => [`${item.incidentType}: reviewed report ${API_ENABLED && session ? "submitted" : "saved locally"}`, ...items]);
+  }
   return {
     page,
     setPage,
@@ -507,6 +569,8 @@ export function useRoadSignalController() {
     setFleetQuery,
     fleetStatus,
     setFleetStatus,
+    viewedDriver,
+    setViewedDriver,
     trip,
     setTrip,
     incidents,
@@ -530,7 +594,9 @@ export function useRoadSignalController() {
     findRoutes,
     useDemoRoutes,
     startTrip,
+    viewDriverTrip,
     inject,
     moderate,
+    reportIncident,
   };
 }

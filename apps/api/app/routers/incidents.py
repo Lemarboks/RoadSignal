@@ -55,7 +55,7 @@ def create_incident(body: IncidentCreate, principal=Depends(require_when_enabled
         "confirmations": 0,
         "disputes": 0,
         "status": "active",
-        "abuse_flags": flags,
+        "abuse_flags": [*flags, "community_report"],
     }
     repository.save_incident(incident)
     services.clear_route_analysis_cache()

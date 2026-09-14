@@ -1,10 +1,14 @@
+# syntax=docker/dockerfile:1
+
 FROM node:22.19-alpine AS build
 WORKDIR /workspace
 RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/types/package.json packages/types/package.json
-RUN pnpm install --frozen-lockfile --filter @roadsignal/web...
+RUN --mount=type=cache,id=roadsignal-pnpm,target=/pnpm/store,sharing=locked \
+    pnpm config set store-dir /pnpm/store \
+    && pnpm install --frozen-lockfile --filter @roadsignal/web...
 COPY apps/web apps/web
 COPY packages/types packages/types
 ARG NEXT_PUBLIC_API_URL

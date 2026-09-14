@@ -3,6 +3,8 @@ import "./theme.css";
 import "./auth.css";
 import "./evidence.css";
 import "./operations.css";
+import "./assistant.css";
+import "./monitoring.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 export const metadata = {
   title: "RoadSignal - Route-risk demonstration",

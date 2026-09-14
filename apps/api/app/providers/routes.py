@@ -86,8 +86,9 @@ class ResilientRouteProvider(RouteProvider):
     async def alternatives(self, origin: str, destination: str) -> list[dict]:
         try:
             routes = await self.primary.alternatives(origin, destination)
-            self.last_source = "open"
+            self.last_source = getattr(self.primary, "last_source", "open")
             return routes
         except (httpx.HTTPError, ValueError):
-            self.last_source = "fallback"
-            return await self.fallback.alternatives(origin, destination)
+            routes = await self.fallback.alternatives(origin, destination)
+            self.last_source = getattr(self.fallback, "last_source", "fallback")
+            return routes

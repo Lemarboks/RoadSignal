@@ -4,6 +4,7 @@ import { AuthPanel } from "./auth-panel";
 import { BrandMark } from "./brand-mark";
 import { RoadSignalApiClient, type SessionSnapshot } from "../lib/api-client";
 import styles from "./entry-gate.module.css";
+import { deployment } from "../lib/deployment";
 
 const STARTUP_VIDEO =
   "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260620_185230_f7f71ef4-6655-469f-b9c6-efbdc1f7684a.mp4";
@@ -47,19 +48,19 @@ export function EntryGate({
         </div>
 
         <div className={`${styles.card} entry-gate-card`}>
-          <h2>Welcome back</h2>
+          <h2>{deployment.demoOnly ? "Explore RoadSignal" : "Welcome back"}</h2>
           <p className={styles.cardIntro}>
-            Sign in to plan safer routes and receive live trip alerts.
+            {deployment.demoOnly ? "Compare routes, follow simulated drivers and inspect demo street sensors. No account needed." : "Sign in to plan safer routes and receive live trip alerts."}
           </p>
-          <AuthPanel
+          {!deployment.demoOnly && <AuthPanel
             client={client}
             onSession={(session) => {
               onSession(session);
             }}
-          />
-          <div className={`${styles.divider} entry-gate-divider`}>
+          />}
+          {!deployment.demoOnly && <div className={`${styles.divider} entry-gate-divider`}>
             <span>or</span>
-          </div>
+          </div>}
           <button
             className={`${styles.guest} entry-gate-guest`}
             type="button"
@@ -68,6 +69,7 @@ export function EntryGate({
             Continue as guest - view demo
           </button>
           <p className={styles.note}>
+            {deployment.demoOnly && "GitHub Pages showcase: sign-in, connected devices, AI workers and n8n require a separately hosted backend. "}
             Demonstration risk estimates support decisions; they do not
             guarantee safety.
           </p>

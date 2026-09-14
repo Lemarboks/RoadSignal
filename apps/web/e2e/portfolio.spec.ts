@@ -13,6 +13,30 @@ const weatherResponse = {
   },
 };
 
+const placeSuggestions = {
+  type: "FeatureCollection",
+  features: [
+    ["Cape Town Station", "Cape Town City Centre"],
+    ["Cape Town International Convention Centre", "Foreshore"],
+    ["Cape Town City Hall", "Cape Town City Centre"],
+    ["Cape Town Civic Centre", "Cape Town City Centre"],
+    ["Cape Town Stadium", "Green Point"],
+  ].map(([name, suburb], index) => ({
+    type: "Feature",
+    geometry: {
+      type: "Point",
+      coordinates: [18.4241 + index * 0.01, -33.9249 - index * 0.01],
+    },
+    properties: {
+      name,
+      suburb,
+      city: "Cape Town",
+      state: "Western Cape",
+      country: "South Africa",
+    },
+  })),
+};
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/v1/forecast?**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(weatherResponse) }),
@@ -79,13 +103,79 @@ test("shows Celsius weather and supports the demonstration trip flow", async ({ 
   await enterAsGuest(page);
   await page.getByRole("button", { name: "Route Planner" }).click();
   await expect(page.getByRole("heading", { name: "Route Planner" })).toBeVisible();
-  await expect(page.getByText("16°C", { exact: true })).toBeVisible();
-  await expect(page.getByText("15°C", { exact: true })).toBeVisible();
+  const weatherStrip = page.locator(".weather-strip");
+  await expect(weatherStrip.getByText("16°C", { exact: true })).toBeVisible();
+  await expect(weatherStrip.getByText("15°C", { exact: true })).toBeVisible();
+  const weatherReadout = page.getByLabel("Three-point route weather model estimate");
+  await expect(weatherReadout).toContainText("Rain");
+  await expect(weatherReadout).toContainText("Moderate weather risk");
+  await expect(weatherReadout).toContainText("16°C");
+  await expect(weatherReadout).toContainText("1.2 mm");
+  await expect(weatherReadout).toContainText("42 km/h");
+  await expect(weatherReadout).toContainText("4.2 km");
+  await expect(weatherReadout).toContainText("Origin 16°");
+  await expect(weatherReadout).toContainText("Mid 16°");
+  await expect(weatherReadout).toContainText("Destination 16°");
+  await expect(weatherReadout).toContainText("Highest exposure: origin");
+  await expect(weatherReadout).toContainText("model time 18:00");
 
   await page.getByRole("button", { name: "Use built-in demo routes" }).click();
-  await page.getByRole("button", { name: /Balanced Route/ }).click();
+  await page.getByRole("button", { name: /^Balanced Route:/ }).click();
   await page.getByRole("button", { name: "Start simulated trip" }).click();
   await expect(page.getByRole("heading", { name: "Live Trip" })).toBeVisible();
+});
+
+test("keeps location suggestions clear of the next location field", async ({ page }) => {
+  await page.route("https://photon.komoot.io/api/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(placeSuggestions),
+    }),
+  );
+  await enterAsGuest(page);
+  await page.getByRole("button", { name: "Route Planner" }).click();
+  await page.getByPlaceholder("Street, landmark or suburb").first().fill("Cape Town");
+
+  const suggestions = page.locator(".place-suggestions");
+  const destination = page.locator(".controls > label").filter({ hasText: "Destination" });
+  await expect(suggestions.getByRole("option")).toHaveCount(5);
+  const [suggestionBox, destinationBox] = await Promise.all([
+    suggestions.boundingBox(),
+    destination.boundingBox(),
+  ]);
+  expect(suggestionBox).not.toBeNull();
+  expect(destinationBox).not.toBeNull();
+  expect(suggestionBox!.y + suggestionBox!.height).toBeLessThanOrEqual(destinationBox!.y);
+});
+
+test("selects fallback route lines and opens incident evidence on the map", async ({ page }) => {
+  await page.route("https://tiles.openfreemap.org/**", (route) => route.abort());
+  await enterAsGuest(page);
+  const map = page.getByRole("group", { name: "Cape Town route-risk map" }).first();
+
+  await map.getByRole("button", { name: /Select Safest Route/ }).press("Enter");
+  await expect(map.locator(".map-label strong")).toContainText("Safest Route");
+
+  await map.getByRole("button", { name: /Accident, severity 4 of 5/ }).click();
+  const detail = map.getByLabel("Accident details");
+  await expect(detail).toContainText("Collision near Hospital Bend");
+  await expect(detail).toContainText("86%");
+});
+
+test("opens an active driver's trip from the fleet roster", async ({ page }) => {
+  await enterAsGuest(page);
+  await page.getByRole("button", { name: "Fleet", exact: true }).click();
+  await page.getByRole("button", { name: "View Amina Daniels's active trip" }).click();
+
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.getByRole("heading", { name: "Amina Daniels's trip" })).toBeVisible();
+  await expect(page.getByText("CA 482-771", { exact: true })).toBeVisible();
+  await expect(page.getByText("Settlers Way", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cape Town CBD to Cape Town International Airport", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Fleet", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Nadia Jacobs has no active trip" })).toBeDisabled();
 });
 
 test("explains the risk evidence and blocked training decision", async ({ page }) => {
@@ -128,7 +218,7 @@ test("renders distinct risk map, analytics, and fleet workspaces", async ({ page
   await page.getByRole("button", { name: "Risk Map" }).click();
   await expect(page.getByRole("heading", { name: "Network risk map" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Areas to review" })).toBeVisible();
-  const safestRoute = page.getByRole("button", { name: "Safest Route" });
+  const safestRoute = page.getByRole("button", { name: "Safest Route", exact: true });
   await safestRoute.click();
   await expect(safestRoute).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText(/\d+\/100 estimate/)).toBeVisible();
@@ -141,8 +231,8 @@ test("renders distinct risk map, analytics, and fleet workspaces", async ({ page
   await page.getByRole("button", { name: "Fleet", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Fleet roster" })).toBeVisible();
   await page.getByPlaceholder("Search driver, vehicle or route").fill("Lwazi");
-  await expect(page.getByText("Lwazi Mbeki")).toBeVisible();
-  await expect(page.getByText("Amina Daniels")).not.toBeVisible();
+  await expect(page.locator(".fleet-table").getByText("Lwazi Mbeki")).toBeVisible();
+  await expect(page.locator(".fleet-table").getByText("Amina Daniels")).not.toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
     documentWidth: document.documentElement.scrollWidth,
