@@ -1,6 +1,7 @@
-import type { RouteOption } from "@roadsignal/types";
+import type { Incident, RouteOption } from "@roadsignal/types";
 import { Metric } from "../../components/metric";
 import { RouteMap as MapView } from "../../components/route-map";
+import type { RouteWeather } from "../../lib/open-weather";
 import type { DemoDriver } from "../demo-data";
 
 const riskClass = (score: number) =>
@@ -14,11 +15,15 @@ export function LiveTripPage({
   destination,
   audit,
   driver,
+  weather,
+  weatherStatus,
+  incidents,
   safestAlternative,
   onAcceptSaferRoute,
   onTogglePause,
   onSimulateIncident,
   onEndTrip,
+  onSelectRoute,
 }: {
   trip: {
     active: boolean;
@@ -33,11 +38,15 @@ export function LiveTripPage({
   destination: string;
   audit: string[];
   driver: DemoDriver | null;
+  weather: RouteWeather | null;
+  weatherStatus: "loading" | "ready" | "unavailable";
+  incidents: Incident[];
   safestAlternative?: RouteOption;
   onAcceptSaferRoute: (route: RouteOption) => void;
   onTogglePause: () => void;
   onSimulateIncident: (type: string) => void;
   onEndTrip: () => void;
+  onSelectRoute: (routeId: string) => void;
 }) {
   const driverTrip = driver?.activeTrip;
   const eta = driverTrip
@@ -70,7 +79,15 @@ export function LiveTripPage({
         </div>
       </section>
       <div className="grid live">
-        <MapView routes={routes} selected={selected} progress={trip.progress} />
+        <MapView
+          routes={routes}
+          selected={selected}
+          progress={trip.progress}
+          weather={weather}
+          weatherStatus={weatherStatus}
+          incidents={incidents}
+          onSelectRoute={onSelectRoute}
+        />
         <section className="panel">
           {driver && driverTrip && (
             <div className="fleet-trip-driver" aria-label="Driver trip details">
