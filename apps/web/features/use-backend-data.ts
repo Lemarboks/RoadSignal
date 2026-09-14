@@ -10,31 +10,33 @@ type BackendStatus = "unknown" | "waking" | "ready" | "unavailable";
 
 export function useBackendData({
   apiUrl,
+  apiEnabled,
   apiClient,
   accessToken,
   page,
   onRealtimeEvents,
 }: {
   apiUrl: string;
+  apiEnabled: boolean;
   apiClient: RoadSignalApiClient;
   accessToken?: string;
   page: AppPage;
   onRealtimeEvents: (events: RealtimeEvent[]) => void;
 }) {
-  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(apiUrl ? "connecting" : "offline");
-  const [backendStatus, setBackendStatus] = useState<BackendStatus>(apiUrl ? "waking" : "unknown");
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>(apiEnabled ? "connecting" : "offline");
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>(apiEnabled ? "waking" : "unknown");
   const [riskEvidence, setRiskEvidence] = useState<RiskEvidence>(packagedRiskEvidence);
   const [riskEvidenceSource, setRiskEvidenceSource] = useState<"packaged" | "api">("packaged");
   const [fleetAnalytics, setFleetAnalytics] = useState<FleetAnalytics>(demoFleetAnalytics);
   const [fleetAnalyticsSource, setFleetAnalyticsSource] = useState<"demo" | "api">("demo");
 
   useEffect(() => {
-    if (!apiUrl) return;
+    if (!apiEnabled) return;
     return connectRealtimeEvents({ apiUrl, accessToken, onStatus: setRealtimeStatus, onEvents: onRealtimeEvents });
-  }, [accessToken]);
+  }, [accessToken, apiEnabled, apiUrl]);
 
   useEffect(() => {
-    if (!apiUrl) return;
+    if (!apiEnabled) return;
     let active = true;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 55_000);
@@ -44,25 +46,25 @@ export function useBackendData({
       .catch(() => { if (active) setBackendStatus("unavailable"); })
       .finally(() => window.clearTimeout(timeout));
     return () => { active = false; controller.abort(); };
-  }, [apiUrl]);
+  }, [apiEnabled, apiUrl]);
 
   useEffect(() => {
-    if (!apiUrl) return;
+    if (!apiEnabled) return;
     let active = true;
     void apiClient.request<RiskEvidence>("/api/v1/risk/evidence")
       .then((evidence) => { if (active) { setRiskEvidence(evidence); setRiskEvidenceSource("api"); } })
       .catch(() => { if (active) setRiskEvidenceSource("packaged"); });
     return () => { active = false; };
-  }, [apiClient, apiUrl]);
+  }, [apiClient, apiEnabled, apiUrl]);
 
   useEffect(() => {
-    if (!apiUrl || page !== "Analytics") return;
+    if (!apiEnabled || page !== "Analytics") return;
     let active = true;
     void apiClient.request<FleetAnalytics>("/api/v1/fleets/demo-fleet/analytics")
       .then((analytics) => { if (active) { setFleetAnalytics(analytics); setFleetAnalyticsSource("api"); } })
       .catch(() => { if (active) setFleetAnalyticsSource("demo"); });
     return () => { active = false; };
-  }, [apiClient, apiUrl, page]);
+  }, [apiClient, apiEnabled, apiUrl, page]);
 
   return { realtimeStatus, backendStatus, riskEvidence, riskEvidenceSource, fleetAnalytics, fleetAnalyticsSource };
 }

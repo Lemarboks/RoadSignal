@@ -5,6 +5,7 @@ from uuid import uuid4
 from .config import settings
 from .events import event_bus
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
+from .providers.valhalla import ValhallaRouteProvider
 from .providers.weather import OpenMeteoWeatherProvider
 from .repositories import repository, serialise
 from .risk.engine import RiskIncident
@@ -13,19 +14,27 @@ route_analysis_cache: dict[tuple[str, str, str, str], tuple[float, dict]] = {}
 route_analysis_lock = asyncio.Lock()
 
 fallback_provider = MockCapeTownRouteProvider()
-route_provider = (
-    ResilientRouteProvider(
-        OpenRouteProvider(
+open_route_provider = ResilientRouteProvider(
+    OpenRouteProvider(
+        settings.nominatim_url,
+        settings.osrm_url,
+        settings.provider_timeout_seconds,
+        settings.provider_user_agent,
+    ),
+    fallback_provider,
+)
+if settings.route_provider == "valhalla":
+    route_provider = ResilientRouteProvider(
+        ValhallaRouteProvider(
             settings.nominatim_url,
-            settings.osrm_url,
+            settings.valhalla_url,
             settings.provider_timeout_seconds,
             settings.provider_user_agent,
         ),
-        fallback_provider,
+        open_route_provider,
     )
-    if settings.route_provider == "open"
-    else fallback_provider
-)
+else:
+    route_provider = open_route_provider if settings.route_provider == "open" else fallback_provider
 weather_provider = OpenMeteoWeatherProvider(settings.open_meteo_url, settings.provider_timeout_seconds)
 
 

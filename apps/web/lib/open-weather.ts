@@ -3,7 +3,10 @@ import type { Coordinate, RouteOption, RoutePreference } from "@roadsignal/types
 const DEFAULT_WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 const REQUEST_TIMEOUT_MS = 6_500;
 
-export type RouteWeather = {
+export type RouteWeatherSample = {
+  label: "Origin" | "Mid-route" | "Destination";
+  latitude: number;
+  longitude: number;
   temperatureC: number;
   apparentTemperatureC: number;
   precipitationMm: number;
@@ -15,6 +18,11 @@ export type RouteWeather = {
   riskLabel: "Low" | "Moderate" | "High";
   riskPenalty: number;
   factors: string[];
+};
+
+export type RouteWeather = Omit<RouteWeatherSample, "label" | "latitude" | "longitude"> & {
+  samples: RouteWeatherSample[];
+  highestRiskAt: RouteWeatherSample["label"];
 };
 
 type OpenMeteoResponse = {
@@ -61,35 +69,23 @@ function midpoint(origin: Coordinate, destination: Coordinate) {
   return { latitude, longitude };
 }
 
-export async function fetchRouteWeather(
-  origin: Coordinate,
-  destination: Coordinate,
-  signal?: AbortSignal,
-): Promise<RouteWeather> {
-  const point = midpoint(origin, destination);
-  const url = endpoint();
-  url.search = new URLSearchParams({
-    // City-scale weather does not need street-level coordinates. Rounding to
-    // roughly 1 km avoids disclosing a precise route or device position.
-    latitude: point.latitude.toFixed(2),
-    longitude: point.longitude.toFixed(2),
-    current:
-      "temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,visibility",
-    timezone: "auto",
-  }).toString();
+function routeSamplePoints(origin: Coordinate, destination: Coordinate) {
+  const points: Array<Pick<RouteWeatherSample, "label" | "latitude" | "longitude">> = [
+    { label: "Origin", ...origin },
+    { label: "Mid-route", ...midpoint(origin, destination) },
+    { label: "Destination", ...destination },
+  ];
+  if (points.some((point) => !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude))) {
+    throw new Error("Route coordinates are invalid");
+  }
+  return points;
+}
 
-  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    credentials: "omit",
-    referrerPolicy: "no-referrer",
-    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-  });
-  if (!response.ok) throw new Error(`Weather service unavailable (${response.status})`);
-  const body = (await response.json()) as OpenMeteoResponse;
-  const current = body.current;
+function parseSample(
+  current: Record<string, unknown> | undefined,
+  point: Pick<RouteWeatherSample, "label" | "latitude" | "longitude">,
+): RouteWeatherSample {
   if (!current) throw new Error("Weather service returned no current conditions");
-
   const temperatureC = finiteNumber(current.temperature_2m, -80, 65);
   const apparentTemperatureC = finiteNumber(current.apparent_temperature, -100, 80);
   const precipitationMm = finiteNumber(current.precipitation, 0, 500);
@@ -114,6 +110,7 @@ export async function fetchRouteWeather(
   ];
 
   return {
+    ...point,
     temperatureC,
     apparentTemperatureC,
     precipitationMm,
@@ -125,6 +122,61 @@ export async function fetchRouteWeather(
     riskLabel: riskPenalty >= 10 ? "High" : riskPenalty >= 4 ? "Moderate" : "Low",
     riskPenalty,
     factors,
+  };
+}
+
+export async function fetchRouteWeather(
+  origin: Coordinate,
+  destination: Coordinate,
+  signal?: AbortSignal,
+): Promise<RouteWeather> {
+  const points = routeSamplePoints(origin, destination);
+  const url = endpoint();
+  url.search = new URLSearchParams({
+    // City-scale weather does not need street-level coordinates. Rounding to
+    // roughly 1 km avoids disclosing a precise route or device position.
+    latitude: points.map((point) => point.latitude.toFixed(2)).join(","),
+    longitude: points.map((point) => point.longitude.toFixed(2)).join(","),
+    current:
+      "temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,visibility",
+    models: "best_match",
+    timezone: "auto",
+  }).toString();
+
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    credentials: "omit",
+    referrerPolicy: "no-referrer",
+    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+  });
+  if (!response.ok) throw new Error(`Weather service unavailable (${response.status})`);
+  const body = (await response.json()) as OpenMeteoResponse | OpenMeteoResponse[];
+  // Open-Meteo returns a list for multi-coordinate requests. Keeping the
+  // single-object fallback makes local demos and self-hosted compatible
+  // endpoints degrade gracefully while still displaying all three samples.
+  const responses = Array.isArray(body) ? body : points.map(() => body);
+  if (responses.length < points.length) {
+    throw new Error("Weather service returned incomplete route conditions");
+  }
+  const samples = points.map((point, index) => parseSample(responses[index]?.current, point));
+  const worst = samples.reduce((highest, sample) =>
+    sample.riskPenalty > highest.riskPenalty ? sample : highest,
+  );
+  return {
+    temperatureC: worst.temperatureC,
+    apparentTemperatureC: worst.apparentTemperatureC,
+    precipitationMm: worst.precipitationMm,
+    windSpeedKmh: worst.windSpeedKmh,
+    visibilityKm: worst.visibilityKm,
+    weatherCode: worst.weatherCode,
+    observedAt: worst.observedAt,
+    condition: worst.condition,
+    riskLabel: worst.riskLabel,
+    riskPenalty: worst.riskPenalty,
+    factors: worst.factors,
+    samples,
+    highestRiskAt: worst.label,
   };
 }
 
@@ -148,7 +200,7 @@ export function applyWeatherRisk(
         ...route.breakdown,
         weather: Math.round((route.breakdown.weather + weather.riskPenalty) * 10) / 10,
       },
-      explanation: `${route.explanation} Current corridor weather: ${weather.condition.toLowerCase()} with ${weather.riskLabel.toLowerCase()} weather risk.`,
+      explanation: `${route.explanation} Highest sampled corridor weather risk is ${weather.riskLabel.toLowerCase()} near the ${weather.highestRiskAt.toLowerCase()}: ${weather.condition.toLowerCase()}.`,
       recommended: false,
     };
   });

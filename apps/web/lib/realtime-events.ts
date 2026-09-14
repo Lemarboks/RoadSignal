@@ -20,7 +20,7 @@ type RealtimeOptions = {
 };
 
 function websocketUrl(apiUrl: string, cursor?: string) {
-  const url = new URL("/api/v1/ws/events", apiUrl);
+  const url = new URL("/api/v1/ws/events", apiUrl || window.location.origin);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   if (cursor) url.searchParams.set("cursor", cursor);
   return url.toString();

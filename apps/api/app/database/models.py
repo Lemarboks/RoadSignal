@@ -185,3 +185,12 @@ class AuditLog(Timestamped, Base):
     actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     action: Mapped[str] = mapped_column(String(80), index=True)
     details: Mapped[dict] = mapped_column(JSON)
+
+
+class MonitoringState(Base):
+    """An isolated, transaction-locked demonstration workspace; never risk evidence."""
+
+    __tablename__ = "monitoring_state"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), server_default=func.now(), onupdate=func.now())
