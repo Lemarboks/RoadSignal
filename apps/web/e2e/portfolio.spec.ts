@@ -88,6 +88,21 @@ test("shows Celsius weather and supports the demonstration trip flow", async ({ 
   await expect(page.getByRole("heading", { name: "Live Trip" })).toBeVisible();
 });
 
+test("opens an active driver's trip from the fleet roster", async ({ page }) => {
+  await enterAsGuest(page);
+  await page.getByRole("button", { name: "Fleet", exact: true }).click();
+  await page.getByRole("button", { name: "View Amina Daniels's active trip" }).click();
+
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.getByRole("heading", { name: "Amina Daniels's trip" })).toBeVisible();
+  await expect(page.getByText("CA 482-771", { exact: true })).toBeVisible();
+  await expect(page.getByText("Settlers Way", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cape Town CBD to Cape Town International Airport", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Fleet", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Nadia Jacobs has no active trip" })).toBeDisabled();
+});
+
 test("explains the risk evidence and blocked training decision", async ({ page }) => {
   await enterAsGuest(page);
   await page.getByRole("button", { name: "Settings" }).click();

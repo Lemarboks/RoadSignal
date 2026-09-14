@@ -15,6 +15,7 @@ import {
   defaultDestination,
   defaultOrigin,
   demoDrivers,
+  type DemoDriver,
   fallbackRoutes,
   initialIncidents,
 } from "./demo-data";
@@ -76,6 +77,7 @@ export function useRoadSignalController() {
   );
   const [fleetQuery, setFleetQuery] = useState("");
   const [fleetStatus, setFleetStatus] = useState("All statuses");
+  const [viewedDriver, setViewedDriver] = useState<DemoDriver | null>(null);
   const [trip, setTrip] = useState<{
     id?: string;
     active: boolean;
@@ -367,6 +369,7 @@ export function useRoadSignalController() {
     ).then(setRoutes);
   }
   async function startTrip() {
+    setViewedDriver(null);
     if (API_ENABLED && dataMode === "api") {
       if (!session) {
         setNotice("Sign in before starting a protected live trip.");
@@ -413,6 +416,34 @@ export function useRoadSignalController() {
     }
     setPage("Live Trips");
     setAudit((a) => [`Trip started on ${route.name}`, ...a]);
+  }
+  function viewDriverTrip(driver: DemoDriver) {
+    if (!driver.activeTrip) {
+      setNotice(`${driver.name} does not have an active trip to monitor.`);
+      return;
+    }
+    const activeTrip = driver.activeTrip;
+    setViewedDriver(driver);
+    setRoutes(fallbackRoutes);
+    setSelected(activeTrip.routeId);
+    setOrigin(activeTrip.origin);
+    setDestination(activeTrip.destination);
+    setResolvedOrigin(null);
+    setResolvedDestination(null);
+    setDataMode("demo");
+    setTrip({
+      active: true,
+      paused: false,
+      progress: activeTrip.progress,
+      score: driver.score,
+      alerts: activeTrip.alerts,
+    });
+    setAudit((current) => [
+      `Opened ${driver.name}'s live fleet trip on ${activeTrip.currentRoad}`,
+      ...current,
+    ]);
+    setNotice(`Monitoring ${driver.name} in ${driver.vehicle}.`);
+    setPage("Live Trips");
   }
   function inject(type = "Accident") {
     const item: Incident = {
@@ -508,6 +539,8 @@ export function useRoadSignalController() {
     setFleetQuery,
     fleetStatus,
     setFleetStatus,
+    viewedDriver,
+    setViewedDriver,
     trip,
     setTrip,
     incidents,
@@ -531,6 +564,7 @@ export function useRoadSignalController() {
     findRoutes,
     useDemoRoutes,
     startTrip,
+    viewDriverTrip,
     inject,
     moderate,
   };

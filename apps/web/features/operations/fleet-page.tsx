@@ -1,8 +1,6 @@
-import { demoDrivers } from "../demo-data";
-import type { AppPage } from "./operations-pages";
+import { demoDrivers, type DemoDriver } from "../demo-data";
 
 const riskClass = (score: number) => score >= 80 ? "low" : score >= 60 ? "medium" : "high";
-type Navigate = (page: AppPage) => void;
 
 export function FleetPage({
   query,
@@ -10,22 +8,21 @@ export function FleetPage({
   visibleDrivers,
   onQueryChange,
   onStatusChange,
-  onNavigate,
   onViewTrip,
 }: {
   query: string;
   status: string;
-  visibleDrivers: Array<(typeof demoDrivers)[number]>;
+  visibleDrivers: DemoDriver[];
   onQueryChange: (query: string) => void;
   onStatusChange: (status: string) => void;
-  onNavigate: Navigate;
-  onViewTrip: (driverName: string) => void;
+  onViewTrip: (driver: DemoDriver) => void;
 }) {
+  const activeTrips = demoDrivers.filter((driver) => driver.activeTrip);
   return (
     <>
       <section className="heading fleet-heading">
         <div>
-          <p className="eyebrow">Driver operations · Demonstration data</p>
+          <p className="eyebrow">Driver operations / Demonstration data</p>
           <h1>Fleet roster</h1>
           <p>
             Find drivers, inspect trip status, and move directly to active
@@ -35,19 +32,19 @@ export function FleetPage({
         <button
           type="button"
           className="primary"
-          onClick={() => onNavigate("Live Trips")}
+          onClick={() => onViewTrip(activeTrips[0])}
         >
-          Monitor live trips
+          Monitor active trips
         </button>
       </section>
       <div className="fleet-summary" aria-label="Fleet status summary">
         <div>
-          <span>Active</span>
+          <span>Drivers online</span>
           <strong>3</strong>
         </div>
         <div>
-          <span>On trip</span>
-          <strong>2</strong>
+          <span>Active trips</span>
+          <strong>{activeTrips.length}</strong>
         </div>
         <div>
           <span>Attention</span>
@@ -103,7 +100,10 @@ export function FleetPage({
             </thead>
             <tbody>
               {visibleDrivers.map((driver) => (
-                <tr key={driver.vehicle}>
+                <tr
+                  className={driver.activeTrip ? "has-active-trip" : undefined}
+                  key={driver.vehicle}
+                >
                   <td data-label="Driver">
                     <strong>{driver.name}</strong>
                     <small>{driver.vehicle}</small>
@@ -125,9 +125,15 @@ export function FleetPage({
                   <td data-label="Action">
                     <button
                       type="button"
-                      onClick={() => onViewTrip(driver.name)}
+                      onClick={() => onViewTrip(driver)}
+                      disabled={!driver.activeTrip}
+                      aria-label={
+                        driver.activeTrip
+                          ? `View ${driver.name}'s active trip`
+                          : `${driver.name} has no active trip`
+                      }
                     >
-                      View trip
+                      {driver.activeTrip ? "View live trip" : "No active trip"}
                     </button>
                   </td>
                 </tr>
