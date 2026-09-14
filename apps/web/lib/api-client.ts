@@ -110,7 +110,9 @@ export class RoadSignalApiClient {
 
   private fetchWithToken(path: string, init: RequestInit) {
     const headers = new Headers(init.headers);
-    if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+    if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
     if (this.accessToken) headers.set("Authorization", `Bearer ${this.accessToken}`);
     return fetch(`${this.baseUrl}${path}`, { ...init, headers, credentials: "include" });
   }

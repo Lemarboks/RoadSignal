@@ -1,0 +1,100 @@
+# Optional local model services. See docs/open-source-stack.md for hardware budgets.
+# Usage: docker compose -f docker-compose.yml -f compose.ai.yml --profile retrieval up -d --build
+services:
+  api:
+    environment:
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_BASE_URL: ${AI_BASE_URL:-http://llm:8000/v1}
+      AI_MODEL: ${AI_MODEL:-gpt-oss-20b}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-45}
+      EMBEDDING_BASE_URL: http://embeddings:8080
+      RERANKER_BASE_URL: http://reranker:8080
+      WHISPER_BASE_URL: http://whisper:8080
+      WHISPER_MODEL: ${WHISPER_MODEL:-small}
+      VALHALLA_URL: ${VALHALLA_URL:-http://valhalla:8002}
+      ROUTE_PROVIDER: ${ROUTE_PROVIDER:-open}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318/v1/traces}
+
+  embeddings:
+    build: { context: ./infrastructure/inference, target: retrieval }
+    image: roadsignal-retrieval:local
+    profiles: [retrieval]
+    environment:
+      MODEL_ROLE: embedding
+      MODEL_ID: Qwen/Qwen3-Embedding-0.6B
+    volumes: ["embedding_models:/models", "./infrastructure/inference/server.py:/service/server.py:ro"]
+    mem_limit: 3g
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ready')"]
+      interval: 30s
+      timeout: 5s
+      retries: 30
+      start_period: 5m
+    restart: unless-stopped
+
+  reranker:
+    build: { context: ./infrastructure/inference, target: retrieval }
+    image: roadsignal-retrieval:local
+    profiles: [rerank]
+    environment:
+      MODEL_ROLE: reranker
+      MODEL_ID: Qwen/Qwen3-Reranker-0.6B
+    volumes: ["reranker_models:/models", "./infrastructure/inference/server.py:/service/server.py:ro"]
+    mem_limit: 3g
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ready')"]
+      interval: 30s
+      timeout: 5s
+      retries: 30
+      start_period: 5m
+    restart: unless-stopped
+
+  whisper:
+    build: { context: ./infrastructure/inference, target: voice }
+    profiles: [voice]
+    environment:
+      MODEL_ROLE: whisper
+      MODEL_ID: ${WHISPER_MODEL:-small}
+    volumes: ["whisper_models:/models", "./infrastructure/inference/server.py:/service/server.py:ro"]
+    mem_limit: 1500m
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ready')"]
+      interval: 30s
+      timeout: 5s
+      retries: 30
+      start_period: 5m
+    restart: unless-stopped
+
+  llm:
+    image: vllm/vllm-openai:v0.11.0
+    profiles: [llm-gpu]
+    command: ["--model", "openai/gpt-oss-20b", "--served-model-name", "gpt-oss-20b", "--max-model-len", "4096", "--gpu-memory-utilization", "0.85"]
+    environment:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      DO_NOT_TRACK: "1"
+    volumes: ["llm_models:/root/.cache/huggingface"]
+    gpus: all
+    shm_size: 2gb
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 30
+      start_period: 10m
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/jaeger:2.10.0
+    profiles: [tracing]
+    ports: ["127.0.0.1:16686:16686"]
+    mem_limit: 384m
+    restart: unless-stopped
+
+volumes:
+  embedding_models: {}
+  reranker_models: {}
+  whisper_models: {}
+  llm_models: {}

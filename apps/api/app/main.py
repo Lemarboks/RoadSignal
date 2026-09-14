@@ -4,10 +4,10 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from .config import settings
-from .middleware import SecurityHeadersMiddleware
+from .middleware import BoundedAudioUploadMiddleware, SecurityHeadersMiddleware
 from .observability import configure_observability
 from .rate_limit import limiter
-from .routers import authentication, emergencies, fleet, incidents, map, realtime, routes, system, trips
+from .routers import assistant, authentication, emergencies, fleet, incidents, map, realtime, routes, system, trips
 
 
 def create_app() -> FastAPI:
@@ -17,6 +17,7 @@ def create_app() -> FastAPI:
         description="Route-risk decision support. Scores are estimates, not guarantees of safety.",
     )
     application.add_middleware(SecurityHeadersMiddleware)
+    application.add_middleware(BoundedAudioUploadMiddleware)
     configure_observability(application)
     application.add_middleware(
         CORSMiddleware,
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
         routes.router,
         trips.router,
         incidents.router,
+        assistant.router,
         map.router,
         fleet.router,
         emergencies.router,
