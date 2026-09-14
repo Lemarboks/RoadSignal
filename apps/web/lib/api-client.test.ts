@@ -58,4 +58,18 @@ describe("RoadSignalApiClient", () => {
       expect.objectContaining({ message: "Choose a less common password", status: 422 }),
     );
   });
+  it("lets the browser set multipart boundaries and preserves authentication for audio uploads", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(response({ access_token: "access", expires_in: 900, user }))
+      .mockResolvedValueOnce(response({ text: "Pothole on the N2" }));
+    const client = new RoadSignalApiClient("https://api.example.test");
+    await client.login(user.email, "a secure password");
+    const body = new FormData();
+    body.append("file", new Blob(["audio"], { type: "audio/wav" }), "incident.wav");
+    await client.request("/api/v1/assistant/transcribe", { method: "POST", body });
+    const init = fetchMock.mock.calls[1][1];
+    expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer access");
+    expect(init?.body).toBe(body);
+  });
 });

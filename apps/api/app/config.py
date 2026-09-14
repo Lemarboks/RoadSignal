@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     log_level: Literal["debug", "info", "warning", "error"] = "info"
     otel_exporter_otlp_endpoint: str = ""
     metrics_bearer_token: str = ""
+    ai_enabled: bool = False
+    ai_base_url: str = ""
+    ai_model: str = "gpt-oss-20b"
+    ai_timeout_seconds: float = 20.0
+    embedding_base_url: str = ""
+    embedding_model: str = "Qwen/Qwen3-Embedding-0.6B"
+    reranker_base_url: str = ""
+    reranker_model: str = "Qwen/Qwen3-Reranker-0.6B"
+    whisper_base_url: str = ""
+    whisper_model: str = "small"
+    ai_max_audio_bytes: int = 10_485_760
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
