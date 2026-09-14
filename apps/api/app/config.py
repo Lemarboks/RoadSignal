@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     whisper_base_url: str = ""
     whisper_model: str = "small"
     ai_max_audio_bytes: int = 10_485_760
+    monitoring_token_file: str = ""
+    monitoring_stale_seconds: int = Field(default=120, ge=30, le=86400)
+    verification_base_url: str = ""
+    vision_base_url: str = ""
+    model_worker_token_file: str = ""
+    monitoring_model_timeout_seconds: float = Field(default=90, ge=1, le=120)
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

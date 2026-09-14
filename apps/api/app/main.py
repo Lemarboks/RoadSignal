@@ -7,7 +7,8 @@ from .config import settings
 from .middleware import BoundedAudioUploadMiddleware, SecurityHeadersMiddleware
 from .observability import configure_observability
 from .rate_limit import limiter
-from .routers import assistant, authentication, emergencies, fleet, incidents, map, realtime, routes, system, trips
+from .routers import assistant, authentication, emergencies, fleet, incidents, map, monitoring, realtime, routes, system, trips
+from .routers import monitoring_models
 
 
 def create_app() -> FastAPI:
@@ -36,6 +37,8 @@ def create_app() -> FastAPI:
         incidents.router,
         assistant.router,
         map.router,
+        monitoring.router,
+        monitoring_models.router,
         fleet.router,
         emergencies.router,
         realtime.router,
