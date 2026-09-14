@@ -19,3 +19,10 @@ backups/
 playwright-report/
 test-results/
 debug.log
+training-data/*
+!training-data/README.md
+# Local agent worktrees, execution screenshots and package caches are not releases.
+/.codex-finish/
+/.codex-route-theme/
+/.pnpm-store/
+/.claude/
