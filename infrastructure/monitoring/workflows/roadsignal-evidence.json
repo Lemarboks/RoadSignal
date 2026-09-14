@@ -1,0 +1,115 @@
+{
+  "id": "roadsignal-evidence",
+  "name": "RoadSignal — evidence comparison and operator review",
+  "active": false,
+  "nodes": [
+    {
+      "id": "evidence-intake",
+      "name": "Evidence intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        160
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "roadsignal-evidence",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "roadsignal-evidence",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "roadsignal-internal",
+          "name": "RoadSignal local automation"
+        }
+      }
+    },
+    {
+      "id": "compare-supplied-evidence",
+      "name": "Compare supplied evidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://verification:8080/verify",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {claim: $json.body.claim, evidence: $json.body.evidence} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "queue-for-operator-review",
+      "name": "Queue for operator review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/api/v1/monitoring/internal/evidence",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {event_id: $('Evidence intake').first().json.body.event_id, source: $('Evidence intake').first().json.body.source, claim: $('Evidence intake').first().json.body.claim, evidence: $('Evidence intake').first().json.body.evidence, analysis: $json} }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "roadsignal-internal",
+          "name": "RoadSignal local automation"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "Evidence intake": {
+      "main": [
+        [
+          {
+            "node": "Compare supplied evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare supplied evidence": {
+      "main": [
+        [
+          {
+            "node": "Queue for operator review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Johannesburg",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all"
+  },
+  "tags": [],
+  "pinData": {}
+}
