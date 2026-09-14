@@ -20,10 +20,10 @@ import {
 } from "./demo-data";
 import type { AppPage } from "./operations/operations-pages";
 import { useBackendData } from "./use-backend-data";
+import { deployment } from "../lib/deployment";
 
-export const API =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+export const API_ENABLED = deployment.backendEnabled;
+export const API = deployment.apiUrl;
 
 type DataMode = "demo" | "public" | "api";
 type ApiRoute = {
@@ -116,6 +116,7 @@ export function useRoadSignalController() {
     fleetAnalyticsSource,
   } = useBackendData({
     apiUrl: API,
+    apiEnabled: API_ENABLED,
     apiClient,
     accessToken: session?.accessToken,
     page,
@@ -240,7 +241,7 @@ export function useRoadSignalController() {
   async function findRoutes() {
     setLoading(true);
     setNotice("");
-    if (API) {
+    if (API_ENABLED) {
       try {
         await findApiRoutes();
         return;
@@ -366,7 +367,7 @@ export function useRoadSignalController() {
     ).then(setRoutes);
   }
   async function startTrip() {
-    if (API && dataMode === "api") {
+    if (API_ENABLED && dataMode === "api") {
       if (!session) {
         setNotice("Sign in before starting a protected live trip.");
         return;
