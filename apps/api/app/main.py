@@ -7,7 +7,7 @@ from .config import settings
 from .middleware import SecurityHeadersMiddleware
 from .observability import configure_observability
 from .rate_limit import limiter
-from .routers import authentication, emergencies, fleet, incidents, realtime, routes, system, trips
+from .routers import authentication, emergencies, fleet, incidents, map, realtime, routes, system, trips
 
 
 def create_app() -> FastAPI:
@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
         routes.router,
         trips.router,
         incidents.router,
+        map.router,
         fleet.router,
         emergencies.router,
         realtime.router,

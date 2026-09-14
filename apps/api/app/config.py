@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     route_provider: str = "open"
     nominatim_url: str = "https://nominatim.openstreetmap.org"
     osrm_url: str = "https://routing.openstreetmap.de/routed-car"
+    valhalla_url: str = "http://valhalla:8002"
     open_meteo_url: str = "https://api.open-meteo.com/v1/forecast"
     provider_timeout_seconds: float = 8.0
     provider_user_agent: str = "RoadSignal/1.0 (self-hostable routing client)"
