@@ -21,6 +21,17 @@ afterEach(() => {
 });
 
 describe("realtime event client", () => {
+  it("uses the current browser origin for same-origin deployments", () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    vi.stubGlobal("window", {
+      location: { origin: "http://showcase.local:3000" },
+    });
+    connectRealtimeEvents({ apiUrl: "", onEvents: () => undefined });
+    expect(FakeWebSocket.instances[0].url).toBe(
+      "ws://showcase.local:3000/api/v1/ws/events",
+    );
+  });
+
   it("authenticates after connection and accepts only valid envelopes", () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
     const received = vi.fn();
