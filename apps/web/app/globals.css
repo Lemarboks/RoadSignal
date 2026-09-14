@@ -491,12 +491,12 @@ main {
 }
 .demo-route-button:hover { background: var(--soft); }
 .place-suggestions {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 3px);
-  left: 0;
-  right: 0;
-  overflow: hidden;
+  position: static;
+  max-height: min(266px, 40vh);
+  margin-top: 6px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--input-border);
   border-radius: 6px;
   background: var(--surface);
@@ -528,6 +528,9 @@ main {
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.place-suggestions button:last-child {
+  border-bottom: 0;
 }
 .routing-attribution {
   margin: 12px 0 0;
