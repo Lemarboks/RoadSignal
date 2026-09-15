@@ -2,10 +2,18 @@ export type RiskLevel = "low" | "medium" | "high" | "critical";
 export type RoutePreference = "safest" | "balanced" | "fastest";
 export type Coordinate = { latitude: number; longitude: number };
 export type RiskBreakdown = { crime: number; accident: number; traffic: number; weather: number; roadCondition: number; community: number };
+export type RouteManeuver =
+  | "depart" | "arrive" | "turn-left" | "turn-right" | "slight-left" | "slight-right"
+  | "sharp-left" | "sharp-right" | "straight" | "uturn" | "roundabout";
+export type RouteStep = {
+  instruction: string; maneuver: RouteManeuver; streetName: string;
+  distanceMeters: number; durationSeconds: number; location: Coordinate;
+};
 export type RouteOption = {
   id: string; name: string; durationMinutes: number; distanceKm: number; safetyScore: number;
   confidence: number; riskLevel: RiskLevel; recommended: boolean; differenceFromFastest: number;
   factors: string[]; breakdown: RiskBreakdown; explanation: string; geometry: Coordinate[];
+  steps: RouteStep[];
 };
 export type Incident = {
   id: string; incidentType: string; severity: number; sourceType: string; verificationStatus: string;
