@@ -1,4 +1,5 @@
 import type { RouteStep } from "@roadsignal/types";
+import type { DistanceUnit } from "./preferences";
 
 export type TurnByTurnState = {
   currentStepIndex: number;
@@ -58,8 +59,13 @@ export function turnByTurnState(
   };
 }
 
-export function formatStepDistance(meters: number): string {
+export function formatStepDistance(meters: number, unit: DistanceUnit = "km"): string {
   if (meters < 30) return "now";
+  if (unit === "mi") {
+    const feet = meters * 3.28084;
+    if (feet < 528) return `${Math.round(feet / 10) * 10} ft`;
+    return `${(meters / 1609.344).toFixed(1)} mi`;
+  }
   if (meters < 1000) return `${Math.round(meters / 10) * 10} m`;
   return `${(meters / 1000).toFixed(1)} km`;
 }
