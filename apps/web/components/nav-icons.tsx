@@ -59,6 +59,12 @@ export const navIcons = {
       <circle cx="13" cy="14" r="1.4" />
     </svg>
   ),
+  "Risk Evidence": (
+    <svg {...shared}>
+      <path d="M10 2.5l6.5 3v4.2c0 4-2.7 6.9-6.5 7.8-3.8-.9-6.5-3.8-6.5-7.8V5.5z" strokeLinejoin="round" />
+      <path d="M7 10l2 2 4-4.5" strokeLinejoin="round" />
+    </svg>
+  ),
   Settings: (
     <svg {...shared}>
       <circle cx="10" cy="10" r="2.6" />

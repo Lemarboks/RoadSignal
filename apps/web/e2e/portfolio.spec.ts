@@ -180,7 +180,7 @@ test("opens an active driver's trip from the fleet roster", async ({ page }) => 
 
 test("explains the risk evidence and blocked training decision", async ({ page }) => {
   await enterAsGuest(page);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Risk Evidence" }).click();
   await expect(page.getByRole("heading", { name: "Risk evidence" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "No trained safety model" })).toBeVisible();
   await expect(page.getByText("Training gate").first()).toBeVisible();
@@ -195,6 +195,32 @@ test("explains the risk evidence and blocked training decision", async ({ page }
     viewportWidth: document.documentElement.clientWidth,
   }));
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+});
+
+test("lets a guest personalise theme, units and voice guidance in Settings", async ({ page }) => {
+  await enterAsGuest(page);
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+
+  await page.getByLabel("Theme").selectOption("dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.getByLabel("Distance units").selectOption("mi");
+
+  await expect(page.getByLabel("Announce trip hazards and turns by voice by default")).toBeChecked();
+  await page.getByLabel("Announce trip hazards and turns by voice by default").uncheck();
+
+  await page.getByLabel("Voice engine").selectOption("voicebox");
+  await expect(page.getByLabel("Voicebox server URL")).toBeVisible();
+  await page.getByRole("button", { name: "Test connection" }).click();
+  await expect(page.getByText(/Couldn.t reach Voicebox/)).toBeVisible();
+
+  await page.reload();
+  await enterAsGuest(page);
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByLabel("Theme")).toHaveValue("dark");
+  await expect(page.getByLabel("Distance units")).toHaveValue("mi");
+  await expect(page.getByLabel("Announce trip hazards and turns by voice by default")).not.toBeChecked();
+  await expect(page.getByLabel("Voice engine")).toHaveValue("voicebox");
 });
 test("has no automatically detectable WCAG A or AA violations", async ({ page }) => {
   await enterAsGuest(page);
