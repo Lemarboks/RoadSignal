@@ -666,6 +666,11 @@ td button,
   color: var(--red);
   border-color: #dfaaaa;
 }
+.actions button[aria-pressed="true"] {
+  border-color: var(--blue);
+  background: var(--tint-blue-bg);
+  color: var(--tint-blue-ink);
+}
 .timeline {
   border-left: 2px solid #bdd2e1;
   padding: 4px 0 14px 15px;
