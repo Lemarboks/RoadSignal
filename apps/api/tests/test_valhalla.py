@@ -70,6 +70,32 @@ def test_valhalla_requests_auto_alternatives_and_decodes_southern_hemisphere_geo
     assert routes[0]["name"] == "N2"
 
 
+def test_valhalla_extracts_turn_by_turn_steps(monkeypatch):
+    points = [[-33.941, 18.452], [-33.95, 18.47], [-33.963, 18.478]]
+
+    def handler(request):
+        if request.url.path == "/search":
+            return httpx.Response(200, json=[{"lat": "-33.941", "lon": "18.452"}])
+        return httpx.Response(200, json={"trip": trip(points, legs=[{
+            "shape": encode_polyline6(points),
+            "maneuvers": [
+                {"type": 1, "instruction": "Drive north on Main Road.", "street_names": ["Main Road"], "length": 0.5, "time": 60, "begin_shape_index": 0},
+                {"type": 15, "instruction": "Turn left onto N2.", "street_names": ["N2"], "length": 4.2, "time": 240, "begin_shape_index": 1},
+                {"type": 4, "instruction": "Arrive at your destination.", "street_names": [], "length": 0, "time": 0, "begin_shape_index": 2},
+            ],
+        }])})
+
+    mock_client(monkeypatch, handler)
+    provider = ValhallaRouteProvider("https://geo.test", "https://valhalla.test", 5, "test")
+    routes = asyncio.run(provider.alternatives("Cape Town", "Airport"))
+
+    steps = routes[0]["steps"]
+    assert [step["maneuver"] for step in steps] == ["depart", "turn-left", "arrive"]
+    assert steps[1]["instruction"] == "Turn left onto N2."
+    assert steps[1]["distance_meters"] == 4200.0
+    assert steps[1]["location"] == {"latitude": points[1][0], "longitude": points[1][1]}
+
+
 @pytest.mark.parametrize("encoded", ["", "_", "~" * 20, "a", "\n", "??"])
 def test_polyline_rejects_truncated_or_invalid_shapes(encoded):
     with pytest.raises(ValueError):

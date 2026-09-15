@@ -184,6 +184,31 @@ main {
 .grid.live {
   grid-template-columns: 1.6fr 1fr;
 }
+.live-map-frame {
+  position: relative;
+  min-width: 0;
+}
+.expand-navigation {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid rgba(32, 33, 29, 0.14);
+  border-radius: 999px;
+  background: rgba(253, 253, 249, 0.96);
+  color: #20211d;
+  font-size: 12px;
+  font-weight: 750;
+  box-shadow: 0 5px 18px rgba(32, 33, 29, 0.1);
+  cursor: pointer;
+}
+.expand-navigation:hover {
+  background: #fff;
+}
 .panel h2 {
   font-size: 17px;
   margin: 0 0 15px;
