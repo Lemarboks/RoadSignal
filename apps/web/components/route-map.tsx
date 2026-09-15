@@ -92,6 +92,12 @@ function routeFeatures(routes: RouteOption[], selected: string, telemetry = fals
   };
 }
 
+/** i-traffic serves a fresh JPEG per request; a changing param defeats the cache. */
+function cameraFrameUrl(url: string, frame: number) {
+  if (!frame) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}t=${frame}`;
+}
+
 function ExpandIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -458,6 +464,8 @@ export function RouteMap({
   const [selectedWeatherId, setSelectedWeatherId] = useState<string | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [cameraExpanded, setCameraExpanded] = useState(false);
+  const [cameraFrame, setCameraFrame] = useState(0);
   useTelemetryMarkers(map, status === "ready", telemetry);
   const selectedCell = cells?.data?.features.find((cell) => cell.id === selectedCellId);
   const selectedWildfire = selectedWildfireIndex != null ? hazards?.wildfires.data[selectedWildfireIndex] : undefined;
@@ -664,12 +672,15 @@ export function RouteMap({
     return () => observer.disconnect();
   }, []);
 
-  // Expanded map behaves like a lightbox: Escape closes it and the page behind
-  // must not scroll. The ResizeObserver above re-fits MapLibre to the new size.
+  // Expanded map and the full-screen camera both behave like lightboxes: Escape
+  // closes them and the page behind must not scroll. The camera sits on top of
+  // the map, so it unwinds first. The ResizeObserver above re-fits MapLibre.
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded && !cameraExpanded) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setExpanded(false);
+      if (event.key !== "Escape") return;
+      if (cameraExpanded) setCameraExpanded(false);
+      else setExpanded(false);
     };
     window.addEventListener("keydown", onKeyDown);
     const previousOverflow = document.body.style.overflow;
@@ -678,7 +689,12 @@ export function RouteMap({
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [expanded]);
+  }, [expanded, cameraExpanded]);
+
+  // Deselecting the camera (or hiding the layer) must not leave the viewer open.
+  useEffect(() => {
+    if (cameraExpanded && (!selectedCamera || !showCameras)) setCameraExpanded(false);
+  }, [cameraExpanded, selectedCamera, showCameras]);
 
   useEffect(() => {
     const instance = map.current;
@@ -865,7 +881,19 @@ export function RouteMap({
             <button type="button" onClick={() => setSelectedCameraId(null)} aria-label="Close camera details">Close</button>
           </header>
           {selectedCamera.feed_type === "image" ? (
-            <img className="camera-feed-image" src={selectedCamera.feed_url} alt={`Live still from ${selectedCamera.name}`} />
+            <button
+              type="button"
+              className="camera-feed-button"
+              onClick={() => setCameraExpanded(true)}
+              aria-label={`View ${selectedCamera.name} full screen`}
+            >
+              <img
+                className="camera-feed-image"
+                src={cameraFrameUrl(selectedCamera.feed_url, cameraFrame)}
+                alt={`Live still from ${selectedCamera.name}`}
+              />
+              <span className="camera-feed-hint"><ExpandIcon expanded={false} />Full screen</span>
+            </button>
           ) : (
             <p>Live video feed available via the source provider.</p>
           )}
@@ -931,6 +959,40 @@ export function RouteMap({
               ))}</ul>
             </details>
           )}
+        </div>
+      )}
+      {cameraExpanded && selectedCamera && selectedCamera.feed_type === "image" && (
+        <div
+          className="camera-viewer"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${selectedCamera.name} full screen`}
+          onClick={() => setCameraExpanded(false)}
+        >
+          <div className="camera-viewer-inner" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <div>
+                <span>Traffic camera</span>
+                <strong>{selectedCamera.name}</strong>
+              </div>
+              <div className="camera-viewer-actions">
+                <button type="button" onClick={() => setCameraFrame((frame) => frame + 1)}>
+                  Refresh
+                </button>
+                <button type="button" onClick={() => setCameraExpanded(false)} aria-label="Close full-screen camera">
+                  Close
+                </button>
+              </div>
+            </header>
+            <img
+              src={cameraFrameUrl(selectedCamera.feed_url, cameraFrame)}
+              alt={`Live still from ${selectedCamera.name}`}
+            />
+            <small>
+              Source: {selectedCamera.source || "opencctv.org"} public traffic camera network ·
+              low-resolution stills refreshed on demand, not continuous video · press Escape to close
+            </small>
+          </div>
         </div>
       )}
     </div>
