@@ -1,0 +1,91 @@
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  max-width: 900px;
+}
+.settings-section {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  padding: 24px;
+}
+.settings-section h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.settings-field {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.settings-field select,
+.settings-field input[type="text"] {
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+}
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.settings-toggle input {
+  width: 17px;
+  height: 17px;
+}
+.voicebox-config {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.voicebox-config > button {
+  justify-self: start;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.settings-status {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 650;
+}
+.settings-status.ok {
+  color: var(--green);
+}
+.settings-status.error {
+  color: var(--red);
+}
+.settings-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.settings-note code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--soft);
+  font-size: 10px;
+}
+@media (max-width: 700px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}

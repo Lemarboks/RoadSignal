@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import type { RouteManeuver, RouteOption } from "@roadsignal/types";
 import { RouteMap as MapView } from "./route-map";
 import { formatStepDistance, turnByTurnState } from "../lib/turn-by-turn";
+import { formatDistanceKm, loadPreferences } from "../lib/preferences";
 import { useTurnAnnouncements } from "../features/trips/use-turn-announcements";
 
 const TURN_ROTATION: Partial<Record<RouteManeuver, number>> = {
@@ -90,6 +92,7 @@ export function TurnByTurnNavigation({
   onToggleVoice: () => void;
   onClose: () => void;
 }) {
+  const [unit] = useState(() => loadPreferences().distanceUnit);
   const state = turnByTurnState(route.steps, progress, route.distanceKm, route.durationMinutes);
   useTurnAnnouncements(state.currentStep, voiceEnabled);
   const maneuver = state.currentStep?.maneuver ?? "straight";
@@ -103,7 +106,7 @@ export function TurnByTurnNavigation({
             {state.currentStep?.instruction ?? `Following ${route.name}`}
           </strong>
           {state.currentStep && state.currentStep.maneuver !== "arrive" && (
-            <span>{formatStepDistance(state.distanceToNextStepMeters)}</span>
+            <span>{formatStepDistance(state.distanceToNextStepMeters, unit)}</span>
           )}
         </div>
       </header>
@@ -116,7 +119,7 @@ export function TurnByTurnNavigation({
         </button>
         <div className="turn-nav-summary">
           <strong>{state.remainingMinutes} min</strong>
-          <span>{state.remainingDistanceKm.toFixed(1)} km</span>
+          <span>{formatDistanceKm(state.remainingDistanceKm, unit)}</span>
         </div>
         <button
           type="button"
