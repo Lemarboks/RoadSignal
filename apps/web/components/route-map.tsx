@@ -92,6 +92,28 @@ function routeFeatures(routes: RouteOption[], selected: string, telemetry = fals
   };
 }
 
+function ExpandIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {expanded ? (
+        <>
+          <path d="M9 3H4v5" />
+          <path d="M11 17h5v-5" />
+          <path d="M4 3l5 5" />
+          <path d="M16 17l-5-5" />
+        </>
+      ) : (
+        <>
+          <path d="M12 2h6v6" />
+          <path d="M8 18H2v-6" />
+          <path d="M18 2l-7 7" />
+          <path d="M2 18l7-7" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function wildfireFeatures(hotspots: WildfireHotspot[]) {
   return {
     type: "FeatureCollection" as const,
@@ -435,6 +457,7 @@ export function RouteMap({
   const [selectedWildfireIndex, setSelectedWildfireIndex] = useState<number | null>(null);
   const [selectedWeatherId, setSelectedWeatherId] = useState<string | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   useTelemetryMarkers(map, status === "ready", telemetry);
   const selectedCell = cells?.data?.features.find((cell) => cell.id === selectedCellId);
   const selectedWildfire = selectedWildfireIndex != null ? hazards?.wildfires.data[selectedWildfireIndex] : undefined;
@@ -641,6 +664,22 @@ export function RouteMap({
     return () => observer.disconnect();
   }, []);
 
+  // Expanded map behaves like a lightbox: Escape closes it and the page behind
+  // must not scroll. The ResizeObserver above re-fits MapLibre to the new size.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded]);
+
   useEffect(() => {
     const instance = map.current;
     if (!instance) return;
@@ -728,7 +767,7 @@ export function RouteMap({
   }, [activeRoute, progress, status, Boolean(telemetry)]);
 
   return (
-    <div className="map-frame">
+    <div className={`map-frame${expanded ? " is-expanded" : ""}`}>
       {cells && (
         <div className="map-layer-toolbar">
           <button type="button" aria-pressed={showCells} onClick={() => { setShowCells(!showCells); setSelectedCellId(null); }}>
@@ -776,6 +815,16 @@ export function RouteMap({
         </span>
         {telemetry ? <strong>Demo GPS + sensor replay</strong> : previewRoute && <strong>{previewRoute.name} · {previewRoute.durationMinutes} min · {previewRoute.safetyScore}/100</strong>}
       </div>
+      <button
+        type="button"
+        className="map-expand"
+        aria-expanded={expanded}
+        aria-label={expanded ? "Exit full-screen map" : "Expand map to full screen"}
+        title={expanded ? "Exit full screen (Esc)" : "Expand map to full screen"}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        <ExpandIcon expanded={expanded} />
+      </button>
       {status !== "ready" ? (
         <SchematicFallback
           routes={routes}
