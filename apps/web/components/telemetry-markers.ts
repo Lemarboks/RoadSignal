@@ -16,7 +16,7 @@ export function useTelemetryMarkers(map: React.RefObject<MapLibreMap | null>, re
     const instance = map.current;
     let cancelled = false, frame = 0;
     const movements: { marker: Marker; from: [number, number]; to: [number, number] }[] = [];
-    void import("maplibre-gl").then(({ default: maplibregl }) => {
+    void import("maplibre-gl").then((maplibregl) => {
       if (cancelled) return;
       const visibleIds = new Set<string>();
       for (const reading of [...telemetry.sensors, ...telemetry.vehicles]) {

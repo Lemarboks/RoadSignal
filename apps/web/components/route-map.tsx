@@ -411,7 +411,7 @@ export function RouteMap({
     }, 8_000);
 
     void import("maplibre-gl")
-      .then(({ default: maplibregl }) => {
+      .then((maplibregl) => {
         if (cancelled || !container.current) return;
         const instance = new maplibregl.Map({
           container: container.current,
@@ -542,7 +542,7 @@ export function RouteMap({
     const instance = map.current;
     if (!instance || status !== "ready") return;
     let cancelled = false;
-    void import("maplibre-gl").then(({ default: maplibregl }) => {
+    void import("maplibre-gl").then((maplibregl) => {
       if (cancelled) return;
       const start = activeRoute?.geometry[0];
       const end = activeRoute?.geometry.at(-1);
@@ -588,7 +588,7 @@ export function RouteMap({
     const instance = map.current;
     const point = pointAtProgress(activeRoute, progress);
     if (!instance || !point || status !== "ready" || telemetry) return;
-    void import("maplibre-gl").then(({ default: maplibregl }) => {
+    void import("maplibre-gl").then((maplibregl) => {
       if (!driverMarker.current) {
         const element = document.createElement("div");
         element.className = "driver-marker";
