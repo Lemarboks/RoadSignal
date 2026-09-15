@@ -1,8 +1,11 @@
+import { useState } from "react";
 import type { Incident, RouteOption } from "@roadsignal/types";
 import { Metric } from "../../components/metric";
 import { RouteMap as MapView } from "../../components/route-map";
 import type { RouteWeather } from "../../lib/open-weather";
+import { voiceAlertsSupported } from "../../lib/voice-alerts";
 import type { DemoDriver } from "../demo-data";
+import { useVoiceAlerts } from "./use-voice-alerts";
 
 const riskClass = (score: number) =>
   score >= 80 ? "low" : score >= 60 ? "medium" : "high";
@@ -58,6 +61,9 @@ export function LiveTripPage({
         ),
       )
     : Math.max(1, Math.round(29 * (1 - trip.progress / 100)));
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const voiceSupported = voiceAlertsSupported();
+  useVoiceAlerts(trip.alerts, voiceSupported && voiceEnabled);
   return (
     <>
       <section className="heading">
@@ -141,6 +147,16 @@ export function LiveTripPage({
             </div>
           ))}
           <div className="actions">
+            {voiceSupported && (
+              <button
+                type="button"
+                aria-pressed={voiceEnabled}
+                title="Speaks trip alerts aloud using a female voice"
+                onClick={() => setVoiceEnabled((current) => !current)}
+              >
+                Voice alerts {voiceEnabled ? "on" : "off"}
+              </button>
+            )}
             <button type="button" onClick={onTogglePause}>
               {trip.paused ? "Resume" : "Pause"}
             </button>
