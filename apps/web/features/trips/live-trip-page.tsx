@@ -4,6 +4,7 @@ import { Metric } from "../../components/metric";
 import { RouteMap as MapView } from "../../components/route-map";
 import type { RouteWeather } from "../../lib/open-weather";
 import { voiceAlertsSupported } from "../../lib/voice-alerts";
+import { TurnByTurnNavigation } from "../../components/turn-by-turn-navigation";
 import type { DemoDriver } from "../demo-data";
 import { useVoiceAlerts } from "./use-voice-alerts";
 
@@ -64,6 +65,19 @@ export function LiveTripPage({
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const voiceSupported = voiceAlertsSupported();
   useVoiceAlerts(trip.alerts, voiceSupported && voiceEnabled);
+  const [navigating, setNavigating] = useState(false);
+  const activeRoute = routes.find((candidate) => candidate.id === selected);
+  if (navigating && activeRoute) {
+    return (
+      <TurnByTurnNavigation
+        route={activeRoute}
+        progress={trip.progress}
+        voiceEnabled={voiceSupported && voiceEnabled}
+        onToggleVoice={() => setVoiceEnabled((current) => !current)}
+        onClose={() => setNavigating(false)}
+      />
+    );
+  }
   return (
     <>
       <section className="heading">
@@ -85,15 +99,29 @@ export function LiveTripPage({
         </div>
       </section>
       <div className="grid live">
-        <MapView
-          routes={routes}
-          selected={selected}
-          progress={trip.progress}
-          weather={weather}
-          weatherStatus={weatherStatus}
-          incidents={incidents}
-          onSelectRoute={onSelectRoute}
-        />
+        <div className="live-map-frame">
+          <MapView
+            routes={routes}
+            selected={selected}
+            progress={trip.progress}
+            weather={weather}
+            weatherStatus={weatherStatus}
+            incidents={incidents}
+            onSelectRoute={onSelectRoute}
+          />
+          {activeRoute && activeRoute.steps.length > 0 && (
+            <button
+              type="button"
+              className="expand-navigation"
+              onClick={() => setNavigating(true)}
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M7 3H3v4M13 3h4v4M17 13v4h-4M3 13v4h4" />
+              </svg>
+              Navigate
+            </button>
+          )}
+        </div>
         <section className="panel">
           {driver && driverTrip && (
             <div className="fleet-trip-driver" aria-label="Driver trip details">

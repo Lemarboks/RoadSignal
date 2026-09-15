@@ -2,8 +2,10 @@ import type {
   Coordinate,
   Incident,
   RiskBreakdown,
+  RouteManeuver,
   RouteOption,
   RoutePreference,
+  RouteStep,
 } from "@roadsignal/types";
 
 const NOMINATIM_URL =
@@ -49,12 +51,24 @@ type PhotonResponse = {
   }>;
 };
 
+type OsrmManeuver = {
+  type: string;
+  modifier?: string;
+  location: [number, number];
+};
+type OsrmStep = {
+  name: string;
+  ref?: string;
+  distance: number;
+  duration: number;
+  maneuver: OsrmManeuver;
+};
 type OsrmRoute = {
   distance: number;
   duration: number;
   geometry: { coordinates: [number, number][] };
   legs: Array<{
-    steps?: Array<{ name: string; ref?: string }>;
+    steps?: OsrmStep[];
   }>;
 };
 
@@ -344,6 +358,74 @@ function scoreGeometry(geometry: Coordinate[], incidents: Incident[]) {
   };
 }
 
+const OSRM_MODIFIER_TEXT: Record<string, string> = {
+  uturn: "Make a U-turn",
+  "sharp right": "Turn sharp right",
+  right: "Turn right",
+  "slight right": "Turn slightly right",
+  straight: "Continue straight",
+  "slight left": "Turn slightly left",
+  left: "Turn left",
+  "sharp left": "Turn sharp left",
+};
+const OSRM_MODIFIER_MANEUVER: Record<string, RouteManeuver> = {
+  uturn: "uturn",
+  "sharp right": "sharp-right",
+  right: "turn-right",
+  "slight right": "slight-right",
+  straight: "straight",
+  "slight left": "slight-left",
+  left: "turn-left",
+  "sharp left": "sharp-left",
+};
+const OSRM_ROUNDABOUT_TYPES = new Set([
+  "roundabout",
+  "rotary",
+  "roundabout turn",
+  "exit rotary",
+  "exit roundabout",
+]);
+
+function stepFromOsrm(step: OsrmStep): RouteStep | null {
+  const location = step.maneuver?.location;
+  if (!location || location.length !== 2) return null;
+  const [longitude, latitude] = location;
+  const name = step.ref || step.name || "";
+  const type = step.maneuver.type;
+  const modifier = step.maneuver.modifier ?? "";
+  let instruction: string;
+  let maneuver: RouteManeuver;
+  if (type === "depart") {
+    instruction = name ? `Head toward ${name}` : "Head toward your destination";
+    maneuver = "depart";
+  } else if (type === "arrive") {
+    instruction = "Arrive at your destination";
+    maneuver = "arrive";
+  } else if (OSRM_ROUNDABOUT_TYPES.has(type)) {
+    instruction = name ? `Take the roundabout onto ${name}` : "Take the roundabout";
+    maneuver = "roundabout";
+  } else {
+    const base = OSRM_MODIFIER_TEXT[modifier] ?? "Continue";
+    instruction = name ? `${base} onto ${name}` : base;
+    maneuver = OSRM_MODIFIER_MANEUVER[modifier] ?? "straight";
+  }
+  return {
+    instruction,
+    maneuver,
+    streetName: name,
+    distanceMeters: Math.round(step.distance * 10) / 10,
+    durationSeconds: Math.round(step.duration * 10) / 10,
+    location: { latitude, longitude },
+  };
+}
+
+function stepsFromRoute(route: OsrmRoute): RouteStep[] {
+  return route.legs
+    .flatMap((leg) => leg.steps ?? [])
+    .map(stepFromOsrm)
+    .filter((step): step is RouteStep => step !== null);
+}
+
 function corridorName(route: OsrmRoute, index: number) {
   const names = route.legs
     .flatMap((leg) => leg.steps ?? [])
@@ -494,6 +576,7 @@ export async function analyseOpenRoutes(
       breakdown: scored.breakdown,
       explanation: `This road-following alternative uses ${corridorName(roadRoute, index)} and is assessed against current demonstration incidents and Cape Town risk zones.`,
       geometry,
+      steps: stepsFromRoute(roadRoute),
     };
   });
 

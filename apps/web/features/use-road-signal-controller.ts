@@ -49,6 +49,14 @@ type ApiRoute = {
   };
   explanation: string;
   geometry: RouteOption["geometry"];
+  steps: Array<{
+    instruction: string;
+    maneuver: RouteOption["steps"][number]["maneuver"];
+    street_name: string;
+    distance_meters: number;
+    duration_seconds: number;
+    location: RouteOption["geometry"][number];
+  }>;
 };
 type WeatherStatus = "loading" | "ready" | "unavailable";
 type LocationPermissionStatus =
@@ -346,6 +354,14 @@ export function useRoadSignalController() {
         },
         explanation: r.explanation,
         geometry: r.geometry,
+        steps: (r.steps ?? []).map((step) => ({
+          instruction: step.instruction,
+          maneuver: step.maneuver,
+          streetName: step.street_name,
+          distanceMeters: step.distance_meters,
+          durationSeconds: step.duration_seconds,
+          location: step.location,
+        })),
       }));
       setRoutes(apiRoutes);
       setSelected(

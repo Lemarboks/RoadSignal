@@ -22,11 +22,11 @@ def _handler(osrm_routes):
     return handle
 
 
-def _osrm_route(duration=1200, distance=15000):
+def _osrm_route(duration=1200, distance=15000, steps=None):
     return {
         "duration": duration,
         "distance": distance,
-        "legs": [{"steps": []}],
+        "legs": [{"steps": steps if steps is not None else []}],
         "geometry": {"coordinates": [[18.4, -33.9], [18.5, -33.95]]},
     }
 
@@ -65,6 +65,44 @@ def test_resilient_provider_reports_open_source_for_a_single_live_alternative(mo
 
     assert resilient.last_source == "open"
     assert len(routes) == 1
+
+
+def test_open_route_provider_extracts_turn_by_turn_steps(monkeypatch):
+    steps = [
+        {
+            "name": "Long Street", "ref": "", "distance": 500.0, "duration": 60.0,
+            "maneuver": {"type": "depart", "location": [18.4, -33.9]},
+        },
+        {
+            "name": "N2", "ref": "N2", "distance": 4200.0, "duration": 240.0,
+            "maneuver": {"type": "turn", "modifier": "left", "location": [18.45, -33.92]},
+        },
+        {
+            "name": "", "ref": "", "distance": 0.0, "duration": 0.0,
+            "maneuver": {"type": "arrive", "location": [18.5, -33.95]},
+        },
+    ]
+    monkeypatch.setattr(httpx, "AsyncClient", _mock_client_factory(_handler([_osrm_route(steps=steps)])))
+    provider = OpenRouteProvider("https://nominatim.example", "https://osrm.example", 5.0, "test-agent")
+
+    routes = asyncio.run(provider.alternatives("Origin", "Destination"))
+
+    parsed = routes[0]["steps"]
+    assert [step["maneuver"] for step in parsed] == ["depart", "turn-left", "arrive"]
+    assert parsed[1]["instruction"] == "Turn left onto N2"
+    assert parsed[1]["location"] == {"latitude": -33.92, "longitude": 18.45}
+    assert parsed[2]["instruction"] == "Arrive at your destination"
+
+
+def test_mock_route_provider_includes_turn_by_turn_steps():
+    routes = asyncio.run(MockCapeTownRouteProvider().alternatives("Origin", "Destination"))
+
+    for route in routes:
+        assert len(route["steps"]) >= 2
+        assert route["steps"][0]["maneuver"] == "depart"
+        assert route["steps"][-1]["maneuver"] == "arrive"
+        for step in route["steps"]:
+            assert "instruction" in step and "location" in step
 
 
 def test_resilient_provider_falls_back_when_osrm_returns_no_routes(monkeypatch):

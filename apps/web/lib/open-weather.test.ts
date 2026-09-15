@@ -101,6 +101,7 @@ describe("open weather adapter", () => {
       },
       explanation: "Test route.",
       geometry: demoRouteGeometry["route-balanced"],
+      steps: [],
     };
     const weather: RouteWeather = {
       temperatureC: 15,

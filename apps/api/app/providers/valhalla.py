@@ -10,6 +10,35 @@ import httpx
 
 from .routes import OpenRouteProvider
 
+_VALHALLA_MANEUVER = {
+    1: "depart", 2: "depart", 3: "depart",
+    4: "arrive", 5: "arrive", 6: "arrive",
+    7: "straight", 8: "straight", 17: "straight", 22: "straight", 25: "straight",
+    9: "slight-right", 16: "slight-left",
+    10: "turn-right", 15: "turn-left",
+    11: "sharp-right", 14: "sharp-left",
+    12: "uturn", 13: "uturn", 37: "uturn",
+    18: "slight-right", 19: "slight-left", 20: "slight-right", 21: "slight-left",
+    23: "turn-right", 24: "turn-left",
+    26: "roundabout", 27: "roundabout",
+}
+
+
+def _valhalla_step(maneuver: dict, points: list[list[float]]) -> dict | None:
+    index = maneuver.get("begin_shape_index")
+    if not isinstance(index, int) or index < 0 or index >= len(points):
+        return None
+    latitude, longitude = points[index]
+    street_names = [name for name in maneuver.get("street_names", []) if isinstance(name, str) and name]
+    return {
+        "instruction": maneuver.get("instruction") or "Continue",
+        "maneuver": _VALHALLA_MANEUVER.get(maneuver.get("type"), "straight"),
+        "street_name": ", ".join(street_names[:2]),
+        "distance_meters": round(float(maneuver.get("length", 0)) * 1000, 1),
+        "duration_seconds": round(float(maneuver.get("time", 0)), 1),
+        "location": {"latitude": latitude, "longitude": longitude},
+    }
+
 
 def decode_polyline6(encoded: str) -> list[list[float]]:
     if not isinstance(encoded, str) or not encoded:
@@ -84,13 +113,17 @@ class ValhallaRouteProvider(OpenRouteProvider):
                     distance *= 1.609344
                 geometry = []
                 names = []
+                steps = []
                 for leg in trip["legs"]:
                     points = decode_polyline6(leg["shape"])
-                    geometry.extend(points[1:] if geometry and geometry[-1] == points[0] else points)
                     for maneuver in leg.get("maneuvers", []):
                         for name in maneuver.get("street_names", []):
                             if isinstance(name, str) and name and name not in names:
                                 names.append(name)
+                        parsed = _valhalla_step(maneuver, points)
+                        if parsed:
+                            steps.append(parsed)
+                    geometry.extend(points[1:] if geometry and geometry[-1] == points[0] else points)
                 if len(geometry) < 2:
                     raise ValueError("Valhalla returned no route geometry")
                 routes.append({
@@ -99,6 +132,7 @@ class ValhallaRouteProvider(OpenRouteProvider):
                     "duration_minutes": max(1, round(seconds / 60)),
                     "distance_km": round(distance, 1),
                     "geometry": geometry,
+                    "steps": steps,
                 })
             return routes
         except (KeyError, TypeError, AttributeError, IndexError, OverflowError) as exc:
