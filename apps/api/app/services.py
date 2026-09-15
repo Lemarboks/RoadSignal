@@ -4,9 +4,12 @@ from uuid import uuid4
 
 from .config import settings
 from .events import event_bus
+from .providers.cctv import CctvCameraProvider
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
+from .providers.severe_events import SevereEventHazardProvider
 from .providers.valhalla import ValhallaRouteProvider
 from .providers.weather import OpenMeteoWeatherProvider
+from .providers.wildfire import WildfireHazardProvider
 from .repositories import repository, serialise
 from .risk.engine import RiskIncident
 
@@ -36,6 +39,10 @@ if settings.route_provider == "valhalla":
 else:
     route_provider = open_route_provider if settings.route_provider == "open" else fallback_provider
 weather_provider = OpenMeteoWeatherProvider(settings.open_meteo_url, settings.provider_timeout_seconds)
+hazard_bbox = (settings.hazard_bbox_south, settings.hazard_bbox_north, settings.hazard_bbox_west, settings.hazard_bbox_east)
+wildfire_provider = WildfireHazardProvider(settings.provider_timeout_seconds, hazard_bbox)
+severe_event_provider = SevereEventHazardProvider(settings.eonet_url, settings.provider_timeout_seconds, hazard_bbox)
+cctv_provider = CctvCameraProvider(settings.cctv_timeout_seconds, hazard_bbox)
 
 
 def clear_route_analysis_cache() -> None:

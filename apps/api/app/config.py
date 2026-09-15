@@ -22,7 +22,13 @@ class Settings(BaseSettings):
     osrm_url: str = "https://routing.openstreetmap.de/routed-car"
     valhalla_url: str = "http://valhalla:8002"
     open_meteo_url: str = "https://api.open-meteo.com/v1/forecast"
+    eonet_url: str = "https://eonet.gsfc.nasa.gov/api/v3/events"
+    hazard_bbox_south: float = -35.0
+    hazard_bbox_north: float = -32.5
+    hazard_bbox_west: float = 17.5
+    hazard_bbox_east: float = 20.0
     provider_timeout_seconds: float = 8.0
+    cctv_timeout_seconds: float = 25.0
     provider_user_agent: str = "RoadSignal/1.0 (self-hostable routing client)"
     cors_origins: str = "http://localhost:3000,http://localhost:8081"
     environment: Literal["development", "test", "production"] = "development"
