@@ -8,7 +8,62 @@
 }
 .map-layer-toolbar button[aria-pressed="true"],.cell-area-list button[aria-pressed="true"] { border-color:var(--blue); background:var(--tint-blue-bg); color:var(--tint-blue-ink); }
 .hazard-layer-toolbar { margin-top:-2px; margin-bottom:10px; }
-.camera-feed-image { width:100%; margin:10px 0; border:1px solid rgba(32,33,29,.18); border-radius:8px; }
+/* Full-screen map. Sits left of MapLibre's zoom controls (top-right, ~39px wide). */
+.map-expand {
+  position:absolute; z-index:4; top:12px; right:48px;
+  display:grid; place-items:center; width:32px; height:32px; padding:0;
+  border:1px solid rgba(32,33,29,.18); border-radius:8px;
+  background:rgba(253,253,249,.96); color:#20211d;
+  box-shadow:0 5px 18px rgba(32,33,29,.1); cursor:pointer;
+}
+.map-expand:hover { background:#fff; }
+.map-expand:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.map-frame.is-expanded {
+  position:fixed; inset:0; z-index:95; margin:0; padding:12px;
+  display:flex; flex-direction:column; gap:10px; overflow:auto; background:var(--bg);
+}
+/* Let the map claim the leftover height instead of its fixed min-height. */
+.map-frame.is-expanded .map { flex:1; min-height:0; }
+.map-frame.is-expanded .maplibre-canvas { min-height:0; }
+.map-frame.is-expanded .map-layer-toolbar,
+.map-frame.is-expanded .map-cell-summary { flex:none; margin-bottom:0; }
+/* Turn-by-turn already fills the screen, so a second expand control is noise. */
+.turn-nav-map .map-expand { display:none; }
+@media (pointer:coarse) { .map-expand { width:44px; height:44px; } }
+@media (forced-colors:active) { .map-expand { forced-color-adjust:none; border:1px solid CanvasText; } }
+.camera-feed-image { width:100%; border:1px solid rgba(32,33,29,.18); border-radius:8px; display:block; }
+/* Thumbnail doubles as the full-screen trigger. */
+.camera-feed-button { position:relative; display:block; width:100%; margin:10px 0; padding:0; border:0; background:none; cursor:pointer; }
+.camera-feed-button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.camera-feed-hint {
+  position:absolute; right:6px; bottom:6px; display:inline-flex; align-items:center; gap:4px;
+  padding:3px 7px; border-radius:6px; background:rgba(12,12,10,.72); color:#fff;
+  font-size:10px; font-weight:750;
+}
+.camera-feed-button:hover .camera-feed-hint { background:rgba(12,12,10,.88); }
+/* Full-screen camera viewer: sits above the expanded map (z-index 95). */
+.camera-viewer { position:fixed; inset:0; z-index:110; display:grid; place-items:center; padding:20px; background:rgba(12,12,10,.88); }
+.camera-viewer-inner {
+  display:grid; gap:10px; width:min(1100px,100%); max-height:100%;
+  padding:14px 16px; border-radius:12px; background:var(--surface); color:var(--ink);
+  box-shadow:0 24px 60px rgba(0,0,0,.4);
+}
+.camera-viewer header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.camera-viewer header span { display:block; color:#a6363e; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+.camera-viewer header strong { display:block; margin-top:2px; font-size:16px; }
+.camera-viewer-actions { display:flex; flex:none; gap:8px; }
+.camera-viewer-actions button {
+  min-height:34px; padding:6px 12px; border:1px solid var(--input-border); border-radius:8px;
+  background:var(--surface); color:var(--ink); font:inherit; font-size:12px; font-weight:650; cursor:pointer;
+}
+.camera-viewer-actions button:hover { background:var(--tint-bg); }
+.camera-viewer img { width:100%; max-height:74vh; object-fit:contain; border-radius:8px; background:#0c0c0a; }
+.camera-viewer small { color:var(--muted); font-size:11px; line-height:1.5; }
+@media (max-width:560px) {
+  .camera-viewer { padding:10px; }
+  .camera-viewer header { flex-direction:column; gap:10px; }
+  .camera-viewer img { max-height:60vh; }
+}
 .map-cell-summary { padding:10px 2px; }
 .map-cell-summary p { margin:0 0 8px; }
 .cell-legend { display:flex; flex-wrap:wrap; gap:8px 16px; font-size:12px; }
