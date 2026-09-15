@@ -8,6 +8,29 @@
 }
 .map-layer-toolbar button[aria-pressed="true"],.cell-area-list button[aria-pressed="true"] { border-color:var(--blue); background:var(--tint-blue-bg); color:var(--tint-blue-ink); }
 .hazard-layer-toolbar { margin-top:-2px; margin-bottom:10px; }
+/* Full-screen map. Sits left of MapLibre's zoom controls (top-right, ~39px wide). */
+.map-expand {
+  position:absolute; z-index:4; top:12px; right:48px;
+  display:grid; place-items:center; width:32px; height:32px; padding:0;
+  border:1px solid rgba(32,33,29,.18); border-radius:8px;
+  background:rgba(253,253,249,.96); color:#20211d;
+  box-shadow:0 5px 18px rgba(32,33,29,.1); cursor:pointer;
+}
+.map-expand:hover { background:#fff; }
+.map-expand:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.map-frame.is-expanded {
+  position:fixed; inset:0; z-index:95; margin:0; padding:12px;
+  display:flex; flex-direction:column; gap:10px; overflow:auto; background:var(--bg);
+}
+/* Let the map claim the leftover height instead of its fixed min-height. */
+.map-frame.is-expanded .map { flex:1; min-height:0; }
+.map-frame.is-expanded .maplibre-canvas { min-height:0; }
+.map-frame.is-expanded .map-layer-toolbar,
+.map-frame.is-expanded .map-cell-summary { flex:none; margin-bottom:0; }
+/* Turn-by-turn already fills the screen, so a second expand control is noise. */
+.turn-nav-map .map-expand { display:none; }
+@media (pointer:coarse) { .map-expand { width:44px; height:44px; } }
+@media (forced-colors:active) { .map-expand { forced-color-adjust:none; border:1px solid CanvasText; } }
 .camera-feed-image { width:100%; margin:10px 0; border:1px solid rgba(32,33,29,.18); border-radius:8px; }
 .map-cell-summary { padding:10px 2px; }
 .map-cell-summary p { margin:0 0 8px; }
