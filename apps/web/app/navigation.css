@@ -1,0 +1,96 @@
+.turn-nav {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--bg);
+}
+.turn-nav-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px calc(20px + env(safe-area-inset-top, 0px));
+  padding-top: max(20px, env(safe-area-inset-top, 0px));
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.turn-nav-banner div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.turn-nav-banner strong {
+  overflow: hidden;
+  font-size: clamp(19px, 3.2vw, 26px);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.turn-nav-banner span {
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.92;
+}
+.turn-nav-map {
+  position: relative;
+  min-height: 0;
+}
+.turn-nav-map .map-frame,
+.turn-nav-map .map {
+  height: 100%;
+  min-height: 0;
+}
+.turn-nav-map .maplibre-canvas {
+  min-height: 0;
+}
+.turn-nav-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.turn-nav-close,
+.turn-nav-voice {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--input-border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.turn-nav-voice[aria-pressed="true"] {
+  border-color: var(--blue);
+  background: var(--tint-blue-bg);
+  color: var(--tint-blue-ink);
+}
+.turn-nav-summary {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+.turn-nav-summary strong {
+  font-size: 20px;
+}
+.turn-nav-summary span {
+  color: var(--muted);
+  font-size: 13px;
+}
+@media (max-width: 560px) {
+  .turn-nav-banner {
+    padding: 16px 16px calc(16px + env(safe-area-inset-top, 0px));
+  }
+  .turn-nav-bar {
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
