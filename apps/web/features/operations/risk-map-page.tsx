@@ -1,5 +1,5 @@
 import type { Incident, RouteOption } from "@roadsignal/types";
-import { RouteMap as MapView } from "../../components/route-map";
+import { RouteMap as MapView, type HazardLayers } from "../../components/route-map";
 import type { RouteWeather } from "../../lib/open-weather";
 import type { MapCellsState } from "../../lib/map-cells";
 import { demoRiskZones } from "../demo-data";
@@ -19,6 +19,7 @@ export function RiskMapPage({
   onSelectRoute,
   onNavigate,
   cells,
+  hazards,
 }: {
   routes: RouteOption[];
   selected: string;
@@ -30,6 +31,7 @@ export function RiskMapPage({
   onSelectRoute: (routeId: string) => void;
   onNavigate: Navigate;
   cells: MapCellsState;
+  hazards?: HazardLayers;
 }) {
   return (
     <>
@@ -90,6 +92,7 @@ export function RiskMapPage({
             incidents={incidents}
             onSelectRoute={onSelectRoute}
             cells={cells}
+            hazards={hazards}
           />
         </section>
         <section className="risk-zone-rail" aria-labelledby="risk-zone-title">
