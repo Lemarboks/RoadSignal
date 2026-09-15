@@ -4,6 +4,7 @@ import { Metric } from "../../components/metric";
 import { RouteMap as MapView } from "../../components/route-map";
 import type { RouteWeather } from "../../lib/open-weather";
 import { voiceAlertsSupported } from "../../lib/voice-alerts";
+import { loadPreferences } from "../../lib/preferences";
 import { TurnByTurnNavigation } from "../../components/turn-by-turn-navigation";
 import type { DemoDriver } from "../demo-data";
 import { useVoiceAlerts } from "./use-voice-alerts";
@@ -62,7 +63,7 @@ export function LiveTripPage({
         ),
       )
     : Math.max(1, Math.round(29 * (1 - trip.progress / 100)));
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(() => loadPreferences().voiceAlertsDefault);
   const voiceSupported = voiceAlertsSupported();
   useVoiceAlerts(trip.alerts, voiceSupported && voiceEnabled);
   const [navigating, setNavigating] = useState(false);

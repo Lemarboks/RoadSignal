@@ -9,6 +9,7 @@ import {
   EvidencePage,
   FleetPage,
   RiskMapPage,
+  SettingsPage,
 } from "../features/operations/operations-pages";
 import { DashboardPage } from "../features/dashboard/dashboard-page";
 import { RoutePlannerPage } from "../features/planner/route-planner-page";
@@ -21,6 +22,7 @@ import {
 } from "../features/use-road-signal-controller";
 import { useAssistantServices } from "../features/use-assistant-services";
 import { deployment } from "../lib/deployment";
+import { applyTheme, loadPreferences } from "../lib/preferences";
 const nav = [
   "Dashboard",
   "Route Planner",
@@ -29,6 +31,7 @@ const nav = [
   "Risk Map",
   "Analytics",
   "Fleet",
+  "Risk Evidence",
   "Settings",
 ] as const;
 export default function App() {
@@ -95,6 +98,9 @@ export default function App() {
     reportIncident,
   } = useRoadSignalController();
   const { assistantStatus, cells } = useAssistantServices(apiClient, API_ENABLED && entered, incidents.length);
+  useEffect(() => {
+    applyTheme(loadPreferences().theme);
+  }, []);
   useEffect(() => {
     window.scrollTo(0, 0);
     if (document.activeElement instanceof HTMLElement) {
@@ -258,6 +264,7 @@ export default function App() {
   const evidencePage = (
     <EvidencePage evidence={riskEvidence} source={riskEvidenceSource} />
   );
+  const settingsPage = <SettingsPage />;
   const pageContent = {
     Dashboard: dashboard,
     "Route Planner": planner,
@@ -266,7 +273,8 @@ export default function App() {
     "Risk Map": riskMapPage,
     Analytics: analyticsPage,
     Fleet: fleetPage,
-    Settings: evidencePage,
+    "Risk Evidence": evidencePage,
+    Settings: settingsPage,
   }[page];
   if (!entered) {
     return (
