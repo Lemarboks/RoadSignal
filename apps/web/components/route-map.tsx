@@ -5,6 +5,7 @@ import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { RouteWeather } from "../lib/open-weather";
 import { cellProvenance, type MapCellsState } from "../lib/map-cells";
+import { SEVERE_WEATHER_LABELS, type CctvCamera, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
 import { useTelemetryMarkers, type MapTelemetry } from "./telemetry-markers";
 
 const OPEN_STYLE = "https://tiles.openfreemap.org/styles/liberty";
@@ -14,7 +15,20 @@ const ROUTE_LAYER = "roadsignal-route-lines";
 const CELL_SOURCE = "roadsignal-incident-cells";
 const CELL_LAYER = "roadsignal-incident-cell-fill";
 const CELL_OUTLINE = "roadsignal-incident-cell-outline";
+const WILDFIRE_SOURCE = "roadsignal-wildfires";
+const WILDFIRE_LAYER = "roadsignal-wildfire-points";
+const WEATHER_SOURCE = "roadsignal-severe-weather";
+const WEATHER_LAYER = "roadsignal-severe-weather-points";
+const CAMERA_SOURCE = "roadsignal-cameras";
+const CAMERA_LAYER = "roadsignal-camera-points";
 const EMPTY_INCIDENTS: Incident[] = [];
+const EMPTY_FEATURE_COLLECTION = { type: "FeatureCollection" as const, features: [] };
+
+export type HazardLayers = {
+  wildfires: HazardLayerState<WildfireHotspot>;
+  severeWeather: HazardLayerState<SevereWeatherEvent>;
+  cameras: HazardLayerState<CctvCamera>;
+};
 
 type Props = {
   routes: RouteOption[];
@@ -25,6 +39,7 @@ type Props = {
   incidents?: Incident[];
   onSelectRoute?: (routeId: string) => void;
   cells?: MapCellsState;
+  hazards?: HazardLayers;
   telemetry?: MapTelemetry;
 };
 type MapStatus = "loading" | "ready" | "failed";
@@ -74,6 +89,39 @@ function routeFeatures(routes: RouteOption[], selected: string, telemetry = fals
         };
       }),
     ),
+  };
+}
+
+function wildfireFeatures(hotspots: WildfireHotspot[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: hotspots.map((hotspot, index) => ({
+      type: "Feature" as const,
+      properties: { index },
+      geometry: { type: "Point" as const, coordinates: [hotspot.longitude, hotspot.latitude] },
+    })),
+  };
+}
+
+function severeWeatherFeatures(events: SevereWeatherEvent[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: events.map((event) => ({
+      type: "Feature" as const,
+      properties: { id: event.id, category: event.category },
+      geometry: { type: "Point" as const, coordinates: [event.longitude, event.latitude] },
+    })),
+  };
+}
+
+function cameraFeatures(cameras: CctvCamera[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: cameras.map((camera) => ({
+      type: "Feature" as const,
+      properties: { id: camera.id },
+      geometry: { type: "Point" as const, coordinates: [camera.longitude, camera.latitude] },
+    })),
   };
 }
 
@@ -366,6 +414,7 @@ export function RouteMap({
   incidents = EMPTY_INCIDENTS,
   onSelectRoute,
   cells,
+  hazards,
   telemetry,
 }: Props) {
   const summaryId = useId();
@@ -380,8 +429,22 @@ export function RouteMap({
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
   const [showCells, setShowCells] = useState(false);
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
+  const [showWildfires, setShowWildfires] = useState(false);
+  const [showSevereWeather, setShowSevereWeather] = useState(false);
+  const [showCameras, setShowCameras] = useState(false);
+  const [selectedWildfireIndex, setSelectedWildfireIndex] = useState<number | null>(null);
+  const [selectedWeatherId, setSelectedWeatherId] = useState<string | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   useTelemetryMarkers(map, status === "ready", telemetry);
   const selectedCell = cells?.data?.features.find((cell) => cell.id === selectedCellId);
+  const selectedWildfire = selectedWildfireIndex != null ? hazards?.wildfires.data[selectedWildfireIndex] : undefined;
+  const selectedWeatherEvent = hazards?.severeWeather.data.find((event) => event.id === selectedWeatherId);
+  const selectedCamera = hazards?.cameras.data.find((camera) => camera.id === selectedCameraId);
+  const clearHazardSelections = () => {
+    setSelectedWildfireIndex(null);
+    setSelectedWeatherId(null);
+    setSelectedCameraId(null);
+  };
   const activeRoute = useMemo(
     () => routes.find((route) => route.id === selected),
     [routes, selected],
@@ -439,10 +502,53 @@ export function RouteMap({
           });
           instance.on("click", CELL_LAYER, (event) => {
             const cellId = event.features?.[0]?.properties?.cell_id;
-            if (typeof cellId === "string") { setSelectedCellId(cellId); setSelectedIncidentId(null); }
+            if (typeof cellId === "string") { setSelectedCellId(cellId); setSelectedIncidentId(null); clearHazardSelections(); }
           });
           instance.on("mouseenter", CELL_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
           instance.on("mouseleave", CELL_LAYER, () => { instance.getCanvas().style.cursor = ""; });
+          instance.addSource(WILDFIRE_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
+          instance.addLayer({
+            id: WILDFIRE_LAYER, type: "circle", source: WILDFIRE_SOURCE,
+            paint: { "circle-color": "#c9432b", "circle-radius": 6, "circle-stroke-width": 1.5, "circle-stroke-color": "#fff", "circle-opacity": 0.9 },
+          });
+          instance.on("click", WILDFIRE_LAYER, (event) => {
+            const index = event.features?.[0]?.properties?.index;
+            if (typeof index === "number") { setSelectedWildfireIndex(index); setSelectedWeatherId(null); setSelectedCameraId(null); setSelectedIncidentId(null); setSelectedCellId(null); }
+          });
+          instance.on("mouseenter", WILDFIRE_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
+          instance.on("mouseleave", WILDFIRE_LAYER, () => { instance.getCanvas().style.cursor = ""; });
+          instance.addSource(WEATHER_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
+          instance.addLayer({
+            id: WEATHER_LAYER, type: "circle", source: WEATHER_SOURCE,
+            paint: {
+              "circle-color": ["match", ["get", "category"],
+                "floods", "#2f6fb3",
+                "landslides", "#8a5a2e",
+                "severeStorms", "#5b4b9e",
+                "dustHaze", "#b3a369",
+                "snow", "#6fb3d2",
+                "tempExtremes", "#c9432b",
+                "#5b6b63"],
+              "circle-radius": 6, "circle-stroke-width": 1.5, "circle-stroke-color": "#fff", "circle-opacity": 0.9,
+            },
+          });
+          instance.on("click", WEATHER_LAYER, (event) => {
+            const id = event.features?.[0]?.properties?.id;
+            if (typeof id === "string") { setSelectedWeatherId(id); setSelectedWildfireIndex(null); setSelectedCameraId(null); setSelectedIncidentId(null); setSelectedCellId(null); }
+          });
+          instance.on("mouseenter", WEATHER_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
+          instance.on("mouseleave", WEATHER_LAYER, () => { instance.getCanvas().style.cursor = ""; });
+          instance.addSource(CAMERA_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
+          instance.addLayer({
+            id: CAMERA_LAYER, type: "circle", source: CAMERA_SOURCE,
+            paint: { "circle-color": "#2b6cb0", "circle-radius": 5, "circle-stroke-width": 1.5, "circle-stroke-color": "#fff", "circle-opacity": 0.9 },
+          });
+          instance.on("click", CAMERA_LAYER, (event) => {
+            const id = event.features?.[0]?.properties?.id;
+            if (typeof id === "string") { setSelectedCameraId(id); setSelectedWildfireIndex(null); setSelectedWeatherId(null); setSelectedIncidentId(null); setSelectedCellId(null); }
+          });
+          instance.on("mouseenter", CAMERA_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
+          instance.on("mouseleave", CAMERA_LAYER, () => { instance.getCanvas().style.cursor = ""; });
           instance.addSource(ROUTE_SOURCE, {
             type: "geojson",
             data: routeFeatures(routes, selected, Boolean(telemetry)),
@@ -508,6 +614,27 @@ export function RouteMap({
   }, [cells?.data, showCells, status]);
 
   useEffect(() => {
+    if (status !== "ready" || !map.current) return;
+    (map.current.getSource(WILDFIRE_SOURCE) as GeoJSONSource | undefined)?.setData(
+      showWildfires && hazards ? wildfireFeatures(hazards.wildfires.data) : EMPTY_FEATURE_COLLECTION,
+    );
+  }, [hazards?.wildfires.data, showWildfires, status]);
+
+  useEffect(() => {
+    if (status !== "ready" || !map.current) return;
+    (map.current.getSource(WEATHER_SOURCE) as GeoJSONSource | undefined)?.setData(
+      showSevereWeather && hazards ? severeWeatherFeatures(hazards.severeWeather.data) : EMPTY_FEATURE_COLLECTION,
+    );
+  }, [hazards?.severeWeather.data, showSevereWeather, status]);
+
+  useEffect(() => {
+    if (status !== "ready" || !map.current) return;
+    (map.current.getSource(CAMERA_SOURCE) as GeoJSONSource | undefined)?.setData(
+      showCameras && hazards ? cameraFeatures(hazards.cameras.data) : EMPTY_FEATURE_COLLECTION,
+    );
+  }, [hazards?.cameras.data, showCameras, status]);
+
+  useEffect(() => {
     if (!container.current) return;
     const observer = new ResizeObserver(() => map.current?.resize());
     observer.observe(container.current);
@@ -567,6 +694,7 @@ export function RouteMap({
           event.stopPropagation();
           setSelectedIncidentId(incident.id);
           setSelectedCellId(null);
+          clearHazardSelections();
         });
         incidentMarkers.current.push(
           new maplibregl.Marker({ element })
@@ -613,6 +741,24 @@ export function RouteMap({
           </span>
         </div>
       )}
+      {hazards && (
+        <div className="map-layer-toolbar hazard-layer-toolbar">
+          <button type="button" aria-pressed={showWildfires} onClick={() => { setShowWildfires(!showWildfires); setSelectedWildfireIndex(null); }}>
+            Wildfires {showWildfires ? "on" : "off"}
+          </button>
+          <button type="button" aria-pressed={showSevereWeather} onClick={() => { setShowSevereWeather(!showSevereWeather); setSelectedWeatherId(null); }}>
+            Severe weather {showSevereWeather ? "on" : "off"}
+          </button>
+          <button type="button" aria-pressed={showCameras} onClick={() => { setShowCameras(!showCameras); setSelectedCameraId(null); }}>
+            Traffic cameras {showCameras ? "on" : "off"}
+          </button>
+          <span aria-live="polite">
+            {[hazards.wildfires.status, hazards.severeWeather.status, hazards.cameras.status].includes("loading")
+              ? "Loading hazard layers…"
+              : `${hazards.wildfires.data.length} wildfire hotspots · ${hazards.severeWeather.data.length} severe weather events · ${hazards.cameras.data.length} traffic cameras`}
+          </span>
+        </div>
+      )}
     <div className={`map${telemetry ? " telemetry-map" : ""}`} role="group" aria-label={telemetry ? "Demo vehicle and street sensor map" : "Cape Town route-risk map"} aria-describedby={summaryId}>
       <p className="sr-only" id={summaryId}>
         {telemetry ? "Synthetic vehicle positions and street sensor stations. Select a tracker or station to inspect its readings. No physical devices are connected."
@@ -644,6 +790,39 @@ export function RouteMap({
       ) : null}
       <div ref={container} className={`maplibre-canvas ${status === "ready" ? "is-ready" : "is-pending"}`} />
       {selectedIncident && <IncidentDetail incident={selectedIncident} onClose={() => setSelectedIncidentId(null)} />}
+      {showWildfires && selectedWildfire && (
+        <aside className="map-incident-detail" aria-label="Wildfire hotspot details">
+          <header><div><span>Active wildfire</span><strong>{selectedWildfire.confidence} confidence</strong></div>
+            <button type="button" onClick={() => setSelectedWildfireIndex(null)} aria-label="Close wildfire details">Close</button>
+          </header>
+          <dl>
+            <div><dt>Fire radiative power</dt><dd>{selectedWildfire.frp} MW</dd></div>
+            <div><dt>Detected</dt><dd>{incidentTime(selectedWildfire.acquired_at)}</dd></div>
+          </dl>
+          <small>Source: NASA FIRMS satellite detections, refreshed roughly every 30 minutes.</small>
+        </aside>
+      )}
+      {showSevereWeather && selectedWeatherEvent && (
+        <aside className="map-incident-detail" aria-label="Severe weather event details">
+          <header><div><span>{SEVERE_WEATHER_LABELS[selectedWeatherEvent.category]}</span><strong>{selectedWeatherEvent.title}</strong></div>
+            <button type="button" onClick={() => setSelectedWeatherId(null)} aria-label="Close severe weather details">Close</button>
+          </header>
+          <small>Source: NASA EONET open events feed.</small>
+        </aside>
+      )}
+      {showCameras && selectedCamera && (
+        <aside className="map-incident-detail camera-detail" aria-label="Traffic camera details">
+          <header><div><span>Traffic camera</span><strong>{selectedCamera.name}</strong></div>
+            <button type="button" onClick={() => setSelectedCameraId(null)} aria-label="Close camera details">Close</button>
+          </header>
+          {selectedCamera.feed_type === "image" ? (
+            <img className="camera-feed-image" src={selectedCamera.feed_url} alt={`Live still from ${selectedCamera.name}`} />
+          ) : (
+            <p>Live video feed available via the source provider.</p>
+          )}
+          <small>Source: {selectedCamera.source || "opencctv.org"} public traffic camera network.</small>
+        </aside>
+      )}
       {showCells && selectedCell && (
         <aside className="map-incident-detail" aria-label="Incident area details">
           <header><div><span>Incident area</span><strong>{selectedCell.properties.incident_count} active reports</strong></div>
@@ -670,6 +849,13 @@ export function RouteMap({
         <span><i className="dot amber" />Medium</span>
         <span><i className="dot red" />High</span>
         <span><i className="incident-key">!</i>Incident</span>
+        {hazards && (
+          <>
+            <span><i className="dot wildfire" />Wildfire</span>
+            <span><i className="dot weather-event" />Severe weather</span>
+            <span><i className="dot camera" />Traffic camera</span>
+          </>
+        )}
         <small>Tap a route line to compare</small>
         </>}
       </div>
@@ -686,7 +872,7 @@ export function RouteMap({
               <ul className="cell-area-list">{cells.data.features.map((cell, index) => (
                 <li key={cell.id}><button type="button" aria-pressed={selectedCellId === cell.id}
                   onClick={() => {
-                    setSelectedCellId(cell.id); setSelectedIncidentId(null);
+                    setSelectedCellId(cell.id); setSelectedIncidentId(null); clearHazardSelections();
                     const ring = cell.geometry.coordinates[0];
                     if (status === "ready" && ring.length) map.current?.fitBounds([
                       [Math.min(...ring.map((p) => p[0])), Math.min(...ring.map((p) => p[1]))],
