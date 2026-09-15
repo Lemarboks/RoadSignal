@@ -363,6 +363,15 @@ main {
 .dot.red {
   background: var(--red);
 }
+.dot.wildfire {
+  background: #c9432b;
+}
+.dot.weather-event {
+  background: #5b4b9e;
+}
+.dot.camera {
+  background: #2b6cb0;
+}
 .bar {
   display: grid;
   grid-template-columns: 115px 1fr 35px;

@@ -21,6 +21,7 @@ import {
   useRoadSignalController,
 } from "../features/use-road-signal-controller";
 import { useAssistantServices } from "../features/use-assistant-services";
+import { useHazardLayers } from "../features/use-hazard-layers";
 import { deployment } from "../lib/deployment";
 import { applyTheme, loadPreferences } from "../lib/preferences";
 const nav = [
@@ -98,6 +99,7 @@ export default function App() {
     reportIncident,
   } = useRoadSignalController();
   const { assistantStatus, cells } = useAssistantServices(apiClient, API_ENABLED && entered, incidents.length);
+  const hazards = useHazardLayers(apiClient, API_ENABLED && entered);
   useEffect(() => {
     applyTheme(loadPreferences().theme);
   }, []);
@@ -162,6 +164,7 @@ export default function App() {
       apiClient={apiClient}
       canExplain={Boolean(session) && dataMode === "api"}
       cells={cells}
+      hazards={hazards}
     />
   );
   const live = (
@@ -235,6 +238,7 @@ export default function App() {
       onSelectRoute={setSelected}
       onNavigate={setPage}
       cells={cells}
+      hazards={hazards}
     />
   );
   const analyticsPage = (

@@ -1,7 +1,7 @@
 import type { Incident, RouteOption, RoutePreference } from "@roadsignal/types";
 import { Metric } from "../../components/metric";
 import { PlaceSearch } from "../../components/place-search";
-import { RouteMap as MapView } from "../../components/route-map";
+import { RouteMap as MapView, type HazardLayers } from "../../components/route-map";
 import type { ResolvedPlace } from "../../lib/open-routing";
 import type { RouteWeather } from "../../lib/open-weather";
 import type { RoadSignalApiClient } from "../../lib/api-client";
@@ -47,6 +47,7 @@ export function RoutePlannerPage({
   apiClient,
   canExplain,
   cells,
+  hazards,
 }: {
   routes: RouteOption[];
   selected: string;
@@ -76,6 +77,7 @@ export function RoutePlannerPage({
   apiClient: RoadSignalApiClient;
   canExplain: boolean;
   cells: MapCellsState;
+  hazards?: HazardLayers;
 }) {
   const permissionTitle =
     locationPermission === "granted"
@@ -228,6 +230,7 @@ export function RoutePlannerPage({
           incidents={incidents}
           onSelectRoute={onSelectRoute}
           cells={cells}
+          hazards={hazards}
         />
       </div>
       <section

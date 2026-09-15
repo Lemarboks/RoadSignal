@@ -54,8 +54,12 @@ async def _analyse_uncached(request: RouteAnalyseRequest):
 
         midpoint = option["geometry"][len(option["geometry"]) // 2]
         weather_penalty, weather_factors = await services.weather_provider.penalty(*midpoint)
-        totals["weather"] = totals.get("weather", 0) + weather_penalty
-        scores = [max(0, score - weather_penalty) for score in scores]
+        wildfire_penalty, wildfire_factors = await services.wildfire_provider.penalty(option["geometry"])
+        severe_event_penalty, severe_event_factors = await services.severe_event_provider.penalty(option["geometry"])
+        hazard_penalty = weather_penalty + wildfire_penalty + severe_event_penalty
+        hazard_factors = weather_factors + wildfire_factors + severe_event_factors
+        totals["weather"] = totals.get("weather", 0) + hazard_penalty
+        scores = [max(0, score - hazard_penalty) for score in scores]
         confidence = round(sum(confidences) / len(confidences), 2)
         safety = route_score(scores, confidence)
         option.update(
@@ -64,7 +68,7 @@ async def _analyse_uncached(request: RouteAnalyseRequest):
             risk_level=risk_level(safety),
             difference_from_fastest=option["duration_minutes"] - fastest,
             breakdown={key: round(value, 1) for key, value in totals.items()},
-            factors=(weather_factors + [key.replace("_", " ").title() for key, value in sorted(totals.items(), key=lambda item: item[1], reverse=True)])[:3],
+            factors=(hazard_factors + [key.replace("_", " ").title() for key, value in sorted(totals.items(), key=lambda item: item[1], reverse=True)])[:3],
             segment_scores=scores,
         )
 
