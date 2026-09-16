@@ -89,3 +89,5 @@
     grid-template-columns: 1fr;
   }
 }
+.settings-note { margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.55; }
+.settings-field > small { display:block; margin-top:4px; color:var(--muted); font-size:11px; line-height:1.5; }

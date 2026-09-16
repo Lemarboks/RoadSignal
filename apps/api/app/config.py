@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     # Valhalla rejects the request (error 167) above 10km of combined
     # exclusion perimeter, so stay clear of that ceiling.
     hazard_avoid_circumference_budget_m: float = 9000.0
+    # Optional local neural speech. Point at the MIT-licensed rhasspy/piper
+    # binary and a voice model; left empty the API reports it unavailable and
+    # clients keep using the browser voice.
+    piper_binary: str = ""
+    piper_voice_model: str = ""
+    piper_timeout_seconds: float = 30.0
     provider_user_agent: str = "RoadSignal/1.0 (self-hostable routing client)"
     cors_origins: str = "http://localhost:3000,http://localhost:8081"
     environment: Literal["development", "test", "production"] = "development"
