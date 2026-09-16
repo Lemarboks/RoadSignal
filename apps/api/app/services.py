@@ -6,6 +6,7 @@ from .config import settings
 from .events import event_bus
 from .providers.cctv import CctvCameraProvider
 from .providers.crime_precincts import CrimePrecinctProvider
+from .providers.hazard_avoidance import HazardAvoidanceBuilder
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
 from .providers.severe_events import SevereEventHazardProvider
 from .providers.valhalla import ValhallaRouteProvider
@@ -45,6 +46,21 @@ wildfire_provider = WildfireHazardProvider(settings.provider_timeout_seconds, ha
 severe_event_provider = SevereEventHazardProvider(settings.eonet_url, settings.provider_timeout_seconds, hazard_bbox)
 cctv_provider = CctvCameraProvider(settings.cctv_timeout_seconds, hazard_bbox)
 crime_precinct_provider = CrimePrecinctProvider()
+hazard_avoidance_builder = HazardAvoidanceBuilder(
+    wildfire_provider,
+    severe_event_provider,
+    crime_precinct_provider,
+    wildfire_radius_km=settings.hazard_avoid_wildfire_radius_km,
+    severe_event_radius_km=settings.hazard_avoid_severe_event_radius_km,
+    crime_percentile=settings.hazard_avoid_crime_percentile,
+    circumference_budget_m=settings.hazard_avoid_circumference_budget_m,
+)
+
+
+def supports_hazard_avoidance() -> bool:
+    """Only Valhalla can exclude areas during pathfinding; OSRM cannot."""
+    provider = getattr(route_provider, "primary", route_provider)
+    return settings.hazard_avoidance_enabled and hasattr(provider, "valhalla_url")
 
 
 def clear_route_analysis_cache() -> None:

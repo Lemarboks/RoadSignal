@@ -23,6 +23,29 @@ async def cameras():
     return {"cameras": entries, "source": "opencctv.org", "count": len(entries)}
 
 
+@router.get("/avoidance-zones")
+async def avoidance_zones(include_crime: bool = False):
+    """Exclusion rings that hazard-aware routing would avoid.
+
+    Lets an operator see exactly what would be excluded before enabling it,
+    rather than discovering it through a surprising detour. Crime precincts
+    are opt-in: excluding whole residential areas from routing is a much
+    heavier intervention than avoiding an active fire.
+    """
+    polygons, reasons = await services.hazard_avoidance_builder.build(include_crime=include_crime)
+    return {
+        "polygons": polygons,
+        "count": len(polygons),
+        "reasons": reasons,
+        "include_crime": include_crime,
+        "supported_by_router": services.supports_hazard_avoidance(),
+        "note": (
+            "Roads intersecting these rings are avoided during pathfinding. "
+            "Requires the Valhalla router; OSRM cannot exclude areas."
+        ),
+    }
+
+
 @router.get("/crime-precincts")
 def crime_precincts():
     """Reported vehicle-crime exposure per police precinct.
