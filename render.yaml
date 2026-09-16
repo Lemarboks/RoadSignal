@@ -18,7 +18,10 @@ services:
       - key: REQUIRE_AUTH
         value: "true"
       - key: CORS_ORIGINS
-        value: https://lemarboks.github.io,http://localhost:3000,http://localhost:8081
+        # Deployed origin only. CORS runs with allow_credentials, so a
+        # localhost origin here would let a page on a victim's machine make
+        # credentialed calls against this API using their refresh cookie.
+        value: https://lemarboks.github.io
       - key: JWT_SECRET
         generateValue: true
       - key: METRICS_BEARER_TOKEN
