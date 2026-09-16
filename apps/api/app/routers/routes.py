@@ -43,9 +43,18 @@ async def _analyse_uncached(request: RouteAnalyseRequest):
 
     for option in options:
         scores, totals, confidences = [], {}, []
+        route_baseline = BASELINES.get(option["id"], DEFAULT_BASELINE)
         for latitude, longitude in option["geometry"]:
+            # Crime carries the heaviest weight in the engine, so use the real
+            # reported figure for the precinct this segment sits in instead of
+            # a per-route constant. Outside the covered municipality the
+            # provider returns the previous default, leaving scores unchanged.
+            baseline = {
+                **route_baseline,
+                "crime": services.crime_precinct_provider.baseline_at(latitude, longitude),
+            }
             score, penalties, confidence = segment_score(
-                (latitude, longitude), incidents, BASELINES.get(option["id"], DEFAULT_BASELINE)
+                (latitude, longitude), incidents, baseline
             )
             scores.append(score)
             confidences.append(confidence)
@@ -70,6 +79,7 @@ async def _analyse_uncached(request: RouteAnalyseRequest):
             breakdown={key: round(value, 1) for key, value in totals.items()},
             factors=(hazard_factors + [key.replace("_", " ").title() for key, value in sorted(totals.items(), key=lambda item: item[1], reverse=True)])[:3],
             segment_scores=scores,
+            crime_precincts=services.crime_precinct_provider.summarise_route(option["geometry"]),
         )
 
     safety_weight, time_weight = PREFERENCE_WEIGHTS[request.preference]
