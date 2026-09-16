@@ -7,6 +7,7 @@ from .events import event_bus
 from .providers.cctv import CctvCameraProvider
 from .providers.crime_precincts import CrimePrecinctProvider
 from .providers.hazard_avoidance import HazardAvoidanceBuilder
+from .providers.piper_voice import PiperVoiceProvider
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
 from .providers.severe_events import SevereEventHazardProvider
 from .providers.valhalla import ValhallaRouteProvider
@@ -54,6 +55,11 @@ hazard_avoidance_builder = HazardAvoidanceBuilder(
     severe_event_radius_km=settings.hazard_avoid_severe_event_radius_km,
     crime_percentile=settings.hazard_avoid_crime_percentile,
     circumference_budget_m=settings.hazard_avoid_circumference_budget_m,
+)
+
+
+piper_voice_provider = PiperVoiceProvider(
+    settings.piper_binary, settings.piper_voice_model, settings.piper_timeout_seconds
 )
 
 

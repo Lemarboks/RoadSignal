@@ -1,5 +1,7 @@
 import { loadPreferences } from "./preferences";
 import { generateVoiceboxSpeech } from "./voicebox";
+import { generatePiperSpeech } from "./piper-voice";
+import { deployment } from "./deployment";
 
 const FEMALE_VOICE_HINTS = [
   "female",
@@ -91,11 +93,42 @@ async function speakWithVoicebox(text: string, url: string, profileId: string) {
   }
 }
 
+let currentPiperAudio: HTMLAudioElement | null = null;
+// Piper renders at roughly a third of real time on CPU, so it is much quicker
+// than Voicebox -- but a safety alert still must not wait on the network.
+const PIPER_FALLBACK_MS = 3_000;
+
+async function speakWithPiper(text: string, apiUrl: string) {
+  const controller = new AbortController();
+  let fallenBack = false;
+  const fallbackTimer = setTimeout(() => {
+    fallenBack = true;
+    controller.abort();
+    speakWithBrowser(text);
+  }, PIPER_FALLBACK_MS);
+  try {
+    const blob = await generatePiperSpeech(apiUrl, text, controller.signal);
+    clearTimeout(fallbackTimer);
+    if (fallenBack) return;
+    currentPiperAudio?.pause();
+    const audio = new Audio(URL.createObjectURL(blob));
+    currentPiperAudio = audio;
+    void audio.play().catch(() => speakWithBrowser(text));
+  } catch {
+    clearTimeout(fallbackTimer);
+    if (!fallenBack) speakWithBrowser(text);
+  }
+}
+
 export function speakAlert(text: string) {
   if (!text) return;
   const preferences = loadPreferences();
   if (preferences.voiceEngine === "voicebox" && preferences.voiceboxProfileId) {
     void speakWithVoicebox(text, preferences.voiceboxUrl, preferences.voiceboxProfileId);
+    return;
+  }
+  if (preferences.voiceEngine === "piper" && deployment.apiUrl) {
+    void speakWithPiper(text, deployment.apiUrl);
     return;
   }
   speakWithBrowser(text);
@@ -105,4 +138,6 @@ export function cancelVoiceAlerts() {
   if (voiceAlertsSupported()) window.speechSynthesis.cancel();
   currentVoiceboxAudio?.pause();
   currentVoiceboxAudio = null;
+  currentPiperAudio?.pause();
+  currentPiperAudio = null;
 }
