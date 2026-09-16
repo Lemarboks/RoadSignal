@@ -4,6 +4,8 @@ import { assistantRequest } from "../lib/assistant";
 import type {
   CctvCamera,
   CctvCameras,
+  CrimePrecinct,
+  CrimePrecincts,
   HazardLayerState,
   SevereWeatherEvent,
   SevereWeatherEvents,
@@ -18,6 +20,8 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
   const [wildfires, setWildfires] = useState<HazardLayerState<WildfireHotspot>>(enabled ? LOADING : UNAVAILABLE);
   const [severeWeather, setSevereWeather] = useState<HazardLayerState<SevereWeatherEvent>>(enabled ? LOADING : UNAVAILABLE);
   const [cameras, setCameras] = useState<HazardLayerState<CctvCamera>>(enabled ? LOADING : UNAVAILABLE);
+  const [crimePrecincts, setCrimePrecincts] = useState<HazardLayerState<CrimePrecinct>>(enabled ? LOADING : UNAVAILABLE);
+  const [crimeMeta, setCrimeMeta] = useState<{ window: string; source: string } | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -49,5 +53,19 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
     return () => controller.abort();
   }, [client, enabled]);
 
-  return { wildfires, severeWeather, cameras };
+  useEffect(() => {
+    if (!enabled) return;
+    const controller = new AbortController();
+    setCrimePrecincts(LOADING);
+    void assistantRequest<CrimePrecincts>(client, "/api/v1/hazards/crime-precincts", { signal: controller.signal }, 15_000)
+      .then((body) => {
+        if (controller.signal.aborted) return;
+        setCrimePrecincts({ data: body.precincts, status: "ready" });
+        setCrimeMeta({ window: body.window, source: body.source });
+      })
+      .catch(() => { if (!controller.signal.aborted) setCrimePrecincts(UNAVAILABLE); });
+    return () => controller.abort();
+  }, [client, enabled]);
+
+  return { wildfires, severeWeather, cameras, crimePrecincts, crimeMeta };
 }

@@ -21,3 +21,19 @@ async def severe_weather():
 async def cameras():
     entries = await services.cctv_provider.cameras()
     return {"cameras": entries, "source": "opencctv.org", "count": len(entries)}
+
+
+@router.get("/crime-precincts")
+def crime_precincts():
+    """Reported vehicle-crime exposure per police precinct.
+
+    Area-level reported crime over a fixed window, published by SAPS. It is
+    decision support about roads, not a prediction and not a statement about
+    the people who live there.
+    """
+    precincts = services.crime_precinct_provider.layer()
+    return {
+        "precincts": precincts,
+        "count": len(precincts),
+        **services.crime_precinct_provider.metadata,
+    }
