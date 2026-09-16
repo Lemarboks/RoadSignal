@@ -77,23 +77,33 @@ class ValhallaRouteProvider(OpenRouteProvider):
         super().__init__(nominatim_url, valhalla_url, timeout, user_agent)
         self.valhalla_url = valhalla_url.rstrip("/")
 
-    async def alternatives(self, origin: str, destination: str) -> list[dict]:
+    async def alternatives(
+        self,
+        origin: str,
+        destination: str,
+        exclude_polygons: list[list[list[float]]] | None = None,
+    ) -> list[dict]:
         try:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 origin_point = await self._geocode(client, origin)
                 destination_point = await self._geocode(client, destination)
+                payload = {
+                    "locations": [
+                        {"lat": latitude, "lon": longitude, "type": "break"}
+                        for latitude, longitude in (origin_point, destination_point)
+                    ],
+                    "costing": "auto",
+                    "units": "kilometers",
+                    "alternates": 2,
+                    "shape_format": "polyline6",
+                }
+                if exclude_polygons:
+                    # Top-level parameter, exterior rings in [lon, lat] order.
+                    # Roads intersecting these rings are avoided in pathfinding.
+                    payload["exclude_polygons"] = exclude_polygons
                 response = await client.post(
                     f"{self.valhalla_url}/route",
-                    json={
-                        "locations": [
-                            {"lat": latitude, "lon": longitude, "type": "break"}
-                            for latitude, longitude in (origin_point, destination_point)
-                        ],
-                        "costing": "auto",
-                        "units": "kilometers",
-                        "alternates": 2,
-                        "shape_format": "polyline6",
-                    },
+                    json=payload,
                     headers=self.headers,
                 )
                 response.raise_for_status()

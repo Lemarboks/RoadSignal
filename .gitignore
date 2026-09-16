@@ -26,3 +26,4 @@ training-data/*
 /.codex-route-theme/
 /.pnpm-store/
 /.claude/
+.crime-cache/

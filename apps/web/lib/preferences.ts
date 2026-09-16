@@ -1,6 +1,6 @@
 export type ThemePreference = "system" | "light" | "dark";
 export type DistanceUnit = "km" | "mi";
-export type VoiceEngine = "browser" | "voicebox";
+export type VoiceEngine = "browser" | "voicebox" | "piper";
 
 export type Preferences = {
   theme: ThemePreference;
@@ -34,7 +34,7 @@ export function loadPreferences(): Preferences {
       theme: parsed.theme === "light" || parsed.theme === "dark" ? parsed.theme : "system",
       voiceAlertsDefault: typeof parsed.voiceAlertsDefault === "boolean" ? parsed.voiceAlertsDefault : true,
       distanceUnit: parsed.distanceUnit === "mi" ? "mi" : "km",
-      voiceEngine: parsed.voiceEngine === "voicebox" ? "voicebox" : "browser",
+      voiceEngine: parsed.voiceEngine === "voicebox" || parsed.voiceEngine === "piper" ? parsed.voiceEngine : "browser",
       voiceboxUrl: typeof parsed.voiceboxUrl === "string" && parsed.voiceboxUrl.trim() ? parsed.voiceboxUrl : DEFAULT_VOICEBOX_URL,
       voiceboxProfileId: typeof parsed.voiceboxProfileId === "string" ? parsed.voiceboxProfileId : "",
     };
