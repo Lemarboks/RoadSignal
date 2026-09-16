@@ -5,6 +5,7 @@ from uuid import uuid4
 from .config import settings
 from .events import event_bus
 from .providers.cctv import CctvCameraProvider
+from .providers.crime_precincts import CrimePrecinctProvider
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
 from .providers.severe_events import SevereEventHazardProvider
 from .providers.valhalla import ValhallaRouteProvider
@@ -43,6 +44,7 @@ hazard_bbox = (settings.hazard_bbox_south, settings.hazard_bbox_north, settings.
 wildfire_provider = WildfireHazardProvider(settings.provider_timeout_seconds, hazard_bbox)
 severe_event_provider = SevereEventHazardProvider(settings.eonet_url, settings.provider_timeout_seconds, hazard_bbox)
 cctv_provider = CctvCameraProvider(settings.cctv_timeout_seconds, hazard_bbox)
+crime_precinct_provider = CrimePrecinctProvider()
 
 
 def clear_route_analysis_cache() -> None:
