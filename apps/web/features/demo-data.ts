@@ -91,37 +91,6 @@ export const demoDrivers: readonly DemoDriver[] = [
   },
 ];
 
-export const demoRiskZones = [
-  {
-    area: "Hospital Bend",
-    level: "High",
-    score: 48,
-    signal: "Recent collision",
-    confidence: "86%",
-  },
-  {
-    area: "Athlone",
-    level: "Medium",
-    score: 64,
-    signal: "Community reports",
-    confidence: "72%",
-  },
-  {
-    area: "Woodstock",
-    level: "Medium",
-    score: 71,
-    signal: "Traffic disruption",
-    confidence: "79%",
-  },
-  {
-    area: "Pinelands",
-    level: "Low",
-    score: 88,
-    signal: "No active reports",
-    confidence: "81%",
-  },
-] as const;
-
 export const fallbackRoutes: RouteOption[] = [
   {
     id: "route-balanced",
