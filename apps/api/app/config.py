@@ -29,6 +29,19 @@ class Settings(BaseSettings):
     hazard_bbox_east: float = 20.0
     provider_timeout_seconds: float = 8.0
     cctv_timeout_seconds: float = 25.0
+    hazard_avoidance_enabled: bool = True
+    hazard_avoid_wildfire_radius_km: float = 0.6
+    hazard_avoid_severe_event_radius_km: float = 0.8
+    hazard_avoid_crime_percentile: float = 0.9
+    # Valhalla rejects the request (error 167) above 10km of combined
+    # exclusion perimeter, so stay clear of that ceiling.
+    hazard_avoid_circumference_budget_m: float = 9000.0
+    # Optional local neural speech. Point at the MIT-licensed rhasspy/piper
+    # binary and a voice model; left empty the API reports it unavailable and
+    # clients keep using the browser voice.
+    piper_binary: str = ""
+    piper_voice_model: str = ""
+    piper_timeout_seconds: float = 30.0
     provider_user_agent: str = "RoadSignal/1.0 (self-hostable routing client)"
     cors_origins: str = "http://localhost:3000,http://localhost:8081"
     environment: Literal["development", "test", "production"] = "development"

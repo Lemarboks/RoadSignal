@@ -5,7 +5,7 @@ import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { RouteWeather } from "../lib/open-weather";
 import { cellProvenance, type MapCellsState } from "../lib/map-cells";
-import { SEVERE_WEATHER_LABELS, type CctvCamera, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
+import { SEVERE_WEATHER_LABELS, type CctvCamera, type CrimePrecinct, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
 import { useTelemetryMarkers, type MapTelemetry } from "./telemetry-markers";
 
 const OPEN_STYLE = "https://tiles.openfreemap.org/styles/liberty";
@@ -21,6 +21,9 @@ const WEATHER_SOURCE = "roadsignal-severe-weather";
 const WEATHER_LAYER = "roadsignal-severe-weather-points";
 const CAMERA_SOURCE = "roadsignal-cameras";
 const CAMERA_LAYER = "roadsignal-camera-points";
+const CRIME_SOURCE = "roadsignal-crime-precincts";
+const CRIME_LAYER = "roadsignal-crime-precinct-fill";
+const CRIME_OUTLINE = "roadsignal-crime-precinct-outline";
 const EMPTY_INCIDENTS: Incident[] = [];
 const EMPTY_FEATURE_COLLECTION = { type: "FeatureCollection" as const, features: [] };
 
@@ -28,6 +31,8 @@ export type HazardLayers = {
   wildfires: HazardLayerState<WildfireHotspot>;
   severeWeather: HazardLayerState<SevereWeatherEvent>;
   cameras: HazardLayerState<CctvCamera>;
+  crimePrecincts?: HazardLayerState<CrimePrecinct>;
+  crimeMeta?: { window: string; source: string } | null;
 };
 
 type Props = {
@@ -92,6 +97,34 @@ function routeFeatures(routes: RouteOption[], selected: string, telemetry = fals
   };
 }
 
+/** i-traffic serves a fresh JPEG per request; a changing param defeats the cache. */
+function cameraFrameUrl(url: string, frame: number) {
+  if (!frame) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}t=${frame}`;
+}
+
+function ExpandIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {expanded ? (
+        <>
+          <path d="M9 3H4v5" />
+          <path d="M11 17h5v-5" />
+          <path d="M4 3l5 5" />
+          <path d="M16 17l-5-5" />
+        </>
+      ) : (
+        <>
+          <path d="M12 2h6v6" />
+          <path d="M8 18H2v-6" />
+          <path d="M18 2l-7 7" />
+          <path d="M2 18l7-7" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function wildfireFeatures(hotspots: WildfireHotspot[]) {
   return {
     type: "FeatureCollection" as const,
@@ -110,6 +143,22 @@ function severeWeatherFeatures(events: SevereWeatherEvent[]) {
       type: "Feature" as const,
       properties: { id: event.id, category: event.category },
       geometry: { type: "Point" as const, coordinates: [event.longitude, event.latitude] },
+    })),
+  };
+}
+
+function crimePrecinctFeatures(precincts: CrimePrecinct[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: precincts.map((precinct) => ({
+      type: "Feature" as const,
+      properties: {
+        code: precinct.code,
+        name: precinct.name,
+        percentile: precinct.percentile,
+        per_km2: precinct.per_km2,
+      },
+      geometry: { type: "Polygon" as const, coordinates: precinct.rings },
     })),
   };
 }
@@ -435,11 +484,17 @@ export function RouteMap({
   const [selectedWildfireIndex, setSelectedWildfireIndex] = useState<number | null>(null);
   const [selectedWeatherId, setSelectedWeatherId] = useState<string | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [showCrime, setShowCrime] = useState(false);
+  const [selectedPrecinctCode, setSelectedPrecinctCode] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [cameraExpanded, setCameraExpanded] = useState(false);
+  const [cameraFrame, setCameraFrame] = useState(0);
   useTelemetryMarkers(map, status === "ready", telemetry);
   const selectedCell = cells?.data?.features.find((cell) => cell.id === selectedCellId);
   const selectedWildfire = selectedWildfireIndex != null ? hazards?.wildfires.data[selectedWildfireIndex] : undefined;
   const selectedWeatherEvent = hazards?.severeWeather.data.find((event) => event.id === selectedWeatherId);
   const selectedCamera = hazards?.cameras.data.find((camera) => camera.id === selectedCameraId);
+  const selectedPrecinct = hazards?.crimePrecincts?.data.find((precinct) => precinct.code === selectedPrecinctCode);
   const clearHazardSelections = () => {
     setSelectedWildfireIndex(null);
     setSelectedWeatherId(null);
@@ -506,6 +561,32 @@ export function RouteMap({
           });
           instance.on("mouseenter", CELL_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
           instance.on("mouseleave", CELL_LAYER, () => { instance.getCanvas().style.cursor = ""; });
+          // Crime precincts sit underneath the route lines and markers: they
+          // are area context, not a point hazard, and must never obscure the
+          // route itself.
+          instance.addSource(CRIME_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
+          instance.addLayer({
+            id: CRIME_LAYER, type: "fill", source: CRIME_SOURCE,
+            paint: {
+              "fill-color": ["interpolate", ["linear"], ["get", "percentile"],
+                0, "#2f6fb3", 0.5, "#d7b866", 1, "#ae454b"],
+              "fill-opacity": 0.28,
+            },
+          });
+          instance.addLayer({
+            id: CRIME_OUTLINE, type: "line", source: CRIME_SOURCE,
+            paint: { "line-color": "#48534f", "line-width": 0.8, "line-opacity": 0.5 },
+          });
+          instance.on("click", CRIME_LAYER, (event) => {
+            const code = event.features?.[0]?.properties?.code;
+            if (typeof code === "string") {
+              setSelectedPrecinctCode(code);
+              setSelectedIncidentId(null); setSelectedCellId(null);
+              setSelectedWildfireIndex(null); setSelectedWeatherId(null); setSelectedCameraId(null);
+            }
+          });
+          instance.on("mouseenter", CRIME_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
+          instance.on("mouseleave", CRIME_LAYER, () => { instance.getCanvas().style.cursor = ""; });
           instance.addSource(WILDFIRE_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
           instance.addLayer({
             id: WILDFIRE_LAYER, type: "circle", source: WILDFIRE_SOURCE,
@@ -615,6 +696,15 @@ export function RouteMap({
 
   useEffect(() => {
     if (status !== "ready" || !map.current) return;
+    (map.current.getSource(CRIME_SOURCE) as GeoJSONSource | undefined)?.setData(
+      showCrime && hazards?.crimePrecincts
+        ? crimePrecinctFeatures(hazards.crimePrecincts.data)
+        : EMPTY_FEATURE_COLLECTION,
+    );
+  }, [hazards?.crimePrecincts?.data, showCrime, status]);
+
+  useEffect(() => {
+    if (status !== "ready" || !map.current) return;
     (map.current.getSource(WILDFIRE_SOURCE) as GeoJSONSource | undefined)?.setData(
       showWildfires && hazards ? wildfireFeatures(hazards.wildfires.data) : EMPTY_FEATURE_COLLECTION,
     );
@@ -640,6 +730,30 @@ export function RouteMap({
     observer.observe(container.current);
     return () => observer.disconnect();
   }, []);
+
+  // Expanded map and the full-screen camera both behave like lightboxes: Escape
+  // closes them and the page behind must not scroll. The camera sits on top of
+  // the map, so it unwinds first. The ResizeObserver above re-fits MapLibre.
+  useEffect(() => {
+    if (!expanded && !cameraExpanded) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (cameraExpanded) setCameraExpanded(false);
+      else setExpanded(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded, cameraExpanded]);
+
+  // Deselecting the camera (or hiding the layer) must not leave the viewer open.
+  useEffect(() => {
+    if (cameraExpanded && (!selectedCamera || !showCameras)) setCameraExpanded(false);
+  }, [cameraExpanded, selectedCamera, showCameras]);
 
   useEffect(() => {
     const instance = map.current;
@@ -728,7 +842,7 @@ export function RouteMap({
   }, [activeRoute, progress, status, Boolean(telemetry)]);
 
   return (
-    <div className="map-frame">
+    <div className={`map-frame${expanded ? " is-expanded" : ""}`}>
       {cells && (
         <div className="map-layer-toolbar">
           <button type="button" aria-pressed={showCells} onClick={() => { setShowCells(!showCells); setSelectedCellId(null); }}>
@@ -752,6 +866,11 @@ export function RouteMap({
           <button type="button" aria-pressed={showCameras} onClick={() => { setShowCameras(!showCameras); setSelectedCameraId(null); }}>
             Traffic cameras {showCameras ? "on" : "off"}
           </button>
+          {hazards.crimePrecincts && (
+            <button type="button" aria-pressed={showCrime} onClick={() => { setShowCrime(!showCrime); setSelectedPrecinctCode(null); }}>
+              Vehicle crime {showCrime ? "on" : "off"}
+            </button>
+          )}
           <span aria-live="polite">
             {[hazards.wildfires.status, hazards.severeWeather.status, hazards.cameras.status].includes("loading")
               ? "Loading hazard layers…"
@@ -776,6 +895,16 @@ export function RouteMap({
         </span>
         {telemetry ? <strong>Demo GPS + sensor replay</strong> : previewRoute && <strong>{previewRoute.name} · {previewRoute.durationMinutes} min · {previewRoute.safetyScore}/100</strong>}
       </div>
+      <button
+        type="button"
+        className="map-expand"
+        aria-expanded={expanded}
+        aria-label={expanded ? "Exit full-screen map" : "Expand map to full screen"}
+        title={expanded ? "Exit full screen (Esc)" : "Expand map to full screen"}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        <ExpandIcon expanded={expanded} />
+      </button>
       {status !== "ready" ? (
         <SchematicFallback
           routes={routes}
@@ -816,11 +945,48 @@ export function RouteMap({
             <button type="button" onClick={() => setSelectedCameraId(null)} aria-label="Close camera details">Close</button>
           </header>
           {selectedCamera.feed_type === "image" ? (
-            <img className="camera-feed-image" src={selectedCamera.feed_url} alt={`Live still from ${selectedCamera.name}`} />
+            <button
+              type="button"
+              className="camera-feed-button"
+              onClick={() => setCameraExpanded(true)}
+              aria-label={`View ${selectedCamera.name} full screen`}
+            >
+              <img
+                className="camera-feed-image"
+                src={cameraFrameUrl(selectedCamera.feed_url, cameraFrame)}
+                alt={`Live still from ${selectedCamera.name}`}
+              />
+              <span className="camera-feed-hint"><ExpandIcon expanded={false} />Full screen</span>
+            </button>
           ) : (
             <p>Live video feed available via the source provider.</p>
           )}
           <small>Source: {selectedCamera.source || "opencctv.org"} public traffic camera network.</small>
+        </aside>
+      )}
+      {showCrime && selectedPrecinct && (
+        <aside className="map-incident-detail crime-detail" aria-label="Police precinct vehicle-crime details">
+          <header>
+            <div><span>Police precinct</span><strong>{selectedPrecinct.name}</strong></div>
+            <button type="button" onClick={() => setSelectedPrecinctCode(null)} aria-label="Close precinct details">Close</button>
+          </header>
+          <dl>
+            <div><dt>Reported per km²</dt><dd>{selectedPrecinct.per_km2}</dd></div>
+            <div><dt>Area</dt><dd>{selectedPrecinct.area_km2} km²</dd></div>
+          </dl>
+          {Object.keys(selectedPrecinct.breakdown).length > 0 && (
+            <ul className="crime-breakdown">
+              {Object.entries(selectedPrecinct.breakdown)
+                .sort((a, b) => b[1] - a[1])
+                .map(([label, count]) => (
+                  <li key={label}><span>{label}</span><b>{count}</b></li>
+                ))}
+            </ul>
+          )}
+          <small>
+            Reported vehicle-directed crime, {hazards?.crimeMeta?.window || "12-month window"} · SAPS
+            statistics. Describes roads in an area, not the people who live there, and is not a prediction.
+          </small>
         </aside>
       )}
       {showCells && selectedCell && (
@@ -854,6 +1020,9 @@ export function RouteMap({
             <span><i className="dot wildfire" />Wildfire</span>
             <span><i className="dot weather-event" />Severe weather</span>
             <span><i className="dot camera" />Traffic camera</span>
+            {hazards.crimePrecincts && showCrime && (
+              <span><i className="crime-key high" />Higher reported vehicle crime</span>
+            )}
           </>
         )}
         <small>Tap a route line to compare</small>
@@ -882,6 +1051,40 @@ export function RouteMap({
               ))}</ul>
             </details>
           )}
+        </div>
+      )}
+      {cameraExpanded && selectedCamera && selectedCamera.feed_type === "image" && (
+        <div
+          className="camera-viewer"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${selectedCamera.name} full screen`}
+          onClick={() => setCameraExpanded(false)}
+        >
+          <div className="camera-viewer-inner" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <div>
+                <span>Traffic camera</span>
+                <strong>{selectedCamera.name}</strong>
+              </div>
+              <div className="camera-viewer-actions">
+                <button type="button" onClick={() => setCameraFrame((frame) => frame + 1)}>
+                  Refresh
+                </button>
+                <button type="button" onClick={() => setCameraExpanded(false)} aria-label="Close full-screen camera">
+                  Close
+                </button>
+              </div>
+            </header>
+            <img
+              src={cameraFrameUrl(selectedCamera.feed_url, cameraFrame)}
+              alt={`Live still from ${selectedCamera.name}`}
+            />
+            <small>
+              Source: {selectedCamera.source || "opencctv.org"} public traffic camera network ·
+              low-resolution stills refreshed on demand, not continuous video · press Escape to close
+            </small>
+          </div>
         </div>
       )}
     </div>

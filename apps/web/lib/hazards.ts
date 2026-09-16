@@ -27,6 +27,28 @@ export type CctvCamera = {
 };
 export type CctvCameras = { cameras: CctvCamera[]; source: string; count: number };
 
+export type CrimePrecinct = {
+  code: string;
+  name: string;
+  rings: number[][][];
+  per_km2: number;
+  rate_per_100k: number;
+  percentile: number;
+  crime_baseline: number;
+  weighted_incidents: number;
+  breakdown: Record<string, number>;
+  population: number;
+  area_km2: number;
+};
+export type CrimePrecincts = {
+  precincts: CrimePrecinct[];
+  count: number;
+  source: string;
+  municipality: string;
+  window: string;
+  categories: string[];
+};
+
 export type HazardLayerState<T> = { data: T[]; status: "loading" | "ready" | "unavailable" };
 
 export const SEVERE_WEATHER_LABELS: Record<SevereWeatherEvent["category"], string> = {

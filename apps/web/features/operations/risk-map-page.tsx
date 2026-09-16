@@ -2,7 +2,7 @@ import type { Incident, RouteOption } from "@roadsignal/types";
 import { RouteMap as MapView, type HazardLayers } from "../../components/route-map";
 import type { RouteWeather } from "../../lib/open-weather";
 import type { MapCellsState } from "../../lib/map-cells";
-import { demoRiskZones } from "../demo-data";
+import { topRiskAreas } from "../../lib/risk-areas";
 import type { AppPage } from "./operations-pages";
 
 const riskClass = (score: number) => score >= 80 ? "low" : score >= 60 ? "medium" : "high";
@@ -33,6 +33,12 @@ export function RiskMapPage({
   cells: MapCellsState;
   hazards?: HazardLayers;
 }) {
+  // Real reported figures replace what used to be a hardcoded list of
+  // invented zones. No fallback to demo values: invented numbers here would
+  // be indistinguishable from measured ones.
+  const riskAreas = topRiskAreas(hazards?.crimePrecincts?.data ?? []);
+  const crimeWindow = hazards?.crimeMeta?.window ?? "";
+  const crimeStatus = hazards?.crimePrecincts?.status ?? "unavailable";
   return (
     <>
       <section className="heading risk-map-heading">
@@ -99,25 +105,41 @@ export function RiskMapPage({
           <div className="section-heading-row">
             <div>
               <h2 id="risk-zone-title">Areas to review</h2>
-              <p>Ranked demonstration signals</p>
+              <p>
+                {riskAreas.length
+                  ? `Highest reported vehicle crime${crimeWindow ? ` · ${crimeWindow}` : ""}`
+                  : "Reported crime figures"}
+              </p>
             </div>
           </div>
-          <ol className="risk-zone-list">
-            {demoRiskZones.map((zone) => (
-              <li key={zone.area}>
-                <div>
-                  <strong>{zone.area}</strong>
-                  <span>{zone.signal}</span>
-                </div>
-                <div className="zone-reading">
-                  <b className={zone.level.toLowerCase()}>{zone.level}</b>
-                  <span>
-                    {zone.score}/100 · {zone.confidence}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ol>
+          {riskAreas.length ? (
+            <ol className="risk-zone-list">
+              {riskAreas.map((area) => (
+                <li key={area.code}>
+                  <div>
+                    <strong>{area.name}</strong>
+                    <span>
+                      {area.topCategory
+                        ? `${area.topCategory} · ${area.topCategoryCount} reported`
+                        : "No vehicle crime reported"}
+                    </span>
+                  </div>
+                  <div className="zone-reading">
+                    <b className={area.level.toLowerCase()}>{area.level}</b>
+                    <span>
+                      {area.perKm2}/km&sup2; · {area.areaKm2} km&sup2;
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="empty risk-zone-empty">
+              {crimeStatus === "loading"
+                ? "Loading reported crime figures…"
+                : "Reported crime figures are unavailable. Connect the service to load them."}
+            </p>
+          )}
           <button
             type="button"
             className="rail-action"
@@ -128,8 +150,9 @@ export function RiskMapPage({
         </section>
       </div>
       <p className="view-disclaimer">
-        Risk areas and scores are demonstration estimates, not guarantees of
-        personal safety.
+        {riskAreas.length
+          ? "Areas to review show reported crime counts published by SAPS. Route safety scores are decision-support estimates, not guarantees of personal safety."
+          : "Route safety scores are decision-support estimates, not guarantees of personal safety."}
       </p>
     </>
   );
