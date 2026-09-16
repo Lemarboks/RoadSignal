@@ -4,6 +4,20 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
+
+
+def _is_local_http_origin(origin: str) -> bool:
+    """True for a plain-http origin pointing at this machine."""
+    lowered = origin.strip().lower()
+    if not lowered.startswith("http://"):
+        return False
+    host = lowered[len("http://"):].split("/")[0].rsplit(":", 1)[0]
+    if host.startswith("[") and not host.endswith("]"):
+        host = host + "]"
+    return host in _LOCAL_HOSTS or host.endswith(".localhost")
+
+
 class Settings(BaseSettings):
     database_url: str = "mysql+pymysql://roadsignal:roadsignal@localhost:3306/roadsignal?charset=utf8mb4"
     storage_backend: Literal["memory", "mysql"] = "memory"
@@ -44,6 +58,8 @@ class Settings(BaseSettings):
     piper_timeout_seconds: float = 30.0
     provider_user_agent: str = "RoadSignal/1.0 (self-hostable routing client)"
     cors_origins: str = "http://localhost:3000,http://localhost:8081"
+    # Opt back into trusting http://localhost even on a deployed API.
+    cors_allow_local_origins: bool = False
     environment: Literal["development", "test", "production"] = "development"
     service_name: str = "roadsignal-api"
     log_level: Literal["debug", "info", "warning", "error"] = "info"
@@ -70,7 +86,27 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origins(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        """CORS allow-list, with local origins dropped once this is deployed.
+
+        CORS runs with credentials enabled, so trusting http://localhost on a
+        publicly reachable API lets a page on a victim's machine make
+        authenticated calls using their refresh cookie. Relying on whoever
+        edits the environment to remember that is how the deployed API ended
+        up trusting localhost, so the rule lives in code instead: if the
+        allow-list contains an https origin then this is a real deployment
+        and plain-http local origins are dropped.
+
+        A purely local stack lists only http://localhost, has no https origin,
+        and is therefore left untouched. Set CORS_ALLOW_LOCAL_ORIGINS=true to
+        opt back in deliberately (for example to debug against a staging API).
+        """
+        origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        if self.cors_allow_local_origins:
+            return origins
+        deployed = any(origin.lower().startswith("https://") for origin in origins)
+        if not deployed:
+            return origins
+        return [origin for origin in origins if not _is_local_http_origin(origin)]
 
     @model_validator(mode="after")
     def validate_production_security(self):
