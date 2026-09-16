@@ -5,7 +5,7 @@ import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { RouteWeather } from "../lib/open-weather";
 import { cellProvenance, type MapCellsState } from "../lib/map-cells";
-import { SEVERE_WEATHER_LABELS, type CctvCamera, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
+import { SEVERE_WEATHER_LABELS, type CctvCamera, type CrimePrecinct, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
 import { useTelemetryMarkers, type MapTelemetry } from "./telemetry-markers";
 
 const OPEN_STYLE = "https://tiles.openfreemap.org/styles/liberty";
@@ -21,6 +21,9 @@ const WEATHER_SOURCE = "roadsignal-severe-weather";
 const WEATHER_LAYER = "roadsignal-severe-weather-points";
 const CAMERA_SOURCE = "roadsignal-cameras";
 const CAMERA_LAYER = "roadsignal-camera-points";
+const CRIME_SOURCE = "roadsignal-crime-precincts";
+const CRIME_LAYER = "roadsignal-crime-precinct-fill";
+const CRIME_OUTLINE = "roadsignal-crime-precinct-outline";
 const EMPTY_INCIDENTS: Incident[] = [];
 const EMPTY_FEATURE_COLLECTION = { type: "FeatureCollection" as const, features: [] };
 
@@ -28,6 +31,8 @@ export type HazardLayers = {
   wildfires: HazardLayerState<WildfireHotspot>;
   severeWeather: HazardLayerState<SevereWeatherEvent>;
   cameras: HazardLayerState<CctvCamera>;
+  crimePrecincts?: HazardLayerState<CrimePrecinct>;
+  crimeMeta?: { window: string; source: string } | null;
 };
 
 type Props = {
@@ -138,6 +143,22 @@ function severeWeatherFeatures(events: SevereWeatherEvent[]) {
       type: "Feature" as const,
       properties: { id: event.id, category: event.category },
       geometry: { type: "Point" as const, coordinates: [event.longitude, event.latitude] },
+    })),
+  };
+}
+
+function crimePrecinctFeatures(precincts: CrimePrecinct[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: precincts.map((precinct) => ({
+      type: "Feature" as const,
+      properties: {
+        code: precinct.code,
+        name: precinct.name,
+        percentile: precinct.percentile,
+        per_km2: precinct.per_km2,
+      },
+      geometry: { type: "Polygon" as const, coordinates: precinct.rings },
     })),
   };
 }
@@ -463,6 +484,8 @@ export function RouteMap({
   const [selectedWildfireIndex, setSelectedWildfireIndex] = useState<number | null>(null);
   const [selectedWeatherId, setSelectedWeatherId] = useState<string | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [showCrime, setShowCrime] = useState(false);
+  const [selectedPrecinctCode, setSelectedPrecinctCode] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [cameraExpanded, setCameraExpanded] = useState(false);
   const [cameraFrame, setCameraFrame] = useState(0);
@@ -471,6 +494,7 @@ export function RouteMap({
   const selectedWildfire = selectedWildfireIndex != null ? hazards?.wildfires.data[selectedWildfireIndex] : undefined;
   const selectedWeatherEvent = hazards?.severeWeather.data.find((event) => event.id === selectedWeatherId);
   const selectedCamera = hazards?.cameras.data.find((camera) => camera.id === selectedCameraId);
+  const selectedPrecinct = hazards?.crimePrecincts?.data.find((precinct) => precinct.code === selectedPrecinctCode);
   const clearHazardSelections = () => {
     setSelectedWildfireIndex(null);
     setSelectedWeatherId(null);
@@ -537,6 +561,32 @@ export function RouteMap({
           });
           instance.on("mouseenter", CELL_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
           instance.on("mouseleave", CELL_LAYER, () => { instance.getCanvas().style.cursor = ""; });
+          // Crime precincts sit underneath the route lines and markers: they
+          // are area context, not a point hazard, and must never obscure the
+          // route itself.
+          instance.addSource(CRIME_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
+          instance.addLayer({
+            id: CRIME_LAYER, type: "fill", source: CRIME_SOURCE,
+            paint: {
+              "fill-color": ["interpolate", ["linear"], ["get", "percentile"],
+                0, "#2f6fb3", 0.5, "#d7b866", 1, "#ae454b"],
+              "fill-opacity": 0.28,
+            },
+          });
+          instance.addLayer({
+            id: CRIME_OUTLINE, type: "line", source: CRIME_SOURCE,
+            paint: { "line-color": "#48534f", "line-width": 0.8, "line-opacity": 0.5 },
+          });
+          instance.on("click", CRIME_LAYER, (event) => {
+            const code = event.features?.[0]?.properties?.code;
+            if (typeof code === "string") {
+              setSelectedPrecinctCode(code);
+              setSelectedIncidentId(null); setSelectedCellId(null);
+              setSelectedWildfireIndex(null); setSelectedWeatherId(null); setSelectedCameraId(null);
+            }
+          });
+          instance.on("mouseenter", CRIME_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
+          instance.on("mouseleave", CRIME_LAYER, () => { instance.getCanvas().style.cursor = ""; });
           instance.addSource(WILDFIRE_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
           instance.addLayer({
             id: WILDFIRE_LAYER, type: "circle", source: WILDFIRE_SOURCE,
@@ -643,6 +693,15 @@ export function RouteMap({
       showCells && cells?.data ? cells.data : { type: "FeatureCollection", features: [] },
     );
   }, [cells?.data, showCells, status]);
+
+  useEffect(() => {
+    if (status !== "ready" || !map.current) return;
+    (map.current.getSource(CRIME_SOURCE) as GeoJSONSource | undefined)?.setData(
+      showCrime && hazards?.crimePrecincts
+        ? crimePrecinctFeatures(hazards.crimePrecincts.data)
+        : EMPTY_FEATURE_COLLECTION,
+    );
+  }, [hazards?.crimePrecincts?.data, showCrime, status]);
 
   useEffect(() => {
     if (status !== "ready" || !map.current) return;
@@ -807,6 +866,11 @@ export function RouteMap({
           <button type="button" aria-pressed={showCameras} onClick={() => { setShowCameras(!showCameras); setSelectedCameraId(null); }}>
             Traffic cameras {showCameras ? "on" : "off"}
           </button>
+          {hazards.crimePrecincts && (
+            <button type="button" aria-pressed={showCrime} onClick={() => { setShowCrime(!showCrime); setSelectedPrecinctCode(null); }}>
+              Vehicle crime {showCrime ? "on" : "off"}
+            </button>
+          )}
           <span aria-live="polite">
             {[hazards.wildfires.status, hazards.severeWeather.status, hazards.cameras.status].includes("loading")
               ? "Loading hazard layers…"
@@ -900,6 +964,31 @@ export function RouteMap({
           <small>Source: {selectedCamera.source || "opencctv.org"} public traffic camera network.</small>
         </aside>
       )}
+      {showCrime && selectedPrecinct && (
+        <aside className="map-incident-detail crime-detail" aria-label="Police precinct vehicle-crime details">
+          <header>
+            <div><span>Police precinct</span><strong>{selectedPrecinct.name}</strong></div>
+            <button type="button" onClick={() => setSelectedPrecinctCode(null)} aria-label="Close precinct details">Close</button>
+          </header>
+          <dl>
+            <div><dt>Reported per km²</dt><dd>{selectedPrecinct.per_km2}</dd></div>
+            <div><dt>Area</dt><dd>{selectedPrecinct.area_km2} km²</dd></div>
+          </dl>
+          {Object.keys(selectedPrecinct.breakdown).length > 0 && (
+            <ul className="crime-breakdown">
+              {Object.entries(selectedPrecinct.breakdown)
+                .sort((a, b) => b[1] - a[1])
+                .map(([label, count]) => (
+                  <li key={label}><span>{label}</span><b>{count}</b></li>
+                ))}
+            </ul>
+          )}
+          <small>
+            Reported vehicle-directed crime, {hazards?.crimeMeta?.window || "12-month window"} · SAPS
+            statistics. Describes roads in an area, not the people who live there, and is not a prediction.
+          </small>
+        </aside>
+      )}
       {showCells && selectedCell && (
         <aside className="map-incident-detail" aria-label="Incident area details">
           <header><div><span>Incident area</span><strong>{selectedCell.properties.incident_count} active reports</strong></div>
@@ -931,6 +1020,9 @@ export function RouteMap({
             <span><i className="dot wildfire" />Wildfire</span>
             <span><i className="dot weather-event" />Severe weather</span>
             <span><i className="dot camera" />Traffic camera</span>
+            {hazards.crimePrecincts && showCrime && (
+              <span><i className="crime-key high" />Higher reported vehicle crime</span>
+            )}
           </>
         )}
         <small>Tap a route line to compare</small>
