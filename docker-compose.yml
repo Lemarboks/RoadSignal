@@ -11,7 +11,7 @@ services:
     environment:
       DOMAIN: http://:3000
       ACME_EMAIL: demo@example.invalid
-    ports: ["3000:3000"]
+    ports: ["127.0.0.1:3000:3000"]
     depends_on:
       api: { condition: service_healthy }
     healthcheck:
@@ -28,9 +28,9 @@ services:
     environment:
       MYSQL_DATABASE: roadsignal
       MYSQL_USER: roadsignal
-      MYSQL_PASSWORD: roadsignal
-      MYSQL_ROOT_PASSWORD: local-root-only
-    ports: ["3306:3306"]
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-roadsignal}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-only}
+    ports: ["127.0.0.1:3306:3306"]
     volumes: ["mysql_data:/var/lib/mysql"]
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u roadsignal -proadsignal --silent"]
@@ -42,8 +42,10 @@ services:
 
   redis:
     image: redis:7.4-alpine
-    ports: ["6379:6379"]
-    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 10 }
+    # Loopback-only, and authenticated whenever REDIS_PASSWORD is supplied.
+    ports: ["127.0.0.1:6379:6379"]
+    command: ["sh", "-c", 'exec redis-server ${REDIS_PASSWORD:+--requirepass "$$REDIS_PASSWORD"}']
+    healthcheck: { test: ["CMD-SHELL", 'redis-cli ${REDIS_PASSWORD:+-a "$$REDIS_PASSWORD"} ping'], interval: 5s, timeout: 3s, retries: 10 }
     restart: unless-stopped
 
   api:
@@ -56,12 +58,12 @@ services:
       STORAGE_BACKEND: mysql
       DATABASE_URL: mysql+pymysql://roadsignal:roadsignal@db:3306/roadsignal?charset=utf8mb4
       EVENT_BACKEND: redis
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       REQUIRE_AUTH: "true"
       ROUTE_PROVIDER: open
       CORS_ORIGINS: http://localhost:3000,http://localhost:8081
       JWT_SECRET: ${JWT_SECRET:-development-only-secret-change-before-deploy}
-    ports: ["8000:8000"]
+    ports: ["127.0.0.1:8000:8000"]
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
