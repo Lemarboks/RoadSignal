@@ -6,9 +6,11 @@ on the kind of hardware this app might actually be deployed on. That is the
 whole reason it is here -- RoadSignal's other optional engine needs a 12.8GB
 container image for the same job.
 
-Licensing note: this targets the MIT-licensed Piper (rhasspy/piper). The newer
-OHF-Voice/piper1-gpl fork is GPL-3.0, which would impose copyleft obligations
-on this MIT project, so it is deliberately not used.
+Licensing note: this targets the MIT-licensed Piper (rhasspy/piper), which was
+originally chosen because RoadSignal was MIT and could not take on the copyleft
+obligations of the newer OHF-Voice/piper1-gpl fork. RoadSignal is now AGPL-3.0,
+so that constraint no longer applies and the maintained GPL-3.0 fork is a
+viable upgrade -- the MIT release used here was archived in November 2023.
 
 The binary is invoked with no shell and the text is written to stdin, so route
 names and place names can never be interpreted as shell syntax.
