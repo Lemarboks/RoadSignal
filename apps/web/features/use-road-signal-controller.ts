@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Incident, RouteOption, RoutePreference } from "@roadsignal/types";
 import {
   analyseOpenRoutes,
@@ -11,6 +11,7 @@ import {
   type RouteWeather,
 } from "../lib/open-weather";
 import { RoadSignalApiClient, type SessionSnapshot } from "../lib/api-client";
+import { bestAlternative } from "../lib/reroute";
 import { assistantRequest, fromApiIncident, type ApiIncident, type IncidentReport } from "../lib/assistant";
 import {
   defaultDestination,
@@ -66,6 +67,39 @@ type LocationPermissionStatus =
   | "denied"
   | "unsupported";
 
+function toRouteOption(r: ApiRoute): RouteOption {
+  return {
+    id: r.id,
+    name: r.name,
+    durationMinutes: r.duration_minutes,
+    distanceKm: r.distance_km,
+    safetyScore: r.safety_score,
+    confidence: r.confidence,
+    riskLevel: r.risk_level,
+    recommended: r.recommended,
+    differenceFromFastest: r.difference_from_fastest,
+    factors: r.factors,
+    breakdown: {
+      crime: r.breakdown.crime,
+      accident: r.breakdown.accident,
+      traffic: r.breakdown.traffic,
+      weather: r.breakdown.weather,
+      roadCondition: r.breakdown.road_condition,
+      community: r.breakdown.community,
+    },
+    explanation: r.explanation,
+    geometry: r.geometry,
+    steps: (r.steps ?? []).map((step) => ({
+      instruction: step.instruction,
+      maneuver: step.maneuver,
+      streetName: step.street_name,
+      distanceMeters: step.distance_meters,
+      durationSeconds: step.duration_seconds,
+      location: step.location,
+    })),
+  };
+}
+
 export function useRoadSignalController() {
   const [page, setPage] = useState<AppPage>("Dashboard"),
     [routes, setRoutes] = useState(fallbackRoutes),
@@ -105,10 +139,15 @@ export function useRoadSignalController() {
     [resolvedDestination, setResolvedDestination] =
       useState<ResolvedPlace | null>(defaultDestination),
     [audit, setAudit] = useState<string[]>([]);
+  // The realtime callback is created before reanalyseRoutes is defined, so
+  // it reaches the current implementation through a ref.
+  const reanalyseRoutesRef = useRef<(() => Promise<RouteOption[] | null>) | null>(null);
   const route = routes.find((r) => r.id === selected) ?? routes[0];
-  const safestAlternative = routes
-    .filter((candidate) => candidate.id !== selected)
-    .sort((first, second) => second.safetyScore - first.safetyScore)[0];
+  // Only suggest an alternative that is genuinely better AND clear of the
+  // active incidents. The old rule took the highest-scoring other route,
+  // which could route a driver straight through the incident just reported.
+  const rerouteSuggestion = bestAlternative(routes, selected, incidents);
+  const safestAlternative = rerouteSuggestion?.route;
   const visibleDrivers = demoDrivers.filter((driver) => {
     const matchesQuery = `${driver.name} ${driver.vehicle} ${driver.route}`
       .toLowerCase()
@@ -137,7 +176,11 @@ export function useRoadSignalController() {
         ...current,
       ].slice(0, 100));
       if (events.some((event) => event.type === "route.risk_changed")) {
-        setNotice("Live route risk changed. Review the active trip and available alternatives.");
+        // The API publishes this when an incident changes route risk. It used
+        // to only raise a notice, leaving the displayed scores stale and no
+        // alternative offered; now it re-scores and surfaces one if it exists.
+        setNotice("Live route risk changed. Re-checking your route…");
+        void reanalyseRoutesRef.current?.();
       }
     },
   });
@@ -333,36 +376,7 @@ export function useRoadSignalController() {
       });
       if (!data.routes.length)
         throw new Error("The API returned no route alternatives.");
-      const apiRoutes = data.routes.map((r) => ({
-        id: r.id,
-        name: r.name,
-        durationMinutes: r.duration_minutes,
-        distanceKm: r.distance_km,
-        safetyScore: r.safety_score,
-        confidence: r.confidence,
-        riskLevel: r.risk_level,
-        recommended: r.recommended,
-        differenceFromFastest: r.difference_from_fastest,
-        factors: r.factors,
-        breakdown: {
-          crime: r.breakdown.crime,
-          accident: r.breakdown.accident,
-          traffic: r.breakdown.traffic,
-          weather: r.breakdown.weather,
-          roadCondition: r.breakdown.road_condition,
-          community: r.breakdown.community,
-        },
-        explanation: r.explanation,
-        geometry: r.geometry,
-        steps: (r.steps ?? []).map((step) => ({
-          instruction: step.instruction,
-          maneuver: step.maneuver,
-          streetName: step.street_name,
-          distanceMeters: step.distance_meters,
-          durationSeconds: step.duration_seconds,
-          location: step.location,
-        })),
-      }));
+      const apiRoutes = data.routes.map(toRouteOption);
       setRoutes(apiRoutes);
       setSelected(
         apiRoutes.find((candidate) => candidate.recommended)?.id ??
@@ -491,7 +505,7 @@ export function useRoadSignalController() {
       ...t,
       score: Math.max(35, t.score - 19),
       alerts: [
-        `${type} ahead. ${safestAlternative ? `${safestAlternative.name} is the lowest-risk available alternative.` : "Review the available alternatives."} Reroute recommended.`,
+        `${type} ahead. ${rerouteSuggestion ? `${rerouteSuggestion.reason} Reroute recommended.` : "No alternative route is safer than the one you are on."}`,
         ...t.alerts,
       ],
     }));
@@ -500,9 +514,9 @@ export function useRoadSignalController() {
       ...a,
     ]);
     setNotice(
-      safestAlternative
-        ? "Fleet alert published and safer reroute calculated."
-        : "Fleet alert published. No safer alternative route is available.",
+      rerouteSuggestion
+        ? `Fleet alert published. ${rerouteSuggestion.reason}`
+        : "Fleet alert published. No alternative route is safer than the one you are on.",
     );
   }
   function moderate(id: string, kind: "confirmations" | "disputes") {
@@ -534,12 +548,13 @@ export function useRoadSignalController() {
   }
   async function reportIncident(report: IncidentReport) {
     let item: Incident;
+    let submissionNotice: string;
     if (API_ENABLED && session) {
       const result = await assistantRequest<ApiIncident>(apiClient, "/api/v1/incidents", {
         method: "POST", body: JSON.stringify(report),
       }, 15_000);
       item = fromApiIncident(result);
-      setNotice("Your reviewed incident report was submitted.");
+      submissionNotice = "Your reviewed incident report was submitted.";
     } else {
       item = {
         id: `local-${crypto.randomUUID()}`, incidentType: report.incident_type,
@@ -548,10 +563,84 @@ export function useRoadSignalController() {
         occurredAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
         confirmations: 0, disputes: 0, status: "active",
       };
-      setNotice("Demo report saved in this browser session. It has not been published.");
+      submissionNotice = "Demo report saved in this browser session. It has not been published.";
     }
     setIncidents((items) => [item, ...items]);
     setAudit((items) => [`${item.incidentType}: reviewed report ${API_ENABLED && session ? "submitted" : "saved locally"}`, ...items]);
+    // Reporting used to end here: the incident appeared on the map but every
+    // route kept its previous score and no alternative was ever offered. The
+    // API clears its route-analysis cache when an incident is created, so
+    // re-analysing now returns scores that account for it.
+    const outcome = await refreshRoutesForIncident(item);
+    setNotice(`${submissionNotice} ${outcome}`);
+  }
+
+  /**
+   * Re-score the current routes and return them.
+   *
+   * Unlike findRoutes this deliberately does NOT change the selected route or
+   * the data-mode notice: a driver mid-trip should not be silently moved onto
+   * a different road. It only refreshes the scores so an alternative can be
+   * offered, and returns null on any failure so reporting never breaks.
+   */
+  async function reanalyseRoutes(): Promise<RouteOption[] | null> {
+    if (!API_ENABLED) return null;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10_000);
+    try {
+      const data = await apiClient.request<{ routes: ApiRoute[] }>("/api/v1/routes/analyse", {
+        method: "POST",
+        body: JSON.stringify({
+          origin,
+          destination,
+          preference,
+          departure_time: new Date().toISOString(),
+          vehicle_type: "car",
+        }),
+        signal: controller.signal,
+      });
+      if (!data.routes?.length) return null;
+      const scored = data.routes.map(toRouteOption);
+      setRoutes(scored);
+      return scored;
+    } catch {
+      return null;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  reanalyseRoutesRef.current = reanalyseRoutes;
+
+  /**
+   * Re-score the routes against a new incident, raise a reroute alert when a
+   * better route exists, and return a sentence explaining the outcome.
+   *
+   * It always reports back, including when nothing better exists. Staying
+   * silent there is indistinguishable from the feature being broken, which is
+   * exactly how this looked before: an incident appeared on the map and
+   * nothing else happened.
+   */
+  async function refreshRoutesForIncident(item: Incident): Promise<string> {
+    const scored = await reanalyseRoutes();
+    const suggestion = bestAlternative(scored ?? routes, selected, [item, ...incidents]);
+    if (!suggestion) {
+      return scored
+        ? "Routes re-checked: no alternative is safer than the one you are on."
+        : "Route scores could not be re-checked; the alternatives shown may be out of date.";
+    }
+    setTrip((current) =>
+      current.active
+        ? {
+            ...current,
+            alerts: [
+              `${item.incidentType} reported on your route. ${suggestion.reason} Reroute recommended.`,
+              ...current.alerts,
+            ],
+          }
+        : current,
+    );
+    return suggestion.reason;
   }
   return {
     page,
