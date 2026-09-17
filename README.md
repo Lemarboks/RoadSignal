@@ -101,3 +101,23 @@ The free plan spins the service down after 15 minutes of inactivity; the first r
 ## Production deployment
 
 See [Vendor-neutral self-hosting](docs/self-hosting.md) for the hardened Docker Compose stack, TLS, secrets, observability, backups, restore drills, and the owner decisions required for a public launch.
+
+## Licence
+
+Copyright (C) 2026 Lemar Boks.
+
+RoadSignal is licensed under the **GNU Affero General Public License v3.0**
+(AGPL-3.0). See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+In short: you may use, study, modify and share this software, but if you
+distribute it *or run a modified version as a network service*, you must make
+the corresponding source code available under the same licence. That network
+clause (section 13) is the reason AGPL was chosen over GPL — RoadSignal is a
+web application, and GPL alone would let a modified copy be run as a hosted
+service without publishing anything.
+
+Third-party components keep their own licences; see
+[docs/open-source-stack.md](docs/open-source-stack.md). Reported crime figures
+derive from South African Police Service statistics via
+[afrith/crime-stats](https://github.com/afrith/crime-stats), released under the
+Open Data Commons PDDL v1.0.
