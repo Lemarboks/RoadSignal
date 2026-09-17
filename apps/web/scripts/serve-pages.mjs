@@ -7,7 +7,7 @@ import path from "node:path";
 const root = path.resolve(fileURLToPath(new URL("../out/", import.meta.url)));
 const base = (process.env.ROADSIGNAL_PAGES_BASE_PATH ?? "/RoadSignal").replace(/\/$/, "");
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
-const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".ico": "image/x-icon" };
+const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".ico": "image/x-icon" };
 
 const server = createServer(async (request, response) => {
   try {
