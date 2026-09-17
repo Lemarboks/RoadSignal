@@ -46,3 +46,30 @@ test("Pages artifact loads assets, runs the guest showcase and never calls a mis
   expect(failures).toEqual([]);
   if (!hasBackend) expect(apiRequests).toEqual([]);
 });
+
+test("the MapLibre worker ships beside the export so the live map initialises", async ({ page }) => {
+  // MapLibre v6 is ESM-only and its worker relatively imports a ~500KB sibling
+  // chunk. A bundler that emits the worker without that sibling produces a
+  // worker which never starts, and the map then silently falls back to the
+  // schematic view with no error raised anywhere -- indistinguishable from
+  // "the tiles are slow". This test exercises the built export under the
+  // GitHub Pages basePath, which is where a mispathed worker would bite.
+  const badResponses: string[] = [];
+  page.on("response", (response) => {
+    if (response.status() >= 400 && /maplibre/i.test(response.url())) {
+      badResponses.push(`${response.status()} ${response.url()}`);
+    }
+  });
+
+  await page.goto("./");
+
+  for (const file of ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"]) {
+    const response = await page.request.get(new URL(`maplibre/${file}`, page.url()).href);
+    expect(response.status(), `${file} must be served next to the worker`).toBe(200);
+  }
+
+  await page.getByRole("button", { name: /Continue as guest/ }).click();
+  await page.getByRole("button", { name: "Risk Map" }).click();
+  await expect(page.locator(".maplibre-canvas").first()).toHaveClass(/is-ready/, { timeout: 30_000 });
+  expect(badResponses).toEqual([]);
+});
