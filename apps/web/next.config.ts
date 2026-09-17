@@ -20,7 +20,12 @@ const nextConfig: NextConfig = {
   basePath: githubPagesBasePath,
   assetPrefix: githubPagesBasePath,
   trailingSlash: true,
-  env: { NEXT_PUBLIC_GITHUB_PAGES: String(githubPages) },
+  env: {
+    NEXT_PUBLIC_GITHUB_PAGES: String(githubPages),
+    // The MapLibre worker is served from public/, so client code needs
+    // the basePath to build a URL that works under GitHub Pages.
+    NEXT_PUBLIC_BASE_PATH: githubPagesBasePath,
+  },
 };
 
 export default nextConfig;

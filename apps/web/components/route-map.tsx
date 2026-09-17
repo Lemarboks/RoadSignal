@@ -8,6 +8,15 @@ import { cellProvenance, type MapCellsState } from "../lib/map-cells";
 import { SEVERE_WEATHER_LABELS, type CctvCamera, type CrimePrecinct, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
 import { useTelemetryMarkers, type MapTelemetry } from "./telemetry-markers";
 
+// MapLibre v6 is ESM-only and its worker relatively imports a ~500KB sibling
+// chunk. Webpack's new URL(..., import.meta.url) handling emits the worker
+// alone and drops the sibling, so the worker 404s, never starts, and the map
+// silently falls back to the schematic view with no error surfaced anywhere.
+// Both files are therefore staged into public/maplibre by a predev/prebuild
+// step and served as a pair, which also survives `output: "export"`.
+const MAPLIBRE_WORKER_URL =
+  `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/maplibre/maplibre-gl-worker.mjs`;
+
 const OPEN_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 const ROUTE_SOURCE = "roadsignal-routes";
 const ROUTE_HIT_LAYER = "roadsignal-route-hits";
@@ -531,6 +540,7 @@ export function RouteMap({
     void import("maplibre-gl")
       .then((maplibregl) => {
         if (cancelled || !container.current) return;
+        maplibregl.setWorkerUrl(MAPLIBRE_WORKER_URL);
         const instance = new maplibregl.Map({
           container: container.current,
           style: OPEN_STYLE,
