@@ -43,7 +43,7 @@ async def cameras():
     entries = await services.cctv_provider.cameras()
     return {
         "cameras": entries,
-        "source": "opencctv.org",
+        "source": getattr(services.cctv_provider, "source", "opencctv.org"),
         "count": len(entries),
         **_status(services.cctv_provider),
     }
