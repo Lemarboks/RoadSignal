@@ -30,6 +30,19 @@ def _event_point(event: dict) -> tuple[float, float] | None:
     return latitude, longitude
 
 
+# After a failure, retry this soon rather than sitting on it for the whole TTL.
+_RETRY_AFTER_SECONDS = 120.0
+
+
+def _describe(error: Exception) -> str:
+    """A short, safe reason for the UI -- no upstream response bodies."""
+    if isinstance(error, httpx.HTTPStatusError):
+        return f"source returned HTTP {error.response.status_code}"
+    if isinstance(error, httpx.HTTPError):
+        return "source unreachable"
+    return "source returned unexpected data"
+
+
 class SevereEventHazardProvider:
     """NASA EONET open natural-hazard events, scoped to a region, as a route hazard."""
 
@@ -39,6 +52,16 @@ class SevereEventHazardProvider:
         self.bbox = bbox
         self.cache_seconds = cache_seconds
         self._cache: tuple[float, list[dict]] | None = None
+        self._reachable = True
+        self._last_error: str | None = None
+
+    @property
+    def reachable(self) -> bool:
+        return self._reachable
+
+    @property
+    def last_error(self) -> str | None:
+        return self._last_error
 
     async def events(self) -> list[dict]:
         now = time.monotonic()
@@ -72,8 +95,16 @@ class SevereEventHazardProvider:
                     "latitude": latitude,
                     "longitude": longitude,
                 })
-        except (httpx.HTTPError, ValueError, TypeError, KeyError):
-            matches = []
+        except (httpx.HTTPError, ValueError, TypeError, KeyError) as error:
+            self._reachable = False
+            self._last_error = _describe(error)
+            # Keep any previously good result and retry soon, rather than
+            # caching a blank layer for the full TTL.
+            kept = self._cache[1] if self._cache else []
+            self._cache = (now - self.cache_seconds + _RETRY_AFTER_SECONDS, kept)
+            return kept
+        self._reachable = True
+        self._last_error = None
         self._cache = (now, matches)
         return matches
 

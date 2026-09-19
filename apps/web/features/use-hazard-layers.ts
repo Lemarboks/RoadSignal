@@ -28,7 +28,9 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
     const controller = new AbortController();
     setWildfires(LOADING);
     void assistantRequest<WildfireHotspots>(client, "/api/v1/hazards/wildfires", { signal: controller.signal }, 15_000)
-      .then((body) => { if (!controller.signal.aborted) setWildfires({ data: body.hotspots, status: "ready" }); })
+      // A reachable feed reporting zero hotspots is "ready"; a feed that could
+      // not be reached is "unavailable". Both used to arrive as count: 0.
+      .then((body) => { if (!controller.signal.aborted) setWildfires({ data: body.hotspots, status: body.status === "unavailable" ? "unavailable" : "ready" }); })
       .catch(() => { if (!controller.signal.aborted) setWildfires(UNAVAILABLE); });
     return () => controller.abort();
   }, [client, enabled]);
@@ -38,7 +40,7 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
     const controller = new AbortController();
     setSevereWeather(LOADING);
     void assistantRequest<SevereWeatherEvents>(client, "/api/v1/hazards/severe-weather", { signal: controller.signal }, 15_000)
-      .then((body) => { if (!controller.signal.aborted) setSevereWeather({ data: body.events, status: "ready" }); })
+      .then((body) => { if (!controller.signal.aborted) setSevereWeather({ data: body.events, status: body.status === "unavailable" ? "unavailable" : "ready" }); })
       .catch(() => { if (!controller.signal.aborted) setSevereWeather(UNAVAILABLE); });
     return () => controller.abort();
   }, [client, enabled]);
@@ -48,7 +50,7 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
     const controller = new AbortController();
     setCameras(LOADING);
     void assistantRequest<CctvCameras>(client, "/api/v1/hazards/cameras", { signal: controller.signal }, 15_000)
-      .then((body) => { if (!controller.signal.aborted) setCameras({ data: body.cameras, status: "ready" }); })
+      .then((body) => { if (!controller.signal.aborted) setCameras({ data: body.cameras, status: body.status === "unavailable" ? "unavailable" : "ready" }); })
       .catch(() => { if (!controller.signal.aborted) setCameras(UNAVAILABLE); });
     return () => controller.abort();
   }, [client, enabled]);
