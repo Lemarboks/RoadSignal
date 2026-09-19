@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     hazard_bbox_east: float = 20.0
     provider_timeout_seconds: float = 8.0
     cctv_timeout_seconds: float = 25.0
+    # Official i-TRAFFIC developer API key. No self-serve signup: request one
+    # via https://www.i-traffic.co.za/contact (docs at /developers/help).
+    # Without it the camera layer reports itself unavailable rather than
+    # rendering empty, because the previous keyless aggregator now returns 403.
+    itraffic_api_key: str = ""
     hazard_avoidance_enabled: bool = True
     hazard_avoid_wildfire_radius_km: float = 0.6
     hazard_avoid_severe_event_radius_km: float = 0.8

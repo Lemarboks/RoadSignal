@@ -4,7 +4,9 @@ from uuid import uuid4
 
 from .config import settings
 from .events import event_bus
+from .providers.cameras import ResilientCameraProvider
 from .providers.cctv import CctvCameraProvider
+from .providers.itraffic import ITrafficCameraProvider
 from .providers.crime_precincts import CrimePrecinctProvider
 from .providers.hazard_avoidance import HazardAvoidanceBuilder
 from .providers.piper_voice import PiperVoiceProvider
@@ -45,7 +47,13 @@ weather_provider = OpenMeteoWeatherProvider(settings.open_meteo_url, settings.pr
 hazard_bbox = (settings.hazard_bbox_south, settings.hazard_bbox_north, settings.hazard_bbox_west, settings.hazard_bbox_east)
 wildfire_provider = WildfireHazardProvider(settings.provider_timeout_seconds, hazard_bbox)
 severe_event_provider = SevereEventHazardProvider(settings.eonet_url, settings.provider_timeout_seconds, hazard_bbox)
-cctv_provider = CctvCameraProvider(settings.cctv_timeout_seconds, hazard_bbox)
+# Prefer the data owner's official API; keep the keyless aggregator as a
+# fallback for deployments without a developer key.
+opencctv_provider = CctvCameraProvider(settings.cctv_timeout_seconds, hazard_bbox)
+itraffic_provider = ITrafficCameraProvider(
+    settings.itraffic_api_key, hazard_bbox, settings.cctv_timeout_seconds
+)
+cctv_provider = ResilientCameraProvider(itraffic_provider, opencctv_provider)
 crime_precinct_provider = CrimePrecinctProvider()
 hazard_avoidance_builder = HazardAvoidanceBuilder(
     wildfire_provider,
