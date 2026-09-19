@@ -61,6 +61,19 @@ def _haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
     return 6371 * 2 * asin(sqrt(value))
 
 
+# After a failure, retry this soon rather than sitting on it for the whole TTL.
+_RETRY_AFTER_SECONDS = 120.0
+
+
+def _describe(error: Exception) -> str:
+    """A short, safe reason for the UI -- no upstream response bodies."""
+    if isinstance(error, httpx.HTTPStatusError):
+        return f"source returned HTTP {error.response.status_code}"
+    if isinstance(error, httpx.HTTPError):
+        return "source unreachable"
+    return "source returned unexpected data"
+
+
 class WildfireHazardProvider:
     """NASA FIRMS active-fire detections, scoped to a region, as a route hazard."""
 
@@ -69,21 +82,46 @@ class WildfireHazardProvider:
         self.bbox = bbox
         self.cache_seconds = cache_seconds
         self._cache: tuple[float, list[dict]] | None = None
+        self._reachable = True
+        self._last_error: str | None = None
+
+    @property
+    def reachable(self) -> bool:
+        return self._reachable
+
+    @property
+    def last_error(self) -> str | None:
+        return self._last_error
 
     async def hotspots(self) -> list[dict]:
         now = time.monotonic()
         if self._cache and now - self._cache[0] < self.cache_seconds:
             return self._cache[1]
         hotspots: list[dict] = []
+        # Zero active fires is the normal case for Cape Town, so "fetched
+        # successfully and found none" must be distinguishable from "could not
+        # reach FIRMS at all" -- otherwise a dead feed looks like good news.
+        fetched = False
+        last_error: Exception | None = None
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             for url in _FIRMS_SOURCES:
                 try:
                     response = await client.get(url, headers={"User-Agent": "RoadSignal/1.0 (wildfire hazard layer)"})
                     response.raise_for_status()
                     hotspots = _parse_firms_csv(response.text, self.bbox)
+                    fetched = True
                     break
-                except (httpx.HTTPError, ValueError):
+                except (httpx.HTTPError, ValueError) as error:
+                    last_error = error
                     continue
+        if not fetched:
+            self._reachable = False
+            self._last_error = _describe(last_error) if last_error else "source unreachable"
+            kept = self._cache[1] if self._cache else []
+            self._cache = (now - self.cache_seconds + _RETRY_AFTER_SECONDS, kept)
+            return kept
+        self._reachable = True
+        self._last_error = None
         self._cache = (now, hotspots)
         return hotspots
 
