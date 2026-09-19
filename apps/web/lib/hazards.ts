@@ -5,7 +5,8 @@ export type WildfireHotspot = {
   confidence: string;
   acquired_at: string;
 };
-export type WildfireHotspots = { hotspots: WildfireHotspot[]; source: string; count: number };
+export type HazardSourceStatus = "ok" | "unavailable";
+export type WildfireHotspots = { hotspots: WildfireHotspot[]; source: string; count: number; status?: HazardSourceStatus; detail?: string | null };
 
 export type SevereWeatherEvent = {
   id: string;
@@ -14,7 +15,7 @@ export type SevereWeatherEvent = {
   latitude: number;
   longitude: number;
 };
-export type SevereWeatherEvents = { events: SevereWeatherEvent[]; source: string; count: number };
+export type SevereWeatherEvents = { events: SevereWeatherEvent[]; source: string; count: number; status?: HazardSourceStatus; detail?: string | null };
 
 export type CctvCamera = {
   id: string;
@@ -25,7 +26,7 @@ export type CctvCamera = {
   feed_type: "image" | "m3u8" | string;
   source: string;
 };
-export type CctvCameras = { cameras: CctvCamera[]; source: string; count: number };
+export type CctvCameras = { cameras: CctvCamera[]; source: string; count: number; status?: HazardSourceStatus; detail?: string | null };
 
 export type CrimePrecinct = {
   code: string;
