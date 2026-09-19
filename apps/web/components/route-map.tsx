@@ -161,6 +161,13 @@ function severeWeatherFeatures(events: SevereWeatherEvent[]) {
  * feed must not render as a count: "0 traffic cameras" reads as "there are no
  * cameras", which is exactly how a source going offline went unnoticed.
  */
+// Cameras can arrive from the operator's own API or the legacy aggregator;
+// attribute whichever actually answered rather than a hardcoded name.
+function cameraSourceLabel(source?: string): string {
+  if (source === "itraffic") return "i-TRAFFIC, the official South African traffic camera network";
+  return "opencctv.org public traffic camera network";
+}
+
 function hazardSummary<T>(layer: HazardLayerState<T>, label: string): string {
   if (layer.status === "unavailable") return `${label}: source unavailable`;
   return `${layer.data.length} ${label}`;
@@ -985,7 +992,7 @@ export function RouteMap({
           ) : (
             <p>Live video feed available via the source provider.</p>
           )}
-          <small>Source: {selectedCamera.source || "opencctv.org"} public traffic camera network.</small>
+          <small>Source: {cameraSourceLabel(selectedCamera.source)}.</small>
         </aside>
       )}
       {showCrime && selectedPrecinct && (
