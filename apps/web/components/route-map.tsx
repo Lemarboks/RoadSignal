@@ -156,6 +156,16 @@ function severeWeatherFeatures(events: SevereWeatherEvent[]) {
   };
 }
 
+/**
+ * A count means "the feed answered and this is what it holds". An unreachable
+ * feed must not render as a count: "0 traffic cameras" reads as "there are no
+ * cameras", which is exactly how a source going offline went unnoticed.
+ */
+function hazardSummary<T>(layer: HazardLayerState<T>, label: string): string {
+  if (layer.status === "unavailable") return `${label}: source unavailable`;
+  return `${layer.data.length} ${label}`;
+}
+
 function crimePrecinctFeatures(precincts: CrimePrecinct[]) {
   return {
     type: "FeatureCollection" as const,
@@ -884,7 +894,11 @@ export function RouteMap({
           <span aria-live="polite">
             {[hazards.wildfires.status, hazards.severeWeather.status, hazards.cameras.status].includes("loading")
               ? "Loading hazard layers…"
-              : `${hazards.wildfires.data.length} wildfire hotspots · ${hazards.severeWeather.data.length} severe weather events · ${hazards.cameras.data.length} traffic cameras`}
+              : [
+                  hazardSummary(hazards.wildfires, "wildfire hotspots"),
+                  hazardSummary(hazards.severeWeather, "severe weather events"),
+                  hazardSummary(hazards.cameras, "traffic cameras"),
+                ].join(" · ")}
           </span>
         </div>
       )}

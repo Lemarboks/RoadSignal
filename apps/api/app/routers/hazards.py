@@ -5,22 +5,48 @@ from .. import services
 router = APIRouter(prefix="/api/v1/hazards", tags=["hazards"])
 
 
+def _status(provider) -> dict:
+    """Whether the upstream feed answered, so clients can distinguish a
+    genuinely empty region from a source that is down. Both used to arrive as
+    count: 0, which made a dead feed look like good news."""
+    reachable = getattr(provider, "reachable", True)
+    return {
+        "status": "ok" if reachable else "unavailable",
+        "detail": None if reachable else getattr(provider, "last_error", None),
+    }
+
+
 @router.get("/wildfires")
 async def wildfires():
     hotspots = await services.wildfire_provider.hotspots()
-    return {"hotspots": hotspots, "source": "NASA FIRMS", "count": len(hotspots)}
+    return {
+        "hotspots": hotspots,
+        "source": "NASA FIRMS",
+        "count": len(hotspots),
+        **_status(services.wildfire_provider),
+    }
 
 
 @router.get("/severe-weather")
 async def severe_weather():
     events = await services.severe_event_provider.events()
-    return {"events": events, "source": "NASA EONET", "count": len(events)}
+    return {
+        "events": events,
+        "source": "NASA EONET",
+        "count": len(events),
+        **_status(services.severe_event_provider),
+    }
 
 
 @router.get("/cameras")
 async def cameras():
     entries = await services.cctv_provider.cameras()
-    return {"cameras": entries, "source": "opencctv.org", "count": len(entries)}
+    return {
+        "cameras": entries,
+        "source": "opencctv.org",
+        "count": len(entries),
+        **_status(services.cctv_provider),
+    }
 
 
 @router.get("/avoidance-zones")

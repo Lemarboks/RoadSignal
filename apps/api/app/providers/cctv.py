@@ -5,6 +5,17 @@ import httpx
 _MARKERS_URL = "https://opencctv.org/api/cameras/markers"
 _BATCH_URL = "https://opencctv.org/api/cameras/batch"
 _BATCH_SIZE = 50
+# After a failure, retry this soon rather than sitting on it for the whole TTL.
+_RETRY_AFTER_SECONDS = 120.0
+
+
+def _describe(error: Exception) -> str:
+    """A short, safe reason for the UI -- no upstream response bodies."""
+    if isinstance(error, httpx.HTTPStatusError):
+        return f"source returned HTTP {error.response.status_code}"
+    if isinstance(error, httpx.HTTPError):
+        return "source unreachable"
+    return "source returned unexpected data"
 
 
 class CctvCameraProvider:
@@ -21,6 +32,13 @@ class CctvCameraProvider:
         self.bbox = bbox
         self.cache_seconds = cache_seconds
         self._cache: tuple[float, list[dict]] | None = None
+        # An upstream failure and a genuinely empty region both used to produce
+        # [], so callers could not tell "no cameras here" from "the source is
+        # down". opencctv.org put its API behind auth and started returning
+        # 403, which surfaced as "0 traffic cameras" -- indistinguishable from
+        # working correctly. Track the outcome so the API can say which it is.
+        self._reachable = True
+        self._last_error: str | None = None
 
     async def _matching_ids(self, client: httpx.AsyncClient) -> list[str]:
         south, north, west, east = self.bbox
@@ -33,6 +51,14 @@ class CctvCameraProvider:
             for camera_id, latitude, longitude in zip(ids, lats, lngs)
             if south <= latitude <= north and west <= longitude <= east
         ]
+
+    @property
+    def reachable(self) -> bool:
+        return self._reachable
+
+    @property
+    def last_error(self) -> str | None:
+        return self._last_error
 
     async def cameras(self) -> list[dict]:
         now = time.monotonic()
@@ -62,7 +88,18 @@ class CctvCameraProvider:
                             "feed_type": record.get("feed_type"),
                             "source": record.get("source"),
                         })
-        except (httpx.HTTPError, ValueError, TypeError, KeyError):
-            cameras = []
+        except (httpx.HTTPError, ValueError, TypeError, KeyError) as error:
+            self._reachable = False
+            self._last_error = _describe(error)
+            # Deliberately do NOT cache a failure for the full hour, and do not
+            # discard a previously good result: a brief upstream blip should not
+            # blank the layer until the TTL expires.
+            if self._cache:
+                self._cache = (now - self.cache_seconds + _RETRY_AFTER_SECONDS, self._cache[1])
+                return self._cache[1]
+            self._cache = (now - self.cache_seconds + _RETRY_AFTER_SECONDS, [])
+            return []
+        self._reachable = True
+        self._last_error = None
         self._cache = (now, cameras)
         return cameras
