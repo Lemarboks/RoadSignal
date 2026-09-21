@@ -72,6 +72,35 @@ async def avoidance_zones(include_crime: bool = False):
     }
 
 
+@router.get("/service-requests")
+async def service_requests():
+    """Open municipal faults that affect driving conditions.
+
+    Street lights out, traffic lights without power, and water leaking into
+    the roadway -- reported to the City and not yet closed. Road closures are
+    not included: the City's closure type holds 39 records in total and none
+    open, so a closures layer built on it would never fire.
+    """
+    return await services.service_request_provider.layer()
+
+
+@router.get("/crash-history")
+def crash_history():
+    """Recorded crash history per police precinct.
+
+    Six years of crashes published by the City of Cape Town, weighted by
+    outcome rather than frequency alone: a precinct with fewer collisions but
+    more deaths ranks higher. Historical exposure for a road, not a prediction
+    about any particular trip.
+    """
+    precincts = services.crash_history_provider.layer()
+    return {
+        "precincts": precincts,
+        "count": len(precincts),
+        **services.crash_history_provider.metadata,
+    }
+
+
 @router.get("/crime-precincts")
 def crime_precincts():
     """Reported vehicle-crime exposure per police precinct.

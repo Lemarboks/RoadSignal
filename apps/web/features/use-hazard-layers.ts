@@ -4,9 +4,13 @@ import { assistantRequest } from "../lib/assistant";
 import type {
   CctvCamera,
   CctvCameras,
+  CrashHistory,
+  CrashPrecinct,
   CrimePrecinct,
   CrimePrecincts,
   HazardLayerState,
+  ServiceRequest,
+  ServiceRequests,
   SevereWeatherEvent,
   SevereWeatherEvents,
   WildfireHotspot,
@@ -22,6 +26,10 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
   const [cameras, setCameras] = useState<HazardLayerState<CctvCamera>>(enabled ? LOADING : UNAVAILABLE);
   const [crimePrecincts, setCrimePrecincts] = useState<HazardLayerState<CrimePrecinct>>(enabled ? LOADING : UNAVAILABLE);
   const [crimeMeta, setCrimeMeta] = useState<{ window: string; source: string } | null>(null);
+  const [crashPrecincts, setCrashPrecincts] = useState<HazardLayerState<CrashPrecinct>>(enabled ? LOADING : UNAVAILABLE);
+  const [crashMeta, setCrashMeta] = useState<{ window: string; source: string; crashes: number } | null>(null);
+  const [serviceRequests, setServiceRequests] = useState<HazardLayerState<ServiceRequest>>(enabled ? LOADING : UNAVAILABLE);
+  const [serviceMeta, setServiceMeta] = useState<{ source: string; windowDays: number } | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -69,5 +77,35 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
     return () => controller.abort();
   }, [client, enabled]);
 
-  return { wildfires, severeWeather, cameras, crimePrecincts, crimeMeta };
+  useEffect(() => {
+    if (!enabled) return;
+    const controller = new AbortController();
+    setCrashPrecincts(LOADING);
+    void assistantRequest<CrashHistory>(client, "/api/v1/hazards/crash-history", { signal: controller.signal }, 15_000)
+      .then((body) => {
+        if (controller.signal.aborted) return;
+        // available:false means the dataset is missing, not that Cape Town has
+        // no crashes -- report it unavailable rather than as an empty layer.
+        setCrashPrecincts({ data: body.precincts ?? [], status: body.available === false ? "unavailable" : "ready" });
+        setCrashMeta({ window: body.window, source: body.source, crashes: body.crashes });
+      })
+      .catch(() => { if (!controller.signal.aborted) setCrashPrecincts(UNAVAILABLE); });
+    return () => controller.abort();
+  }, [client, enabled]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const controller = new AbortController();
+    setServiceRequests(LOADING);
+    void assistantRequest<ServiceRequests>(client, "/api/v1/hazards/service-requests", { signal: controller.signal }, 20_000)
+      .then((body) => {
+        if (controller.signal.aborted) return;
+        setServiceRequests({ data: body.requests ?? [], status: body.status === "unavailable" ? "unavailable" : "ready" });
+        setServiceMeta({ source: body.source, windowDays: body.window_days });
+      })
+      .catch(() => { if (!controller.signal.aborted) setServiceRequests(UNAVAILABLE); });
+    return () => controller.abort();
+  }, [client, enabled]);
+
+  return { wildfires, severeWeather, cameras, crimePrecincts, crimeMeta, crashPrecincts, crashMeta, serviceRequests, serviceMeta };
 }

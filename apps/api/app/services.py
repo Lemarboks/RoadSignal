@@ -7,10 +7,12 @@ from .events import event_bus
 from .providers.cameras import ResilientCameraProvider
 from .providers.cctv import CctvCameraProvider
 from .providers.itraffic import ITrafficCameraProvider
+from .providers.crash_history import CrashHistoryProvider
 from .providers.crime_precincts import CrimePrecinctProvider
 from .providers.hazard_avoidance import HazardAvoidanceBuilder
 from .providers.piper_voice import PiperVoiceProvider
 from .providers.routes import MockCapeTownRouteProvider, OpenRouteProvider, ResilientRouteProvider
+from .providers.service_requests import ServiceRequestProvider
 from .providers.severe_events import SevereEventHazardProvider
 from .providers.valhalla import ValhallaRouteProvider
 from .providers.weather import OpenMeteoWeatherProvider
@@ -55,6 +57,12 @@ itraffic_provider = ITrafficCameraProvider(
 )
 cctv_provider = ResilientCameraProvider(itraffic_provider, opencctv_provider)
 crime_precinct_provider = CrimePrecinctProvider()
+# Shares the crime layer's precinct polygons rather than carrying a second copy:
+# same boundaries, same point-in-polygon code.
+crash_history_provider = CrashHistoryProvider(crime_precinct_provider)
+# Current municipal conditions, fetched at runtime rather than shipped: a
+# street light reported out is only useful while it is still out.
+service_request_provider = ServiceRequestProvider(hazard_bbox, settings.cctv_timeout_seconds)
 hazard_avoidance_builder = HazardAvoidanceBuilder(
     wildfire_provider,
     severe_event_provider,
