@@ -50,6 +50,29 @@ export type CrimePrecincts = {
   categories: string[];
 };
 
+// Recorded crash history per precinct. Shares the crime layer's boundaries and
+// percentile scale, so one map source can render either metric.
+export type CrashPrecinct = {
+  code: string;
+  name: string;
+  rings: number[][][];
+  crashes: number;
+  fatal: number;
+  serious: number;
+  pedestrians: number;
+  percentile: number;
+  accident_baseline: number;
+};
+export type CrashHistory = {
+  precincts: CrashPrecinct[];
+  count: number;
+  available: boolean;
+  source: string;
+  source_terms?: string;
+  window: string;
+  crashes: number;
+};
+
 export type HazardLayerState<T> = { data: T[]; status: "loading" | "ready" | "unavailable" };
 
 export const SEVERE_WEATHER_LABELS: Record<SevereWeatherEvent["category"], string> = {

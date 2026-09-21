@@ -5,7 +5,7 @@ import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { RouteWeather } from "../lib/open-weather";
 import { cellProvenance, type MapCellsState } from "../lib/map-cells";
-import { SEVERE_WEATHER_LABELS, type CctvCamera, type CrimePrecinct, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
+import { SEVERE_WEATHER_LABELS, type CctvCamera, type CrashPrecinct, type CrimePrecinct, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
 import { useTelemetryMarkers, type MapTelemetry } from "./telemetry-markers";
 
 // MapLibre v6 is ESM-only and its worker relatively imports a ~500KB sibling
@@ -42,6 +42,8 @@ export type HazardLayers = {
   cameras: HazardLayerState<CctvCamera>;
   crimePrecincts?: HazardLayerState<CrimePrecinct>;
   crimeMeta?: { window: string; source: string } | null;
+  crashPrecincts?: HazardLayerState<CrashPrecinct>;
+  crashMeta?: { window: string; source: string; crashes: number } | null;
 };
 
 type Props = {
@@ -183,6 +185,24 @@ function crimePrecinctFeatures(precincts: CrimePrecinct[]) {
         name: precinct.name,
         percentile: precinct.percentile,
         per_km2: precinct.per_km2,
+      },
+      geometry: { type: "Polygon" as const, coordinates: precinct.rings },
+    })),
+  };
+}
+
+// Crash precincts reuse the crime layer's source and colour ramp: identical
+// boundaries, identical 0-1 percentile scale, so only the metric differs.
+function crashPrecinctFeatures(precincts: CrashPrecinct[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: precincts.map((precinct) => ({
+      type: "Feature" as const,
+      properties: {
+        code: precinct.code,
+        name: precinct.name,
+        percentile: precinct.percentile,
+        per_km2: precinct.crashes,
       },
       geometry: { type: "Polygon" as const, coordinates: precinct.rings },
     })),
@@ -511,6 +531,9 @@ export function RouteMap({
   const [selectedWeatherId, setSelectedWeatherId] = useState<string | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [showCrime, setShowCrime] = useState(false);
+  // Crime and crash share one map source, so they are mutually exclusive:
+  // two metrics cannot colour the same polygons at once.
+  const [showCrashes, setShowCrashes] = useState(false);
   const [selectedPrecinctCode, setSelectedPrecinctCode] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [cameraExpanded, setCameraExpanded] = useState(false);
@@ -521,6 +544,7 @@ export function RouteMap({
   const selectedWeatherEvent = hazards?.severeWeather.data.find((event) => event.id === selectedWeatherId);
   const selectedCamera = hazards?.cameras.data.find((camera) => camera.id === selectedCameraId);
   const selectedPrecinct = hazards?.crimePrecincts?.data.find((precinct) => precinct.code === selectedPrecinctCode);
+  const selectedCrashPrecinct = hazards?.crashPrecincts?.data.find((precinct) => precinct.code === selectedPrecinctCode);
   const clearHazardSelections = () => {
     setSelectedWildfireIndex(null);
     setSelectedWeatherId(null);
@@ -723,12 +747,13 @@ export function RouteMap({
 
   useEffect(() => {
     if (status !== "ready" || !map.current) return;
-    (map.current.getSource(CRIME_SOURCE) as GeoJSONSource | undefined)?.setData(
-      showCrime && hazards?.crimePrecincts
-        ? crimePrecinctFeatures(hazards.crimePrecincts.data)
-        : EMPTY_FEATURE_COLLECTION,
-    );
-  }, [hazards?.crimePrecincts?.data, showCrime, status]);
+    const precinctData = showCrime && hazards?.crimePrecincts
+      ? crimePrecinctFeatures(hazards.crimePrecincts.data)
+      : showCrashes && hazards?.crashPrecincts
+        ? crashPrecinctFeatures(hazards.crashPrecincts.data)
+        : EMPTY_FEATURE_COLLECTION;
+    (map.current.getSource(CRIME_SOURCE) as GeoJSONSource | undefined)?.setData(precinctData);
+  }, [hazards?.crimePrecincts?.data, hazards?.crashPrecincts?.data, showCrime, showCrashes, status]);
 
   useEffect(() => {
     if (status !== "ready" || !map.current) return;
@@ -894,8 +919,13 @@ export function RouteMap({
             Traffic cameras {showCameras ? "on" : "off"}
           </button>
           {hazards.crimePrecincts && (
-            <button type="button" aria-pressed={showCrime} onClick={() => { setShowCrime(!showCrime); setSelectedPrecinctCode(null); }}>
+            <button type="button" aria-pressed={showCrime} onClick={() => { setShowCrime(!showCrime); setShowCrashes(false); setSelectedPrecinctCode(null); }}>
               Vehicle crime {showCrime ? "on" : "off"}
+            </button>
+          )}
+          {hazards.crashPrecincts && hazards.crashPrecincts.status !== "unavailable" && (
+            <button type="button" aria-pressed={showCrashes} onClick={() => { setShowCrashes(!showCrashes); setShowCrime(false); setSelectedPrecinctCode(null); }}>
+              Crash history {showCrashes ? "on" : "off"}
             </button>
           )}
           <span aria-live="polite">
@@ -993,6 +1023,28 @@ export function RouteMap({
             <p>Live video feed available via the source provider.</p>
           )}
           <small>Source: {cameraSourceLabel(selectedCamera.source)}.</small>
+        </aside>
+      )}
+      {showCrashes && selectedCrashPrecinct && (
+        <aside className="map-incident-detail crime-detail" aria-label="Precinct crash history details">
+          <header>
+            <div><span>Crash history</span><strong>{selectedCrashPrecinct.name}</strong></div>
+            <button type="button" onClick={() => setSelectedPrecinctCode(null)} aria-label="Close precinct details">Close</button>
+          </header>
+          <dl>
+            <div><dt>Crashes recorded</dt><dd>{selectedCrashPrecinct.crashes.toLocaleString()}</dd></div>
+            <div><dt>Fatalities</dt><dd>{selectedCrashPrecinct.fatal.toLocaleString()}</dd></div>
+            <div><dt>Serious injuries</dt><dd>{selectedCrashPrecinct.serious.toLocaleString()}</dd></div>
+            <div><dt>Pedestrians involved</dt><dd>{selectedCrashPrecinct.pedestrians.toLocaleString()}</dd></div>
+          </dl>
+          <small>
+            {hazards?.crashMeta
+              ? `${hazards.crashMeta.source}, ${hazards.crashMeta.window}.`
+              : "City of Cape Town crash records."}{" "}
+            Ranked by casualty-weighted crashes per km², so a precinct with fewer
+            collisions but more deaths ranks higher. Historical exposure, not a
+            prediction for any single trip.
+          </small>
         </aside>
       )}
       {showCrime && selectedPrecinct && (
