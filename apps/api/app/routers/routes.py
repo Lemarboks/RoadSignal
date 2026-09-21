@@ -4,6 +4,7 @@ from copy import deepcopy
 from fastapi import APIRouter, HTTPException
 
 from ..repositories import repository
+from ..providers.crash_history import slot_for
 from ..risk.engine import risk_level, route_score, segment_score
 from ..schemas import RouteAnalyseRequest
 from .. import services
@@ -23,7 +24,18 @@ PREFERENCE_WEIGHTS = {"safest": (0.9, 0.1), "balanced": (0.75, 0.25), "fastest":
 
 @router.post("/analyse")
 async def analyse(request: RouteAnalyseRequest):
-    key = (request.origin.casefold(), request.destination.casefold(), request.preference, request.vehicle_type)
+    # The departure slot belongs in the key: crash history makes the score
+    # depend on when you leave, so caching on origin/destination alone would
+    # serve a 02:00 score to a 17:00 request. The slot rather than the raw
+    # timestamp keeps the cache useful -- it is the granularity that actually
+    # changes the answer.
+    key = (
+        request.origin.casefold(),
+        request.destination.casefold(),
+        request.preference,
+        request.vehicle_type,
+        slot_for(request.departure_time),
+    )
     cached = services.route_analysis_cache.get(key)
     if cached and asyncio.get_running_loop().time() - cached[0] < CACHE_TTL_SECONDS:
         return deepcopy(cached[1])
@@ -52,6 +64,14 @@ async def _analyse_uncached(request: RouteAnalyseRequest):
             baseline = {
                 **route_baseline,
                 "crime": services.crime_precinct_provider.baseline_at(latitude, longitude),
+                # The accident channel carries 0.25 weight but had no baseline
+                # at all, so recorded crash history never influenced a score --
+                # only live reports did. Departure time is passed through
+                # because crash rates per hour peak on the commute and fall
+                # away overnight.
+                "accident": services.crash_history_provider.baseline_at(
+                    latitude, longitude, request.departure_time
+                ),
             }
             score, penalties, confidence = segment_score(
                 (latitude, longitude), incidents, baseline
@@ -65,9 +85,19 @@ async def _analyse_uncached(request: RouteAnalyseRequest):
         weather_penalty, weather_factors = await services.weather_provider.penalty(*midpoint)
         wildfire_penalty, wildfire_factors = await services.wildfire_provider.penalty(option["geometry"])
         severe_event_penalty, severe_event_factors = await services.severe_event_provider.penalty(option["geometry"])
-        hazard_penalty = weather_penalty + wildfire_penalty + severe_event_penalty
-        hazard_factors = weather_factors + wildfire_factors + severe_event_factors
-        totals["weather"] = totals.get("weather", 0) + hazard_penalty
+        # Open municipal faults on this route. Street-light outages are scaled
+        # by darkness inside the provider, so they only count for a trip that
+        # actually happens after dusk.
+        service_penalty, service_factors = await services.service_request_provider.penalty(
+            option["geometry"], request.departure_time
+        )
+        hazard_penalty = weather_penalty + wildfire_penalty + severe_event_penalty + service_penalty
+        hazard_factors = weather_factors + wildfire_factors + severe_event_factors + service_factors
+        # Environmental hazards read as weather; a dark street light or a
+        # burst main in the roadway is road condition, and showing it under
+        # "weather" would misexplain the score to the driver.
+        totals["weather"] = totals.get("weather", 0) + hazard_penalty - service_penalty
+        totals["road_condition"] = totals.get("road_condition", 0) + service_penalty
         scores = [max(0, score - hazard_penalty) for score in scores]
         confidence = round(sum(confidences) / len(confidences), 2)
         safety = route_score(scores, confidence)
@@ -80,6 +110,9 @@ async def _analyse_uncached(request: RouteAnalyseRequest):
             factors=(hazard_factors + [key.replace("_", " ").title() for key, value in sorted(totals.items(), key=lambda item: item[1], reverse=True)])[:3],
             segment_scores=scores,
             crime_precincts=services.crime_precinct_provider.summarise_route(option["geometry"]),
+            crash_history=services.crash_history_provider.summarise_route(
+                option["geometry"], request.departure_time
+            ),
         )
 
     safety_weight, time_weight = PREFERENCE_WEIGHTS[request.preference]
