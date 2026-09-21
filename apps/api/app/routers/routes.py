@@ -85,9 +85,19 @@ async def _analyse_uncached(request: RouteAnalyseRequest):
         weather_penalty, weather_factors = await services.weather_provider.penalty(*midpoint)
         wildfire_penalty, wildfire_factors = await services.wildfire_provider.penalty(option["geometry"])
         severe_event_penalty, severe_event_factors = await services.severe_event_provider.penalty(option["geometry"])
-        hazard_penalty = weather_penalty + wildfire_penalty + severe_event_penalty
-        hazard_factors = weather_factors + wildfire_factors + severe_event_factors
-        totals["weather"] = totals.get("weather", 0) + hazard_penalty
+        # Open municipal faults on this route. Street-light outages are scaled
+        # by darkness inside the provider, so they only count for a trip that
+        # actually happens after dusk.
+        service_penalty, service_factors = await services.service_request_provider.penalty(
+            option["geometry"], request.departure_time
+        )
+        hazard_penalty = weather_penalty + wildfire_penalty + severe_event_penalty + service_penalty
+        hazard_factors = weather_factors + wildfire_factors + severe_event_factors + service_factors
+        # Environmental hazards read as weather; a dark street light or a
+        # burst main in the roadway is road condition, and showing it under
+        # "weather" would misexplain the score to the driver.
+        totals["weather"] = totals.get("weather", 0) + hazard_penalty - service_penalty
+        totals["road_condition"] = totals.get("road_condition", 0) + service_penalty
         scores = [max(0, score - hazard_penalty) for score in scores]
         confidence = round(sum(confidences) / len(confidences), 2)
         safety = route_score(scores, confidence)

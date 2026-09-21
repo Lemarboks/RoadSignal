@@ -9,6 +9,8 @@ import type {
   CrimePrecinct,
   CrimePrecincts,
   HazardLayerState,
+  ServiceRequest,
+  ServiceRequests,
   SevereWeatherEvent,
   SevereWeatherEvents,
   WildfireHotspot,
@@ -26,6 +28,8 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
   const [crimeMeta, setCrimeMeta] = useState<{ window: string; source: string } | null>(null);
   const [crashPrecincts, setCrashPrecincts] = useState<HazardLayerState<CrashPrecinct>>(enabled ? LOADING : UNAVAILABLE);
   const [crashMeta, setCrashMeta] = useState<{ window: string; source: string; crashes: number } | null>(null);
+  const [serviceRequests, setServiceRequests] = useState<HazardLayerState<ServiceRequest>>(enabled ? LOADING : UNAVAILABLE);
+  const [serviceMeta, setServiceMeta] = useState<{ source: string; windowDays: number } | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -89,5 +93,19 @@ export function useHazardLayers(client: RoadSignalApiClient, enabled: boolean) {
     return () => controller.abort();
   }, [client, enabled]);
 
-  return { wildfires, severeWeather, cameras, crimePrecincts, crimeMeta, crashPrecincts, crashMeta };
+  useEffect(() => {
+    if (!enabled) return;
+    const controller = new AbortController();
+    setServiceRequests(LOADING);
+    void assistantRequest<ServiceRequests>(client, "/api/v1/hazards/service-requests", { signal: controller.signal }, 20_000)
+      .then((body) => {
+        if (controller.signal.aborted) return;
+        setServiceRequests({ data: body.requests ?? [], status: body.status === "unavailable" ? "unavailable" : "ready" });
+        setServiceMeta({ source: body.source, windowDays: body.window_days });
+      })
+      .catch(() => { if (!controller.signal.aborted) setServiceRequests(UNAVAILABLE); });
+    return () => controller.abort();
+  }, [client, enabled]);
+
+  return { wildfires, severeWeather, cameras, crimePrecincts, crimeMeta, crashPrecincts, crashMeta, serviceRequests, serviceMeta };
 }
