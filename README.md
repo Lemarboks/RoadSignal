@@ -79,9 +79,7 @@ Copy `.env.example`. Required in production: `DATABASE_URL`, `REDIS_URL`, a stro
 
 See [architecture and trade-offs](docs/architecture.md), [operations runbook](docs/operations-runbook.md), [data and model governance](docs/data-and-model-governance.md), [AI model strategy](docs/ai-model-strategy.md), [demo instructions](docs/demo.md), and [known limitations](docs/architecture.md#known-limitations).
 
-For assignment submission evidence, use the [assessment marking guide](docs/assessment-marking-guide.md) and replace every learner placeholder with personally verified information.
-
-Repository-specific Codex workflows are versioned under `skills/`: release validation, risk-model auditing, assessment evidence collection, and accessibility review. The exhibition cover artwork is in `docs/presentation/roadsignal-exhibition-cover.png`.
+Repository-specific Codex workflows are versioned under `skills/`: release validation, risk-model auditing, and accessibility review.
 
 ## Free GitHub Pages deployment
 
