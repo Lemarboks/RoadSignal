@@ -1,6 +1,6 @@
 ---
 name: roadsignal-release-check
-description: Validate RoadSignal before a pull request, GitHub Pages deployment, exhibition, or assignment submission. Use for release readiness, static-export verification, route-geometry checks, test execution, deployment evidence, or diagnosing whether the showcase is safe to publish.
+description: Validate RoadSignal before a pull request or GitHub Pages deployment. Use for release readiness, static-export verification, route-geometry checks, test execution, deployment evidence, or diagnosing whether the showcase is safe to publish.
 ---
 
 # RoadSignal release check
