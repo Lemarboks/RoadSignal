@@ -73,6 +73,30 @@ export type CrashHistory = {
   crashes: number;
 };
 
+// Open municipal faults, fetched live rather than shipped: a street light
+// reported out only matters while it is still out.
+export type ServiceRequestCategory = "street_light" | "traffic_signal" | "road_water";
+export type ServiceRequest = {
+  id: string;
+  category: ServiceRequestCategory;
+  label: string;
+  complaint_type: string;
+  suburb: string | null;
+  latitude: number;
+  longitude: number;
+  reported_at: string | null;
+};
+export type ServiceRequests = {
+  requests: ServiceRequest[];
+  count: number;
+  by_category: Partial<Record<ServiceRequestCategory, number>>;
+  labels: Record<ServiceRequestCategory, string>;
+  window_days: number;
+  source: string;
+  status?: HazardSourceStatus;
+  detail?: string | null;
+};
+
 export type HazardLayerState<T> = { data: T[]; status: "loading" | "ready" | "unavailable" };
 
 export const SEVERE_WEATHER_LABELS: Record<SevereWeatherEvent["category"], string> = {

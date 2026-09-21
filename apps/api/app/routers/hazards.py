@@ -72,6 +72,18 @@ async def avoidance_zones(include_crime: bool = False):
     }
 
 
+@router.get("/service-requests")
+async def service_requests():
+    """Open municipal faults that affect driving conditions.
+
+    Street lights out, traffic lights without power, and water leaking into
+    the roadway -- reported to the City and not yet closed. Road closures are
+    not included: the City's closure type holds 39 records in total and none
+    open, so a closures layer built on it would never fire.
+    """
+    return await services.service_request_provider.layer()
+
+
 @router.get("/crash-history")
 def crash_history():
     """Recorded crash history per police precinct.

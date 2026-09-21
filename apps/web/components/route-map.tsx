@@ -5,7 +5,7 @@ import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { RouteWeather } from "../lib/open-weather";
 import { cellProvenance, type MapCellsState } from "../lib/map-cells";
-import { SEVERE_WEATHER_LABELS, type CctvCamera, type CrashPrecinct, type CrimePrecinct, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
+import { SEVERE_WEATHER_LABELS, type CctvCamera, type CrashPrecinct, type ServiceRequest, type CrimePrecinct, type HazardLayerState, type SevereWeatherEvent, type WildfireHotspot } from "../lib/hazards";
 import { useTelemetryMarkers, type MapTelemetry } from "./telemetry-markers";
 
 // MapLibre v6 is ESM-only and its worker relatively imports a ~500KB sibling
@@ -28,6 +28,8 @@ const WILDFIRE_SOURCE = "roadsignal-wildfires";
 const WILDFIRE_LAYER = "roadsignal-wildfire-points";
 const WEATHER_SOURCE = "roadsignal-severe-weather";
 const WEATHER_LAYER = "roadsignal-severe-weather-points";
+const SERVICE_SOURCE = "roadsignal-service-requests";
+const SERVICE_LAYER = "roadsignal-service-request-points";
 const CAMERA_SOURCE = "roadsignal-cameras";
 const CAMERA_LAYER = "roadsignal-camera-points";
 const CRIME_SOURCE = "roadsignal-crime-precincts";
@@ -44,6 +46,8 @@ export type HazardLayers = {
   crimeMeta?: { window: string; source: string } | null;
   crashPrecincts?: HazardLayerState<CrashPrecinct>;
   crashMeta?: { window: string; source: string; crashes: number } | null;
+  serviceRequests?: HazardLayerState<ServiceRequest>;
+  serviceMeta?: { source: string; windowDays: number } | null;
 };
 
 type Props = {
@@ -205,6 +209,22 @@ function crashPrecinctFeatures(precincts: CrashPrecinct[]) {
         per_km2: precinct.crashes,
       },
       geometry: { type: "Polygon" as const, coordinates: precinct.rings },
+    })),
+  };
+}
+
+function serviceRequestFeatures(requests: ServiceRequest[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: requests.map((request) => ({
+      type: "Feature" as const,
+      properties: {
+        id: request.id,
+        category: request.category,
+        label: request.label,
+        suburb: request.suburb ?? "",
+      },
+      geometry: { type: "Point" as const, coordinates: [request.longitude, request.latitude] },
     })),
   };
 }
@@ -534,6 +554,8 @@ export function RouteMap({
   // Crime and crash share one map source, so they are mutually exclusive:
   // two metrics cannot colour the same polygons at once.
   const [showCrashes, setShowCrashes] = useState(false);
+  const [showServiceRequests, setShowServiceRequests] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedPrecinctCode, setSelectedPrecinctCode] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [cameraExpanded, setCameraExpanded] = useState(false);
@@ -545,6 +567,7 @@ export function RouteMap({
   const selectedCamera = hazards?.cameras.data.find((camera) => camera.id === selectedCameraId);
   const selectedPrecinct = hazards?.crimePrecincts?.data.find((precinct) => precinct.code === selectedPrecinctCode);
   const selectedCrashPrecinct = hazards?.crashPrecincts?.data.find((precinct) => precinct.code === selectedPrecinctCode);
+  const selectedServiceRequest = hazards?.serviceRequests?.data.find((request) => request.id === selectedServiceId);
   const clearHazardSelections = () => {
     setSelectedWildfireIndex(null);
     setSelectedWeatherId(null);
@@ -670,6 +693,30 @@ export function RouteMap({
           });
           instance.on("mouseenter", WEATHER_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
           instance.on("mouseleave", WEATHER_LAYER, () => { instance.getCanvas().style.cursor = ""; });
+          // Open municipal faults, coloured by what they are: a dead traffic
+          // light is a different problem from an unlit street.
+          instance.addSource(SERVICE_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
+          instance.addLayer({
+            id: SERVICE_LAYER, type: "circle", source: SERVICE_SOURCE,
+            paint: {
+              "circle-color": ["match", ["get", "category"],
+                "traffic_signal", "#c2410c",
+                "road_water", "#0e7490",
+                "#a16207"],
+              "circle-radius": ["match", ["get", "category"], "traffic_signal", 6, 4],
+              "circle-stroke-width": 1.2, "circle-stroke-color": "#fff", "circle-opacity": 0.85,
+            },
+          });
+          instance.on("click", SERVICE_LAYER, (event) => {
+            const id = event.features?.[0]?.properties?.id;
+            if (typeof id === "string") {
+              setSelectedServiceId(id);
+              setSelectedCameraId(null); setSelectedWildfireIndex(null);
+              setSelectedWeatherId(null); setSelectedIncidentId(null); setSelectedCellId(null);
+            }
+          });
+          instance.on("mouseenter", SERVICE_LAYER, () => { instance.getCanvas().style.cursor = "pointer"; });
+          instance.on("mouseleave", SERVICE_LAYER, () => { instance.getCanvas().style.cursor = ""; });
           instance.addSource(CAMERA_SOURCE, { type: "geojson", data: EMPTY_FEATURE_COLLECTION });
           instance.addLayer({
             id: CAMERA_LAYER, type: "circle", source: CAMERA_SOURCE,
@@ -744,6 +791,15 @@ export function RouteMap({
       showCells && cells?.data ? cells.data : { type: "FeatureCollection", features: [] },
     );
   }, [cells?.data, showCells, status]);
+
+  useEffect(() => {
+    if (status !== "ready" || !map.current) return;
+    (map.current.getSource(SERVICE_SOURCE) as GeoJSONSource | undefined)?.setData(
+      showServiceRequests && hazards?.serviceRequests
+        ? serviceRequestFeatures(hazards.serviceRequests.data)
+        : EMPTY_FEATURE_COLLECTION,
+    );
+  }, [hazards?.serviceRequests?.data, showServiceRequests, status]);
 
   useEffect(() => {
     if (status !== "ready" || !map.current) return;
@@ -923,6 +979,11 @@ export function RouteMap({
               Vehicle crime {showCrime ? "on" : "off"}
             </button>
           )}
+          {hazards.serviceRequests && hazards.serviceRequests.status !== "unavailable" && (
+            <button type="button" aria-pressed={showServiceRequests} onClick={() => { setShowServiceRequests(!showServiceRequests); setSelectedServiceId(null); }}>
+              Road faults {showServiceRequests ? "on" : "off"}
+            </button>
+          )}
           {hazards.crashPrecincts && hazards.crashPrecincts.status !== "unavailable" && (
             <button type="button" aria-pressed={showCrashes} onClick={() => { setShowCrashes(!showCrashes); setShowCrime(false); setSelectedPrecinctCode(null); }}>
               Crash history {showCrashes ? "on" : "off"}
@@ -1023,6 +1084,29 @@ export function RouteMap({
             <p>Live video feed available via the source provider.</p>
           )}
           <small>Source: {cameraSourceLabel(selectedCamera.source)}.</small>
+        </aside>
+      )}
+      {showServiceRequests && selectedServiceRequest && (
+        <aside className="map-incident-detail" aria-label="Reported road fault details">
+          <header>
+            <div><span>Reported road fault</span><strong>{selectedServiceRequest.label}</strong></div>
+            <button type="button" onClick={() => setSelectedServiceId(null)} aria-label="Close fault details">Close</button>
+          </header>
+          <dl>
+            {selectedServiceRequest.suburb && (
+              <div><dt>Suburb</dt><dd>{selectedServiceRequest.suburb}</dd></div>
+            )}
+            {selectedServiceRequest.reported_at && (
+              <div><dt>Reported</dt><dd>{new Date(selectedServiceRequest.reported_at).toLocaleDateString()}</dd></div>
+            )}
+          </dl>
+          <small>
+            Logged with the City of Cape Town and not yet closed
+            {hazards?.serviceMeta ? `, within the last ${hazards.serviceMeta.windowDays} days` : ""}.
+            {selectedServiceRequest.category === "street_light"
+              ? " Street lighting affects a route only after dark, and is scored that way."
+              : ""}
+          </small>
         </aside>
       )}
       {showCrashes && selectedCrashPrecinct && (
