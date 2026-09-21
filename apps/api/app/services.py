@@ -7,6 +7,7 @@ from .events import event_bus
 from .providers.cameras import ResilientCameraProvider
 from .providers.cctv import CctvCameraProvider
 from .providers.itraffic import ITrafficCameraProvider
+from .providers.crash_history import CrashHistoryProvider
 from .providers.crime_precincts import CrimePrecinctProvider
 from .providers.hazard_avoidance import HazardAvoidanceBuilder
 from .providers.piper_voice import PiperVoiceProvider
@@ -55,6 +56,9 @@ itraffic_provider = ITrafficCameraProvider(
 )
 cctv_provider = ResilientCameraProvider(itraffic_provider, opencctv_provider)
 crime_precinct_provider = CrimePrecinctProvider()
+# Shares the crime layer's precinct polygons rather than carrying a second copy:
+# same boundaries, same point-in-polygon code.
+crash_history_provider = CrashHistoryProvider(crime_precinct_provider)
 hazard_avoidance_builder = HazardAvoidanceBuilder(
     wildfire_provider,
     severe_event_provider,
